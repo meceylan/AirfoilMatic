@@ -16,8 +16,8 @@ AirfoilMatik, NACA 4 ve 5 haneli kanat profillerini veya özel kanat dosyaların
 
 **1. Depoyu klonlayın**
 ```bash
-git clone https://github.com/meceylan/AirfoilMatik.git
-cd AirfoilMatik
+git clone https://github.com/meceylan/AirfoilMatic.git
+cd AirfoilMatic
 ```
 
 **2. Bağımlılıkları yükleyin**
