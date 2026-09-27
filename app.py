@@ -182,20 +182,10 @@ custom_file = None
 file_name_prefix = "domain"
 
 if data_source == 'NACA (4 veya 5 Haneli)':
-    # Rastgele profil üretici
+    # Rastgele profil üretici (Güvenli Havuz)
     def generate_random_naca():
-        if random.random() < 0.6:
-            # NACA 4-digit
-            m = random.randint(0, 9)
-            p = random.randint(0, 9) if m > 0 else 0
-            t = random.randint(8, 24)
-            return f"{m}{p}{t:02d}"
-        else:
-            # NACA 5-digit
-            l = random.randint(1, 5)
-            p = random.choice([10, 20, 30, 40, 50])
-            t = random.randint(8, 24)
-            return f"{l}{p:02d}{t:02d}"
+        safe_pool = ['0009', '0012', '0015', '0018', '2412', '2414', '4412', '4415', '2212', '4312', '23012', '23015']
+        return random.choice(safe_pool)
 
     # Session state başlangıç değerleri
     if 'naca_code' not in st.session_state:
@@ -275,11 +265,6 @@ else:
     R_inlet = L_inlet_rect
     Y_top = L_top
     Y_bottom = L_bottom
-
-# Sidebar Download Butonu (erişilebilirlik için ek konum)
-sidebar_download_placeholder = st.sidebar.empty()
-
-st.sidebar.warning("⚠️ Beta Sürümü (v0.3)\nBu araç 2B CFD ön işlemini hızlandırmak için tasarlanmıştır. Çıktıların analiz uygunluğunu (geometri, ağ yapısı vb.) Ansys ortamında mutlaka doğrulayın.")
 
 # --- GEOMETRİ VE TOPOLOJİ HESAPLAMALARI ---
 try:
@@ -554,7 +539,7 @@ try:
         key="download_main"
     )
 
-    sidebar_download_placeholder.download_button(
+    st.sidebar.download_button(
         label="⬇️ Ansys TXT İndir",
         data=txt_data,
         file_name=f"{file_name_prefix}.txt",
@@ -562,5 +547,7 @@ try:
         use_container_width=True,
         key="download_sidebar"
     )
+    
+    st.sidebar.warning("⚠️ Beta Sürümü (v0.3)\nBu araç 2B CFD ön işlemini hızlandırmak için tasarlanmıştır. Çıktıların analiz uygunluğunu (geometri, ağ yapısı vb.) Ansys ortamında mutlaka doğrulayın.")
 except Exception as e:
     st.error(f"Dışa aktarma verisi oluşturulurken hata: {e}")
