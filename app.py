@@ -197,15 +197,56 @@ if data_source == 'NACA (4 veya 5 Haneli)':
             t = random.randint(8, 24)
             return f"{l}{p:02d}{t:02d}"
 
+    # Session state başlangıç değerleri
     if 'naca_code' not in st.session_state:
         st.session_state.naca_code = "4412"
+    if 'profile_history' not in st.session_state:
+        st.session_state.profile_history = []
+    if 'history_index' not in st.session_state:
+        st.session_state.history_index = -1
 
     naca_input = st.sidebar.text_input("NACA Kodu", value=st.session_state.naca_code, max_chars=5).strip()
     st.session_state.naca_code = naca_input
 
-    if st.sidebar.button("🎲 Rastgele Profil"):
-        st.session_state.naca_code = generate_random_naca()
-        st.rerun()
+    # Geçmiş ve navigasyon butonları
+    history = st.session_state.profile_history
+    h_idx = st.session_state.history_index
+
+    if len(history) == 0:
+        # Henüz rastgele basılmamış — tek geniş buton
+        if st.sidebar.button("🎲 Rastgele Profil", use_container_width=True):
+            new_code = generate_random_naca()
+            st.session_state.profile_history.append(new_code)
+            st.session_state.history_index = 0
+            st.session_state.naca_code = new_code
+            st.rerun()
+    else:
+        # Geçmiş var — 3 kolonlu düzen
+        col1, col2, col3 = st.sidebar.columns([1, 2, 1])
+
+        with col1:
+            if h_idx > 0:
+                if st.button("⬅️", key="hist_back", use_container_width=True):
+                    st.session_state.history_index -= 1
+                    st.session_state.naca_code = history[st.session_state.history_index]
+                    st.rerun()
+
+        with col2:
+            if st.button("🎲 Rastgele", key="hist_random", use_container_width=True):
+                new_code = generate_random_naca()
+                # Ortadan geri gidilmişse, gelecek kayıtları buda
+                st.session_state.profile_history = history[:h_idx + 1]
+                st.session_state.profile_history.append(new_code)
+                st.session_state.history_index = len(st.session_state.profile_history) - 1
+                st.session_state.naca_code = new_code
+                st.rerun()
+
+        with col3:
+            if h_idx < len(history) - 1:
+                if st.button("➡️", key="hist_forward", use_container_width=True):
+                    st.session_state.history_index += 1
+                    st.session_state.naca_code = history[st.session_state.history_index]
+                    st.rerun()
 
     file_name_prefix = f"domain_naca{naca_input}"
 else:
