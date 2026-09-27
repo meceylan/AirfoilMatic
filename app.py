@@ -16,7 +16,7 @@ def calculate_naca4(naca, c, n_points=100):
     
     def get_coords(xc_arr):
         x = xc_arr * c
-        # -0.1036 ile firar kenarı kusursuz kapatılıyor (Sliver Face / Kısa Kenar Çözümü)
+        # -0.1036 katsayısı ile firar kenarı tam kapatılır (Closed TE / Sliver Face önleme)
         yt = 5 * t * c * (0.2969 * np.sqrt(xc_arr) - 0.1260 * xc_arr - 0.3516 * xc_arr**2 + 0.2843 * xc_arr**3 - 0.1036 * xc_arr**4)
         
         yc = np.zeros_like(xc_arr)
@@ -74,7 +74,7 @@ def calculate_naca5(naca, c, n_points=100):
     
     def get_coords(xc_arr):
         x = xc_arr * c
-        # -0.1036 ile firar kenarı kusursuz kapatılıyor (Sliver Face / Kısa Kenar Çözümü)
+        # -0.1036 katsayısı ile firar kenarı tam kapatılır (Closed TE / Sliver Face önleme)
         yt = 5 * t * c * (0.2969 * np.sqrt(xc_arr) - 0.1260 * xc_arr - 0.3516 * xc_arr**2 + 0.2843 * xc_arr**3 - 0.1036 * xc_arr**4)
         
         yc = np.zeros_like(xc_arr)
@@ -238,7 +238,7 @@ except Exception as e:
     st.error(f"Kanat geometrisi oluşturulurken bir hata oluştu: {e}")
     st.stop()
 
-# 2. Dikey Çizgilerin Milimetrik Teması (X=0.3c tam noktaları)
+# 2. Dikey Bölme Noktaları (X=0.3c koordinatları)
 x_up_03 = xu_f[-1]    
 y_up_03 = yu_f[-1]    
 x_low_03 = xl_f[-1]   
