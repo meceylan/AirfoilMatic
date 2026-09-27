@@ -1,4 +1,4 @@
-# ✈️ AirfoilMatik V2.0 — 2B CFD Domain Generator
+# ✈️ AirfoilMatic V0.2 Beta — 2B CFD Domain Generator
 
 **AirfoilMatik**, NACA 4 ve 5 haneli kanat profillerini veya özel kanat dosyalarını (.dat / .txt) kullanarak 2 boyutlu CFD akış alanı (domain) geometrisi oluşturan interaktif bir web uygulamasıdır.
 
