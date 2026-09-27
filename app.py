@@ -167,12 +167,12 @@ def process_custom_airfoil(file_content, c):
     
     return xu_front, yu_front, xu_rear, yu_rear, xl_front, yl_front, xl_rear, yl_rear, y_split_u, y_split_l
 
-st.set_page_config(page_title="AirfoilMatic V2.0", layout="wide")
+st.set_page_config(page_title="AirfoilMatic v0.2 Beta", layout="wide")
 
-st.title("AirfoilMatik V2.0: 2B CFD Domain Generator")
+st.title("AirfoilMatic V0.2 Beta: 2B CFD Domain Generator")
 
 # --- 4. ARAYÜZ SADELEŞTİRMESİ ---
-st.sidebar.header("Girdi Parametreleri")
+st.sidebar.header("AirfoilMatic V0.2 Beta")
 
 data_source = st.sidebar.radio("Kanat Veri Kaynağı", ['NACA (4 veya 5 Haneli)', 'Özel Kanat (.dat / .txt)'])
 
@@ -195,6 +195,8 @@ domain_type = st.sidebar.selectbox("Akış Alanı (Domain) Tipi", ['C-Grid (Stan
 chord_c = st.sidebar.number_input("Chord Uzunluğu (c) [m]", value=1.0, step=0.1, min_value=0.1)
 R_inlet = st.sidebar.number_input("Giriş Yarıçapı/Uzaklığı (Rinlet) [m]", value=20.0, step=1.0, min_value=1.0)
 L_wake = st.sidebar.number_input("İz Uzunluğu (Lwake) [m]", value=40.0, step=1.0, min_value=1.0)
+
+st.sidebar.warning("⚠️ Beta Sürümü (v0.2)\nBu araç 2B CFD ön işlemini hızlandırmak için tasarlanmıştır. Çıktıların analiz uygunluğunu (geometri, ağ yapısı vb.) Ansys ortamında mutlaka doğrulayın.")
 
 # --- GEOMETRİ VE TOPOLOJİ HESAPLAMALARI ---
 try:
@@ -399,7 +401,7 @@ fig_zoom.update_layout(
     paper_bgcolor='rgba(0,0,0,0)',
     plot_bgcolor='rgba(0,0,0,0)'
 )
-st.plotly_chart(fig_zoom, use_container_width=True)
+st.plotly_chart(fig_zoom, use_container_width=True, config={'scrollZoom': False, 'displayModeBar': True})
 
 
 # --- Grafik 2: Tam Akış Alanı (Domain) Topolojisi ---
@@ -427,7 +429,7 @@ fig_full.update_layout(
     paper_bgcolor='rgba(0,0,0,0)',
     plot_bgcolor='rgba(0,0,0,0)'
 )
-st.plotly_chart(fig_full, use_container_width=True)
+st.plotly_chart(fig_full, use_container_width=True, config={'scrollZoom': False, 'displayModeBar': True})
 
 # --- 3. ANSYS TXT EXPORT GÜNCELLEMESİ ---
 def generate_ansys_txt():
