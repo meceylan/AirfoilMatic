@@ -1,6 +1,7 @@
 import streamlit as st
 import numpy as np
 import plotly.graph_objects as go
+import random
 
 def calculate_naca4(naca, c, n_points=100):
     m = int(naca[0]) / 100.0
@@ -167,12 +168,12 @@ def process_custom_airfoil(file_content, c):
     
     return xu_front, yu_front, xu_rear, yu_rear, xl_front, yl_front, xl_rear, yl_rear, y_split_u, y_split_l
 
-st.set_page_config(page_title="AirfoilMatic v0.2 Beta", layout="wide")
+st.set_page_config(page_title="AirfoilMatic v0.3 Beta", layout="wide")
 
-st.title("AirfoilMatic V0.2 Beta: 2B CFD Domain Generator")
+st.title("AirfoilMatic V0.3 Beta: 2B CFD Domain Generator")
 
 # --- 4. ARAYÜZ SADELEŞTİRMESİ ---
-st.sidebar.header("AirfoilMatic V0.2 Beta")
+st.sidebar.header("AirfoilMatic V0.3 Beta")
 
 data_source = st.sidebar.radio("Kanat Veri Kaynağı", ['NACA (4 veya 5 Haneli)', 'Özel Kanat (.dat / .txt)'])
 
@@ -181,7 +182,31 @@ custom_file = None
 file_name_prefix = "domain"
 
 if data_source == 'NACA (4 veya 5 Haneli)':
-    naca_input = st.sidebar.text_input("NACA Kodu", value="0012", max_chars=5).strip()
+    # Rastgele profil üretici
+    def generate_random_naca():
+        if random.random() < 0.6:
+            # NACA 4-digit
+            m = random.randint(0, 9)
+            p = random.randint(0, 9) if m > 0 else 0
+            t = random.randint(8, 24)
+            return f"{m}{p}{t:02d}"
+        else:
+            # NACA 5-digit
+            l = random.randint(1, 5)
+            p = random.choice([10, 20, 30, 40, 50])
+            t = random.randint(8, 24)
+            return f"{l}{p:02d}{t:02d}"
+
+    if 'naca_code' not in st.session_state:
+        st.session_state.naca_code = "4412"
+
+    naca_input = st.sidebar.text_input("NACA Kodu", value=st.session_state.naca_code, max_chars=5).strip()
+    st.session_state.naca_code = naca_input
+
+    if st.sidebar.button("🎲 Rastgele Profil"):
+        st.session_state.naca_code = generate_random_naca()
+        st.rerun()
+
     file_name_prefix = f"domain_naca{naca_input}"
 else:
     custom_file = st.sidebar.file_uploader("Özel Kanat Dosyası Yükle (.dat, .txt)", type=["dat", "txt"])
@@ -195,16 +220,16 @@ domain_type = st.sidebar.selectbox("Akış Alanı (Domain) Tipi", ['C-Grid (Stan
 chord_c = st.sidebar.number_input("Chord Uzunluğu (c) [m]", value=1.0, step=0.1, min_value=0.1)
 
 if domain_type == 'C-Grid (Standart)':
-    R_inlet = st.sidebar.number_input("Giriş Yarıçapı (Rinlet) [m]", value=20.0, step=1.0, min_value=1.0)
-    L_wake = st.sidebar.number_input("Arka İz Uzunluğu (Lwake) [m]", value=40.0, step=1.0, min_value=1.0)
+    R_inlet = st.sidebar.number_input("Giriş Yarıçapı (Rinlet) [m]", value=10.0, step=1.0, min_value=1.0)
+    L_wake = st.sidebar.number_input("Arka İz Uzunluğu (Lwake) [m]", value=20.0, step=1.0, min_value=1.0)
     # C-Grid: simetrik sınırlar
     Y_top = R_inlet
     Y_bottom = R_inlet
 else:
-    L_inlet_rect = st.sidebar.number_input("Giriş Uzaklığı (Linlet) [m]", value=20.0, step=1.0, min_value=1.0)
-    L_wake = st.sidebar.number_input("Arka İz Uzunluğu (Lwake) [m]", value=40.0, step=1.0, min_value=1.0)
-    L_top = st.sidebar.number_input("Üst Sınır Uzaklığı (Ltop) [m]", value=20.0, step=1.0, min_value=1.0)
-    L_bottom = st.sidebar.number_input("Alt Sınır Uzaklığı (Lbottom) [m]", value=20.0, step=1.0, min_value=1.0)
+    L_inlet_rect = st.sidebar.number_input("Giriş Uzaklığı (Linlet) [m]", value=10.0, step=1.0, min_value=1.0)
+    L_wake = st.sidebar.number_input("Arka İz Uzunluğu (Lwake) [m]", value=20.0, step=1.0, min_value=1.0)
+    L_top = st.sidebar.number_input("Üst Sınır Uzaklığı (Ltop) [m]", value=10.0, step=1.0, min_value=1.0)
+    L_bottom = st.sidebar.number_input("Alt Sınır Uzaklığı (Lbottom) [m]", value=10.0, step=1.0, min_value=1.0)
     # Dikdörtgen: bağımsız sınırlar
     R_inlet = L_inlet_rect
     Y_top = L_top
@@ -213,7 +238,7 @@ else:
 # Sidebar Download Butonu (erişilebilirlik için ek konum)
 sidebar_download_placeholder = st.sidebar.empty()
 
-st.sidebar.warning("⚠️ Beta Sürümü (v0.2)\nBu araç 2B CFD ön işlemini hızlandırmak için tasarlanmıştır. Çıktıların analiz uygunluğunu (geometri, ağ yapısı vb.) Ansys ortamında mutlaka doğrulayın.")
+st.sidebar.warning("⚠️ Beta Sürümü (v0.3)\nBu araç 2B CFD ön işlemini hızlandırmak için tasarlanmıştır. Çıktıların analiz uygunluğunu (geometri, ağ yapısı vb.) Ansys ortamında mutlaka doğrulayın.")
 
 # --- GEOMETRİ VE TOPOLOJİ HESAPLAMALARI ---
 try:

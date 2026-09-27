@@ -1,4 +1,4 @@
-# ✈️ AirfoilMatic V0.2 Beta — 2B CFD Domain Generator
+# ✈️ AirfoilMatic V0.3 Beta — 2B CFD Domain Generator
 
 **[AirfoilMatic'i Tarayıcıda Çalıştır](https://airfoilmatik-rycmt6quqjnkbrqw48yeec.streamlit.app/)**
 
