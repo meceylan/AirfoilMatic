@@ -196,6 +196,9 @@ chord_c = st.sidebar.number_input("Chord Uzunluğu (c) [m]", value=1.0, step=0.1
 R_inlet = st.sidebar.number_input("Giriş Yarıçapı/Uzaklığı (Rinlet) [m]", value=20.0, step=1.0, min_value=1.0)
 L_wake = st.sidebar.number_input("İz Uzunluğu (Lwake) [m]", value=40.0, step=1.0, min_value=1.0)
 
+# Sidebar Download Butonu (erişilebilirlik için ek konum)
+sidebar_download_placeholder = st.sidebar.empty()
+
 st.sidebar.warning("⚠️ Beta Sürümü (v0.2)\nBu araç 2B CFD ön işlemini hızlandırmak için tasarlanmıştır. Çıktıların analiz uygunluğunu (geometri, ağ yapısı vb.) Ansys ortamında mutlaka doğrulayın.")
 
 # --- GEOMETRİ VE TOPOLOJİ HESAPLAMALARI ---
@@ -464,9 +467,19 @@ try:
     st.download_button(
         label="⬇️ Ansys TXT İndir",
         data=txt_data,
-        file_name=f"{file_name_prefix}_v2.txt",
+        file_name=f"{file_name_prefix}.txt",
         mime="text/plain",
-        use_container_width=True
+        use_container_width=True,
+        key="download_main"
+    )
+
+    sidebar_download_placeholder.download_button(
+        label="⬇️ Ansys TXT İndir",
+        data=txt_data,
+        file_name=f"{file_name_prefix}.txt",
+        mime="text/plain",
+        use_container_width=True,
+        key="download_sidebar"
     )
 except Exception as e:
     st.error(f"Dışa aktarma verisi oluşturulurken hata: {e}")
