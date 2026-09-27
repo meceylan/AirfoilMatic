@@ -193,8 +193,22 @@ else:
 domain_type = st.sidebar.selectbox("Akış Alanı (Domain) Tipi", ['C-Grid (Standart)', 'Dikdörtgen (Rüzgar Tüneli)'])
 
 chord_c = st.sidebar.number_input("Chord Uzunluğu (c) [m]", value=1.0, step=0.1, min_value=0.1)
-R_inlet = st.sidebar.number_input("Giriş Yarıçapı/Uzaklığı (Rinlet) [m]", value=20.0, step=1.0, min_value=1.0)
-L_wake = st.sidebar.number_input("İz Uzunluğu (Lwake) [m]", value=40.0, step=1.0, min_value=1.0)
+
+if domain_type == 'C-Grid (Standart)':
+    R_inlet = st.sidebar.number_input("Giriş Yarıçapı (Rinlet) [m]", value=20.0, step=1.0, min_value=1.0)
+    L_wake = st.sidebar.number_input("Arka İz Uzunluğu (Lwake) [m]", value=40.0, step=1.0, min_value=1.0)
+    # C-Grid: simetrik sınırlar
+    Y_top = R_inlet
+    Y_bottom = R_inlet
+else:
+    L_inlet_rect = st.sidebar.number_input("Giriş Uzaklığı (Linlet) [m]", value=20.0, step=1.0, min_value=1.0)
+    L_wake = st.sidebar.number_input("Arka İz Uzunluğu (Lwake) [m]", value=40.0, step=1.0, min_value=1.0)
+    L_top = st.sidebar.number_input("Üst Sınır Uzaklığı (Ltop) [m]", value=20.0, step=1.0, min_value=1.0)
+    L_bottom = st.sidebar.number_input("Alt Sınır Uzaklığı (Lbottom) [m]", value=20.0, step=1.0, min_value=1.0)
+    # Dikdörtgen: bağımsız sınırlar
+    R_inlet = L_inlet_rect
+    Y_top = L_top
+    Y_bottom = L_bottom
 
 # Sidebar Download Butonu (erişilebilirlik için ek konum)
 sidebar_download_placeholder = st.sidebar.empty()
@@ -266,14 +280,14 @@ if domain_type == 'C-Grid (Standart)':
 
     # Üst Sınır
     x_top = np.linspace(0, X_exit, 50)
-    y_top = np.ones(50) * R_inlet
+    y_top = np.ones(50) * Y_top
 
     # Alt Sınır
     x_bot = np.linspace(0, X_exit, 50)
-    y_bot = -np.ones(50) * R_inlet
+    y_bot = -np.ones(50) * Y_bottom
 
     # Çıkış (Outlet)
-    y_outlet = np.linspace(R_inlet, -R_inlet, 50)
+    y_outlet = np.linspace(Y_top, -Y_bottom, 50)
     x_outlet = np.ones(50) * X_exit
 
     domain_groups.extend([
@@ -290,19 +304,19 @@ if domain_type == 'C-Grid (Standart)':
 else:
     # Dikdörtgen (Rüzgar Tüneli) Domain
     # Sol Sınır (İnlet)
-    y_inlet = np.linspace(R_inlet, -R_inlet, 50)
+    y_inlet = np.linspace(Y_top, -Y_bottom, 50)
     x_inlet = -np.ones(50) * R_inlet
     
     # Üst Sınır
     x_top = np.linspace(-R_inlet, X_exit, 50)
-    y_top = np.ones(50) * R_inlet
+    y_top = np.ones(50) * Y_top
     
     # Alt Sınır
     x_bot = np.linspace(-R_inlet, X_exit, 50)
-    y_bot = -np.ones(50) * R_inlet
+    y_bot = -np.ones(50) * Y_bottom
     
     # Çıkış (Outlet)
-    y_outlet = np.linspace(R_inlet, -R_inlet, 50)
+    y_outlet = np.linspace(Y_top, -Y_bottom, 50)
     x_outlet = np.ones(50) * X_exit
     
     domain_groups.extend([
@@ -327,17 +341,17 @@ y_wake_split = np.ones(50) * y_te_mid
 
 # X=0.3c Dikey Bölmeleri
 x_split_up_03 = np.ones(50) * x_up_03
-y_split_up_03 = np.linspace(y_up_03, R_inlet, 50)
+y_split_up_03 = np.linspace(y_up_03, Y_top, 50)
 
 x_split_low_03 = np.ones(50) * x_low_03
-y_split_low_03 = np.linspace(y_low_03, -R_inlet, 50)
+y_split_low_03 = np.linspace(y_low_03, -Y_bottom, 50)
 
 # Gerçek Firar Kenarı (Real TE) Dikey Bölmeleri
 x_split_up_te = np.ones(50) * x_te_up
-y_split_up_te = np.linspace(y_te_up, R_inlet, 50)
+y_split_up_te = np.linspace(y_te_up, Y_top, 50)
 
 x_split_low_te = np.ones(50) * x_te_low
-y_split_low_te = np.linspace(y_te_low, -R_inlet, 50)
+y_split_low_te = np.linspace(y_te_low, -Y_bottom, 50)
 
 split_lines.extend([
     {"name": "Ön Yatay Eksen", "x": x_front_split, "y": y_front_split},

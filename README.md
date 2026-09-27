@@ -42,3 +42,16 @@ streamlit run app.py
 ## 📄 Lisans
 
 Bu proje MIT Lisansı altında açık kaynak olarak paylaşılmıştır.
+
+## ⚙️ Nasıl Kullanılır? (Ansys İş Akışı)
+AirfoilMatic'ten indirdiğiniz `.txt` dosyasını Ansys ortamında 2B Mapped Mesh (Yapısal Ağ) kalitesinde bir CFD alanına dönüştürmek için şu adımları izleyin:
+1. **İçe Aktarma:** Ansys DesignModeler'ı açın. `Concept > 3D Curve` yolunu izleyin. Koordinat dosyası olarak indirdiğiniz `.txt` dosyasını seçip `Generate` tuşuna basın.
+2. **Yüzey Oluşturma:** `Concept > Surfaces from Edges` aracını seçin. Dış akış sınırlarını ve kanat profili çizgilerini seçerek ana akış yüzeyini (Surface) oluşturun (`Generate`).
+3. **Yüzey Bölme (Face Split):** Kanadın etrafındaki o kusursuz 4-bölgeli topolojiyi oluşturmak için `Tools > Face Split` komutunu kullanın. Kesici araç (Tool Geometry) olarak dikey kesme çizgilerini ve yatay iz (wake) çizgisini seçin. Yüzeyi parçalara ayırın.
+4. ART (Akışkan) yüzeylerinizi oluşturup Ansys Meshing'e geçtiğinizde, tüm alanların 4 kenarlı (Quadrilateral) olduğunu ve `Mapped Face Meshing` için %100 uyumlu olduğunu göreceksiniz.
+
+## 🧠 Teknik Arka Plan (Neden 0.3c?)
+Klasik yöntemlerde kanat profili tek bir eğri (spline) olarak veya hücum/firar kenarından iki parça olarak alınır. Bu durum, Ansys içinde yüzey (Surface) oluşturulurken hücum kenarında 'Sliver Face' (kıymık/iğne yüzey) veya geçersiz topoloji hatalarına yol açar.
+* AirfoilMatic, yüklenen koordinatları matematiksel olarak analiz eder ve kanadı tam **X = 0.3c** noktasından bıçak gibi 4 ayrı segmente (Üst-Ön, Üst-Arka, Alt-Ön, Alt-Arka) böler.
+* Bu $0.3c$ dikey ayrım noktası, dış C-Grid veya Dikdörtgen sınırına kusursuz dik çizgilerle bağlanır.
+* Sonuç: Ansys Meshing yazılımının en sevdiği, sıfır hata ile yapısal (structured) ağ atılabilen H-Grid / C-Grid hibrit topolojisidir.
