@@ -445,19 +445,18 @@ x_plot = np.concatenate([xu_f, xu_r, xl_r[::-1], xl_f[::-1]])
 y_plot = np.concatenate([yu_f, yu_r, yl_r[::-1], yl_f[::-1]])
 
 def add_airfoil_to_fig(fig_obj):
-    # Çizgileri 4 ayrı parça olarak (saçaklanmayı önlemek için) düz siyah renk ile çiziyoruz
-    fig_obj.add_trace(go.Scatter(x=xu_f, y=yu_f, mode='lines', line=dict(color='black', width=2), showlegend=False))
-    fig_obj.add_trace(go.Scatter(x=xu_r, y=yu_r, mode='lines', line=dict(color='black', width=2), showlegend=False))
-    fig_obj.add_trace(go.Scatter(x=xl_f, y=yl_f, mode='lines', line=dict(color='black', width=2), showlegend=False))
-    fig_obj.add_trace(go.Scatter(x=xl_r, y=yl_r, mode='lines', line=dict(color='black', width=2), showlegend=False))
+    # Çizgileri 4 ayrı parça olarak (saçaklanmayı önlemek için) yüksek kontrastlı camgöbeği ile çiziyoruz
+    fig_obj.add_trace(go.Scatter(x=xu_f, y=yu_f, mode='lines', line=dict(color='#00C2FF', width=3), showlegend=False))
+    fig_obj.add_trace(go.Scatter(x=xu_r, y=yu_r, mode='lines', line=dict(color='#00C2FF', width=3), showlegend=False))
+    fig_obj.add_trace(go.Scatter(x=xl_f, y=yl_f, mode='lines', line=dict(color='#00C2FF', width=3), showlegend=False))
+    fig_obj.add_trace(go.Scatter(x=xl_r, y=yl_r, mode='lines', line=dict(color='#00C2FF', width=3), showlegend=False))
     
-    # Tüm kapalı poligonu şeffaf kenar çizgisiyle ('rgba(0,0,0,0)') içi dolu (fill='toself') şekilde atıyoruz
-    # Böylece fill işlemi saçağa neden olmadan sorunsuzca dolguyu yapıyor.
+    # Tüm kapalı poligonu şeffaf kenar çizgisiyle içi dolu (fill='toself') şekilde atıyoruz
     fig_obj.add_trace(go.Scatter(
         x=x_plot, 
         y=y_plot, 
         fill='toself', 
-        fillcolor='black', 
+        fillcolor='rgba(0, 194, 255, 0.15)', 
         line=dict(color='rgba(0,0,0,0)', width=0),
         name=airfoil_label
     ))
@@ -466,9 +465,9 @@ def add_airfoil_to_fig(fig_obj):
 st.subheader("🔎 Yakın Çekim: Kanat Profili ve Kesme (Split) Noktaları")
 fig_zoom = go.Figure()
 
-# Sadece iç bölmeler (Gri ve Kesik Çizgi formatında)
+# Sadece iç bölmeler (Streamlit kırmızısı ve kesikli çizgi)
 for grp in split_lines:
-    fig_zoom.add_trace(go.Scatter(x=grp['x'], y=grp['y'], mode='lines', name=grp['name'], line=dict(color='gray', width=1, dash='dash')))
+    fig_zoom.add_trace(go.Scatter(x=grp['x'], y=grp['y'], mode='lines', name=grp['name'], line=dict(color='#FF4B4B', width=2, dash='dash')))
 
 # Airfoil Poligonu (Saçaklanma Düzeltmesiyle)
 add_airfoil_to_fig(fig_zoom)
@@ -480,10 +479,11 @@ fig_zoom.update_layout(
     yaxis=dict(scaleanchor="x", scaleratio=1, range=[-0.5*chord_c, 0.5*chord_c]),
     showlegend=True,
     height=500,
-    template="plotly_dark",
     paper_bgcolor='rgba(0,0,0,0)',
     plot_bgcolor='rgba(0,0,0,0)'
 )
+fig_zoom.update_xaxes(gridcolor='rgba(128, 128, 128, 0.2)', zerolinecolor='rgba(128, 128, 128, 0.5)', tickfont=dict(size=12))
+fig_zoom.update_yaxes(gridcolor='rgba(128, 128, 128, 0.2)', zerolinecolor='rgba(128, 128, 128, 0.5)', tickfont=dict(size=12))
 st.plotly_chart(fig_zoom, use_container_width=True, config={'scrollZoom': False, 'displayModeBar': True})
 
 
@@ -493,11 +493,11 @@ fig_full = go.Figure()
 
 # Dış Sınırlar
 for grp in domain_groups:
-    fig_full.add_trace(go.Scatter(x=grp['x'], y=grp['y'], mode='lines', name=grp['name'], line=dict(color='deepskyblue', width=2)))
+    fig_full.add_trace(go.Scatter(x=grp['x'], y=grp['y'], mode='lines', name=grp['name'], line=dict(color='rgba(128, 128, 128, 0.8)', width=2)))
 
-# İç Bölmeler
+# İç Bölmeler (Streamlit kırmızısı ve kesikli çizgi)
 for grp in split_lines:
-    fig_full.add_trace(go.Scatter(x=grp['x'], y=grp['y'], mode='lines', name=grp['name'], line=dict(color='gray', width=1, dash='dash')))
+    fig_full.add_trace(go.Scatter(x=grp['x'], y=grp['y'], mode='lines', name=grp['name'], line=dict(color='#FF4B4B', width=2, dash='dash')))
 
 # Airfoil Poligonu (Saçaklanma Düzeltmesiyle)
 add_airfoil_to_fig(fig_full)
@@ -508,10 +508,11 @@ fig_full.update_layout(
     yaxis=dict(scaleanchor="x", scaleratio=1), 
     showlegend=True,
     height=700,
-    template="plotly_dark",
     paper_bgcolor='rgba(0,0,0,0)',
     plot_bgcolor='rgba(0,0,0,0)'
 )
+fig_full.update_xaxes(gridcolor='rgba(128, 128, 128, 0.2)', zerolinecolor='rgba(128, 128, 128, 0.5)', tickfont=dict(size=12))
+fig_full.update_yaxes(gridcolor='rgba(128, 128, 128, 0.2)', zerolinecolor='rgba(128, 128, 128, 0.5)', tickfont=dict(size=12))
 st.plotly_chart(fig_full, use_container_width=True, config={'scrollZoom': False, 'displayModeBar': True})
 
 # --- 3. ANSYS TXT EXPORT GÜNCELLEMESİ ---
