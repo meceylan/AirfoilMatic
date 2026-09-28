@@ -222,7 +222,7 @@ else:
 # Yer tutucu sabit konumda tanımlanıyor; içerik hesaplama sonrası doldurulacak
 sidebar_download_placeholder = st.sidebar.empty()
 
-st.sidebar.warning("⚠️ Beta Sürümü (v0.3)\nBu araç 2B CFD ön işlemini hızlandırmak için tasarlanmıştır. Çıktıların analiz uygunluğunu (geometri, ağ yapısı vb.) Ansys ortamında mutlaka doğrulayın.")
+st.sidebar.warning("⚠️ Beta Sürümü (v0.3)\nBu araç 2B CFD ön işlemini hızlandırmak için tasarlanmıştır. Çıktıların analiz uygunluğunu (geometri vb.) Ansys ortamında mutlaka doğrulayın.")
 
 # --- GEOMETRİ VE TOPOLOJİ HESAPLAMALARI ---
 try:
