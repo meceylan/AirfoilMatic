@@ -62,7 +62,8 @@ def calculate_naca5(naca, c, n_points=100):
     }
     
     if P not in table:
-        raise ValueError("Girdiğiniz NACA 5-digit profilinin kamburluk konumu standart dışıdır. 2. ve 3. hane (P) yalnızca 10, 20, 30, 40 veya 50 olabilir (Örn: 23012).")
+        st.warning("⚠️ Girdiğiniz NACA 5-digit profilinin kamburluk konumu (P) standart dışıdır. Desteklenen P değerleri: 10, 20, 30, 40, 50 (Örn: 23012).")
+        st.stop()
         
     m, k1 = table[P]
     
@@ -184,15 +185,15 @@ file_name_prefix = "domain"
 if data_source == 'NACA (4 veya 5 Haneli)':
     # Güvenli NACA Havuzu — 50 adet doğrulanmış, CFD'de yaygın kullanılan profil
     SAFE_NACA_POOL = [
+        # --- 25 Adet Popüler NACA 4-Digit Profili ---
         '0006', '0008', '0009', '0010', '0012', '0015', '0018', '0021', '0024',
-        '1408', '1410', '1412',
-        '2408', '2410', '2411', '2412', '2414', '2415', '2418',
-        '4412', '4415', '4418', '4421', '4424', '6409',
-        '21009', '21012', '21015', '21018', '21021',
-        '22009', '22012', '22015', '22018', '22021',
-        '23009', '23012', '23015', '23018', '23021', '23024',
-        '24009', '24012', '24015', '24018', '24021', '24024',
-        '25009', '25012', '25015'
+        '1408', '1410', '1412', '2411', '2412', '2414', '2415', '2418', '2421',
+        '2424', '4412', '4415', '4418', '4421', '6409', '6412',
+
+        # --- 25 Adet Doğrulanmış NACA 5-Digit Profili (P: 10, 20, 30, 40, 50) ---
+        '21012', '22012', '23012', '23015', '23018', '23021', '23024', '24012',
+        '25012', '43012', '43015', '43018', '44012', '45012', '63012', '63015',
+        '64012', '21015', '22015', '23009', '24015', '24018', '24021', '24024', '25015'
     ]
 
     def generate_random_naca():
@@ -295,11 +296,7 @@ try:
         xu_f, yu_f, xu_r, yu_r, xl_f, yl_f, xl_r, yl_r, y_split_u, y_split_l = process_custom_airfoil(custom_file.read(), chord_c)
         airfoil_label = 'Özel Kanat'
 except Exception as e:
-    _msg = str(e)
-    if "standart dışıdır" in _msg or "geçerli 4 veya 5 haneli" in _msg:
-        st.warning(_msg)
-    else:
-        st.error(f"Kanat geometrisi oluşturulurken bir hata oluştu: {e}")
+    st.error(f"Kanat geometrisi oluşturulurken bir hata oluştu: {e}")
     st.stop()
 
 # 2. Dikey Bölme Noktaları (X=0.3c koordinatları)
