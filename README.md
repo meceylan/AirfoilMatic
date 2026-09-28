@@ -47,8 +47,7 @@ Bu proje MIT Lisansı altında açık kaynak olarak paylaşılmıştır.
 AirfoilMatic'ten indirdiğiniz `.txt` dosyasını Ansys ortamında 2B Mapped Mesh (Yapısal Ağ) kalitesinde bir CFD alanına dönüştürmek için şu adımları izleyin:
 1. **İçe Aktarma:** Ansys DesignModeler'ı açın. `Concept > 3D Curve` yolunu izleyin. Koordinat dosyası olarak indirdiğiniz `.txt` dosyasını seçip `Generate` tuşuna basın.
 2. **Yüzey Oluşturma:** `Concept > Surfaces from Edges` aracını seçin. Dış akış sınırlarını ve kanat profili çizgilerini seçerek ana akış yüzeyini (Surface) oluşturun (`Generate`).
-3. **Yüzey Bölme (Face Split):** Kanadın etrafındaki 4-bölgeli topolojiyi oluşturmak için `Tools > Face Split` komutunu kullanın. Kesici araç (Tool Geometry) olarak dikey kesme çizgilerini ve yatay iz (wake) çizgisini seçin. Yüzeyi parçalara ayırın.
-4. ART (Akışkan) yüzeylerinizi oluşturup Ansys Meshing'e geçtiğinizde, tüm alanların 4 kenarlı (Quadrilateral) olduğunu ve `Mapped Face Meshing` için %100 uyumlu olduğunu göreceksiniz.
+3. **Yüzey Bölme (Projection):** Akış alanını yapısal ağ (structured mesh) için alt bölgelere ayırmak amacıyla `Tools > Projection` komutunu kullanın. İç bölme çizgilerini (dikey kesmeler ve yatay iz ekseni) kullanarak ana yüzeyi 6 ayrı bölgeye bölün. Bu yöntem, Ansys Meshing aşamasında kenar boyutlandırmalarını (Edge Sizing) çok daha detaylı kontrol etmenizi ve Mapped Face Meshing için kusursuz bir topoloji elde etmenizi sağlar.
 
 ## 🧠 Teknik Arka Plan ve Topoloji (Neden X = 0.3c?)
 Klasik CFD ön-işlem yöntemlerinde kanat profili tek bir eğri veya hücum/firar kenarından ayrılmış iki parça olarak sisteme aktarıldığında, Ansys DesignModeler yüzey oluşturma aşamasında hücum kenarında dar açılı hatalı yüzeyler (sliver face) üretebilmektedir. Bu durum ağ kalitesini (skewness ve orthogonal quality) olumsuz etkiler.
