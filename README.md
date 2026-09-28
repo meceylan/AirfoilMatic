@@ -44,7 +44,7 @@ streamlit run app.py
 Bu proje MIT Lisansı altında açık kaynak olarak paylaşılmıştır.
 
 ## ⚙️ Nasıl Kullanılır? (Ansys İş Akışı)
-AirfoilMatic'ten indirdiğiniz `.txt` dosyasını Ansys ortamında 2B Mapped Mesh (Yapısal Ağ) kalitesinde bir CFD alanına dönüştürmek için şu adımları izleyin:
+AirfoilMatic'ten indirdiğiniz `.txt` dosyasını Ansys ortamında dönüştürmek için şu adımları izleyin:
 1. **İçe Aktarma:** Ansys DesignModeler'ı açın. `Concept > 3D Curve` yolunu izleyin. Koordinat dosyası olarak indirdiğiniz `.txt` dosyasını seçip `Generate` tuşuna basın.
 2. **Yüzey Oluşturma:** `Concept > Surfaces from Edges` aracını seçin. Dış akış sınırlarını ve kanat profili çizgilerini seçerek ana akış yüzeyini (Surface) oluşturun (`Generate`).
 3. **Yüzey Bölme (Projection):** Akış alanını yapısal ağ (structured mesh) için alt bölgelere ayırmak amacıyla `Tools > Projection` komutunu kullanın. İç bölme çizgilerini (dikey kesmeler ve yatay iz ekseni) kullanarak ana yüzeyi 6 ayrı bölgeye bölün. Bu yöntem, Ansys Meshing aşamasında kenar boyutlandırmalarını (Edge Sizing) çok daha detaylı kontrol etmenizi ve Mapped Face Meshing için kusursuz bir topoloji elde etmenizi sağlar.
