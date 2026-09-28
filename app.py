@@ -182,10 +182,17 @@ custom_file = None
 file_name_prefix = "domain"
 
 if data_source == 'NACA (4 veya 5 Haneli)':
-    # Rastgele profil üretici (Güvenli Havuz)
+    # Güvenli NACA Havuzu — CFD dünyasında kabul görmüş, aerodinamik olarak anlamlı profiller
+    SAFE_NACA_POOL = [
+        '0009', '0012', '0015', '0018',
+        '2412', '2414', '4412', '4415',
+        '2212', '4312',
+        '23012', '23015'
+    ]
+
     def generate_random_naca():
-        safe_pool = ['0009', '0012', '0015', '0018', '2412', '2414', '4412', '4415', '2212', '4312', '23012', '23015']
-        return random.choice(safe_pool)
+        """Güvenli havuzdan rastgele bir NACA profili seçer."""
+        return random.choice(SAFE_NACA_POOL)
 
     # Session state başlangıç değerleri
     if 'naca_code' not in st.session_state:
@@ -238,6 +245,12 @@ if data_source == 'NACA (4 veya 5 Haneli)':
                     st.session_state.naca_code = history[st.session_state.history_index]
                     st.rerun()
 
+    # Rastgele seçilen profil bilgi notu
+    if len(history) > 0 and 0 <= h_idx < len(history):
+        _selected = history[h_idx]
+        _digit = "5 haneli" if len(_selected) == 5 else "4 haneli"
+        st.sidebar.caption(f"✅ Güvenli havuzdan seçildi: **NACA {_selected}** ({_digit} — standart profil)")
+
     file_name_prefix = f"domain_naca{naca_input}"
 else:
     custom_file = st.sidebar.file_uploader("Özel Kanat Dosyası Yükle (.dat, .txt)", type=["dat", "txt"])
@@ -265,6 +278,12 @@ else:
     R_inlet = L_inlet_rect
     Y_top = L_top
     Y_bottom = L_bottom
+
+# Sidebar Download Butonu (sabit alan — placeholder yok, titreme/kaybolma engellendi)
+# Yer tutucu sabit konumda tanımlanıyor; içerik hesaplama sonrası doldurulacak
+sidebar_download_placeholder = st.sidebar.empty()
+
+st.sidebar.warning("⚠️ Beta Sürümü (v0.3)\nBu araç 2B CFD ön işlemini hızlandırmak için tasarlanmıştır. Çıktıların analiz uygunluğunu (geometri, ağ yapısı vb.) Ansys ortamında mutlaka doğrulayın.")
 
 # --- GEOMETRİ VE TOPOLOJİ HESAPLAMALARI ---
 try:
@@ -530,6 +549,18 @@ def generate_ansys_txt():
 try:
     txt_data = generate_ansys_txt()
 
+    # Sidebar indirme butonu — placeholder hemen doldurulur (titreme minimuma indirilir)
+    with sidebar_download_placeholder:
+        st.download_button(
+            label="⬇️ Ansys TXT İndir",
+            data=txt_data,
+            file_name=f"{file_name_prefix}.txt",
+            mime="text/plain",
+            use_container_width=True,
+            key="download_sidebar"
+        )
+
+    # Ana sayfa indirme butonu
     st.download_button(
         label="⬇️ Ansys TXT İndir",
         data=txt_data,
@@ -538,16 +569,5 @@ try:
         use_container_width=True,
         key="download_main"
     )
-
-    st.sidebar.download_button(
-        label="⬇️ Ansys TXT İndir",
-        data=txt_data,
-        file_name=f"{file_name_prefix}.txt",
-        mime="text/plain",
-        use_container_width=True,
-        key="download_sidebar"
-    )
-    
-    st.sidebar.warning("⚠️ Beta Sürümü (v0.3)\nBu araç 2B CFD ön işlemini hızlandırmak için tasarlanmıştır. Çıktıların analiz uygunluğunu (geometri, ağ yapısı vb.) Ansys ortamında mutlaka doğrulayın.")
 except Exception as e:
     st.error(f"Dışa aktarma verisi oluşturulurken hata: {e}")
