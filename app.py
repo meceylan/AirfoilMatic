@@ -176,20 +176,27 @@ st.title("AirfoilMatic V0.3 Beta: 2B CFD Domain Generator")
 # --- 4. ARAYÜZ SADELEŞTİRMESİ ---
 st.sidebar.header("AirfoilMatic V0.3 Beta")
 
-# Mobilde sidebar butonlarını yan yana tutmak için CSS müdahalesi
+# Mobilde butonları yan yana tutmak ve boyutlarını küçültmek için CSS
 st.markdown("""
     <style>
-    /* Sidebar içindeki yatay blokların mobilde kırılmasını engelle */
+    /* Yatay blokların taşmasını engelle ve yan yana tut */
     [data-testid="stSidebar"] [data-testid="stHorizontalBlock"] {
         flex-direction: row !important;
         flex-wrap: nowrap !important;
-        gap: 5px !important;
+        gap: 2% !important; /* Boşluğu yüzdeyle vererek taşmayı önleriz */
     }
-    /* Buton kolonlarının genişliğini %33'e sabitle */
+    /* Kolonların ekrana tam sığmasını sağla */
     [data-testid="stSidebar"] [data-testid="column"] {
-        width: 33% !important;
-        min-width: 33% !important;
+        width: 32% !important;
+        min-width: 0px !important; 
+        flex: 1 1 0px !important;
         padding: 0 !important;
+    }
+    /* SADECE yan yana duran ikon butonlarının iç boşluğunu ve yüksekliğini küçült */
+    [data-testid="stSidebar"] [data-testid="stHorizontalBlock"] .stButton > button {
+        padding: 0.1rem 0.1rem !important;
+        min-height: 35px !important;
+        height: 35px !important;
     }
     </style>
 """, unsafe_allow_html=True)
