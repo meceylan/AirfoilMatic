@@ -176,6 +176,24 @@ st.title("AirfoilMatic V0.3 Beta: 2B CFD Domain Generator")
 # --- 4. ARAYÜZ SADELEŞTİRMESİ ---
 st.sidebar.header("AirfoilMatic V0.3 Beta")
 
+# Mobilde sidebar butonlarını yan yana tutmak için CSS müdahalesi
+st.markdown("""
+    <style>
+    /* Sidebar içindeki yatay blokların mobilde kırılmasını engelle */
+    [data-testid="stSidebar"] [data-testid="stHorizontalBlock"] {
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        gap: 5px !important;
+    }
+    /* Buton kolonlarının genişliğini %33'e sabitle */
+    [data-testid="stSidebar"] [data-testid="column"] {
+        width: 33% !important;
+        min-width: 33% !important;
+        padding: 0 !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 data_source = st.sidebar.radio("Kanat Veri Kaynağı", ['NACA (4 veya 5 Haneli)', 'Özel Kanat (.dat / .txt)'])
 
 naca_input = "0012"
