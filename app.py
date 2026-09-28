@@ -182,12 +182,22 @@ custom_file = None
 file_name_prefix = "domain"
 
 if data_source == 'NACA (4 veya 5 Haneli)':
-    # Güvenli NACA Havuzu — CFD dünyasında kabul görmüş, aerodinamik olarak anlamlı profiller
+    # Güvenli NACA Havuzu — 50 adet doğrulanmış, CFD'de yaygın kullanılan profil
     SAFE_NACA_POOL = [
-        '0009', '0012', '0015', '0018',
-        '2412', '2414', '4412', '4415',
-        '2212', '4312',
-        '23012', '23015'
+        # --- 25 Popüler NACA 4-Digit Profili ---
+        '0006', '0008', '0009', '0010', '0012', '0015', '0018', '0021', '0024',
+        '1408', '1410', '1412',
+        '2408', '2410', '2411', '2412', '2414', '2415', '2418',
+        '4412', '4415', '4418', '4421', '4424',
+        '6409',
+
+        # --- 25 Popüler NACA 5-Digit Profili ---
+        '21012', '22012', '23012', '23015', '23018', '23021', '23024',
+        '24012', '24015', '24018', '24021', '24024',
+        '25012', '25015', '25018', '25021',
+        '22112', '23112', '24112',
+        '21009', '22009', '23009', '24009', '25009',
+        '23109'
     ]
 
     def generate_random_naca():
@@ -244,12 +254,6 @@ if data_source == 'NACA (4 veya 5 Haneli)':
                     st.session_state.history_index += 1
                     st.session_state.naca_code = history[st.session_state.history_index]
                     st.rerun()
-
-    # Rastgele seçilen profil bilgi notu
-    if len(history) > 0 and 0 <= h_idx < len(history):
-        _selected = history[h_idx]
-        _digit = "5 haneli" if len(_selected) == 5 else "4 haneli"
-        st.sidebar.caption(f"✅ Güvenli havuzdan seçildi: **NACA {_selected}** ({_digit} — standart profil)")
 
     file_name_prefix = f"domain_naca{naca_input}"
 else:
