@@ -1,7 +1,7 @@
 import streamlit as st
 import numpy as np
 import plotly.graph_objects as go
-import random
+
 
 def calculate_naca4(naca, c, n_points=100):
     m = int(naca[0]) / 100.0
@@ -176,30 +176,6 @@ st.title("AirfoilMatic V0.3 Beta: 2B CFD Domain Generator")
 # --- 4. ARAYÜZ SADELEŞTİRMESİ ---
 st.sidebar.header("AirfoilMatic V0.3 Beta")
 
-# Mobilde butonları yan yana tutmak ve boyutlarını küçültmek için CSS
-st.markdown("""
-    <style>
-    /* Yatay blokların taşmasını engelle ve yan yana tut */
-    [data-testid="stSidebar"] [data-testid="stHorizontalBlock"] {
-        flex-direction: row !important;
-        flex-wrap: nowrap !important;
-        gap: 2% !important; /* Boşluğu yüzdeyle vererek taşmayı önleriz */
-    }
-    /* Kolonların ekrana tam sığmasını sağla */
-    [data-testid="stSidebar"] [data-testid="column"] {
-        width: 32% !important;
-        min-width: 0px !important; 
-        flex: 1 1 0px !important;
-        padding: 0 !important;
-    }
-    /* SADECE yan yana duran ikon butonlarının iç boşluğunu ve yüksekliğini küçült */
-    [data-testid="stSidebar"] [data-testid="stHorizontalBlock"] .stButton > button {
-        padding: 0.1rem 0.1rem !important;
-        min-height: 35px !important;
-        height: 35px !important;
-    }
-    </style>
-""", unsafe_allow_html=True)
 
 data_source = st.sidebar.radio("Kanat Veri Kaynağı", ['NACA (4 veya 5 Haneli)', 'Özel Kanat (.dat / .txt)'])
 
@@ -208,64 +184,11 @@ custom_file = None
 file_name_prefix = "domain"
 
 if data_source == 'NACA (4 veya 5 Haneli)':
-    # Güvenli NACA Havuzu — 50 adet doğrulanmış, CFD'de yaygın kullanılan profil
-    SAFE_NACA_POOL = [
-        # --- 25 Adet Popüler NACA 4-Digit Profili ---
-        '0006', '0008', '0009', '0010', '0012', '0015', '0018', '0021', '0024',
-        '1408', '1410', '1412', '2411', '2412', '2414', '2415', '2418', '2421',
-        '2424', '4412', '4415', '4418', '4421', '6409', '6412',
-
-        # --- 25 Adet Doğrulanmış NACA 5-Digit Profili (P: 10, 20, 30, 40, 50) ---
-        '21012', '22012', '23012', '23015', '23018', '23021', '23024', '24012',
-        '25012', '43012', '43015', '43018', '44012', '45012', '63012', '63015',
-        '64012', '21015', '22015', '23009', '24015', '24018', '24021', '24024', '25015'
-    ]
-
-    def generate_random_naca():
-        """Güvenli havuzdan rastgele bir NACA profili seçer."""
-        return random.choice(SAFE_NACA_POOL)
-
-    # Session state başlangıç değerleri
     if 'naca_code' not in st.session_state:
         st.session_state.naca_code = "4412"
-    if 'profile_history' not in st.session_state:
-        st.session_state.profile_history = []
-    if 'history_index' not in st.session_state:
-        st.session_state.history_index = -1
 
     naca_input = st.sidebar.text_input("NACA Kodu", value=st.session_state.naca_code, max_chars=5).strip()
     st.session_state.naca_code = naca_input
-
-    # Geçmiş ve navigasyon butonları
-    history = st.session_state.profile_history
-    h_idx = st.session_state.history_index
-
-    # Navigasyon butonları — sabit 3 kolon (🎲 | ⬅️ | ➡️)
-    col1, col2, col3 = st.sidebar.columns(3)
-
-    with col1:
-        if st.button("🎲", key="hist_random", help="Rastgele Profil Üret", use_container_width=True):
-            new_code = generate_random_naca()
-            # Ortadan geri gidilmişse gelecek kayıtları buda
-            st.session_state.profile_history = history[:h_idx + 1] if h_idx >= 0 else []
-            st.session_state.profile_history.append(new_code)
-            st.session_state.history_index = len(st.session_state.profile_history) - 1
-            st.session_state.naca_code = new_code
-            st.rerun()
-
-    with col2:
-        if h_idx > 0:
-            if st.button("⬅️", key="hist_back", help="Önceki", use_container_width=True):
-                st.session_state.history_index -= 1
-                st.session_state.naca_code = history[st.session_state.history_index]
-                st.rerun()
-
-    with col3:
-        if h_idx < len(history) - 1:
-            if st.button("➡️", key="hist_forward", help="Sonraki", use_container_width=True):
-                st.session_state.history_index += 1
-                st.session_state.naca_code = history[st.session_state.history_index]
-                st.rerun()
 
     file_name_prefix = f"domain_naca{naca_input}"
 else:
