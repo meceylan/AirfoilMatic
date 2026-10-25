@@ -405,3 +405,24 @@ def test_blunt_te_option():
     from airfoilmatic.topology import select_lines
     keys = [c.key for c in select_lines(d, ["front_axis", "wake_axis"]).by_kind("split")]
     assert "te_closure" in keys and "wake_axis" in keys
+
+
+# ------------------------------------------------------------------ Fluent helper
+
+def test_freestream_components():
+    from airfoilmatic.fluent import freestream, speed_for_reynolds
+    fs = freestream(4.25, 40.0, 1.0)
+    assert fs.ux == pytest.approx(40 * math.cos(math.radians(4.25)))
+    assert fs.uy == pytest.approx(40 * math.sin(math.radians(4.25)))
+    assert math.hypot(fs.ux, fs.uy) == pytest.approx(40.0)
+    # drag along the free stream, lift perpendicular, both unit vectors
+    assert fs.drag[0] * fs.ux + fs.drag[1] * fs.uy == pytest.approx(40.0)
+    assert fs.lift[0] * fs.drag[0] + fs.lift[1] * fs.drag[1] == pytest.approx(0.0, abs=1e-12)
+    assert math.hypot(*fs.lift) == pytest.approx(1.0)
+    assert fs.lift[1] > 0  # lift points up at small positive AoA
+    assert fs.reynolds == pytest.approx(1.225 * 40 / 1.7894e-5)
+    assert speed_for_reynolds(fs.reynolds, 1.0) == pytest.approx(40.0)
+    zero = freestream(0.0, 10.0, 1.0)
+    assert zero.uy == 0 and abs(zero.lift[0]) == 0 and zero.lift[1] == 1
+    with pytest.raises(ValueError):
+        freestream(4, 0, 1)

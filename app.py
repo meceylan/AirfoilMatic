@@ -16,6 +16,7 @@ from airfoilmatic.export import to_ansys_txt
 from airfoilmatic.mesh import (DEFAULTS, MAX_GOOD_GROWTH, first_cell_height, plan_inflation,
                                plan_mesh, reynolds)
 from airfoilmatic.gci import compute_gci
+from airfoilmatic.fluent import AIR_DENSITY, AIR_VISCOSITY, freestream, speed_for_reynolds
 from airfoilmatic.quality import (FLUENT_MAX_SKEWNESS, FLUENT_MIN_ORTHO, RATING_LEVEL,
                                   expected_wall_aspect_ratio, rate_orthogonal, rate_skewness)
 from airfoilmatic.i18n import LANGS, tr, tr_error
@@ -44,8 +45,6 @@ source = st.sidebar.radio(t("source"), ["naca", "file"],
 
 if source == "naca":
     naca_code = st.sidebar.text_input(t("naca_code"), value="4412", max_chars=5).strip()
-    te_mode = st.sidebar.radio(t("te_mode"), ["sharp", "blunt"], help=t("te_mode_help"),
-                               format_func=lambda k: t("te_sharp") if k == "sharp" else t("te_blunt"))
     file_prefix = f"domain_naca{naca_code}"
     custom_file = None
 else:
@@ -80,7 +79,7 @@ try:
         if len(naca_code) not in (4, 5) or not naca_code.isdigit():
             st.error(t("err_naca"))
             st.stop()
-        airfoil = naca(naca_code, chord, blunt_te=(te_mode == "blunt"))
+        airfoil = naca(naca_code, chord)
     else:
         if custom_file is None:
             st.info(t("upload_info"))
@@ -386,21 +385,37 @@ with tab_mesh:
 
     # ---- Fluent setup helper
     with st.expander(t("fluent_title")):
-        aoa = st.number_input(t("aoa"), value=4.25, step=0.25, format="%.2f")
-        a = math.radians(aoa)
-        rows_f = [
-            {t("col_setting"): t("fl_vel_dir"), t("col_value"): f"X = {math.cos(a):.6f},  Y = {math.sin(a):.6f}"},
-            {t("col_setting"): t("fl_drag"), t("col_value"): f"X = {math.cos(a):.6f},  Y = {math.sin(a):.6f}"},
-            {t("col_setting"): t("fl_lift"), t("col_value"): f"X = {-math.sin(a):.6f},  Y = {math.cos(a):.6f}"},
-            {t("col_setting"): t("fl_ref_len"), t("col_value"): f"{chord:g} m"},
-            {t("col_setting"): t("fl_ref_area"), t("col_value"): f"{chord:g} m² (c × 1 m)"},
-        ]
-        if u_inf is not None:
-            rows_f.insert(1, {t("col_setting"): t("fl_vel_comp"),
-                              t("col_value"): f"Ux = {u_inf * math.cos(a):.5g},  Uy = {u_inf * math.sin(a):.5g} m/s"})
-            rows_f += [{t("col_setting"): t("fl_ref_vel"), t("col_value"): f"{u_inf:g} m/s"},
-                       {t("col_setting"): t("fl_ref_rho"), t("col_value"): f"{rho:g} kg/m³"}]
-        st.dataframe(rows_f, use_container_width=True, hide_index=True)
+        rho_f = rho if rho is not None else AIR_DENSITY
+        mu_f = mu if mu is not None else AIR_VISCOSITY
+        u_default = u_inf if u_inf is not None else speed_for_reynolds(re, chord, rho_f, mu_f)
+        fc = st.columns(2)
+        aoa = fc[0].number_input(t("aoa"), value=4.25, step=0.25, format="%.2f")
+        u_fl = fc[1].number_input(t("fl_speed"), value=float(f"{u_default:.4g}"), min_value=0.001,
+                                  format="%.3f", help=t("fl_speed_help"))
+        try:
+            fs = freestream(aoa, u_fl, chord, rho_f, mu_f)
+        except ValueError as e:
+            st.error(te(e))
+            fs = None
+        if fs is not None:
+            rows_f = [
+                {t("col_setting"): t("fl_vel_comp"),
+                 t("col_value"): f"X = {fs.ux:.6g} m/s,  Y = {fs.uy:.6g} m/s"},
+                {t("col_setting"): t("fl_vel_dir"),
+                 t("col_value"): f"X = {fs.drag[0]:.6f},  Y = {fs.drag[1]:.6f}"},
+                {t("col_setting"): t("fl_drag"), t("col_value"): f"X = {fs.drag[0]:.6f},  Y = {fs.drag[1]:.6f}"},
+                {t("col_setting"): t("fl_lift"), t("col_value"): f"X = {fs.lift[0]:.6f},  Y = {fs.lift[1]:.6f}"},
+                {t("col_setting"): t("fl_ref_vel"), t("col_value"): f"{fs.speed:.6g} m/s"},
+                {t("col_setting"): t("fl_ref_rho"), t("col_value"): f"{rho_f:g} kg/m³"},
+                {t("col_setting"): t("fl_ref_len"), t("col_value"): f"{chord:g} m"},
+                {t("col_setting"): t("fl_ref_area"), t("col_value"): f"{chord:g} m² (c × 1 m)"},
+                {t("col_setting"): t("fl_re_mach"), t("col_value"): f"Re = {fs.reynolds:.4e},  M = {fs.mach:.3f}"},
+            ]
+            st.dataframe(rows_f, use_container_width=True, hide_index=True)
+            if abs(fs.reynolds - re) > 0.01 * re:
+                st.warning(t("fl_re_mismatch", re_fl=fs.reynolds, re_mesh=re))
+            if fs.mach > 0.3:
+                st.warning(t("fl_mach_warn", m=fs.mach))
         st.caption(t("fluent_note"))
 
 # ================================================================ GCI tab

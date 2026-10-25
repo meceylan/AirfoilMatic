@@ -1,5 +1,17 @@
 # Changelog
 
+## V0.4.1 Beta
+
+- Fluent setup helper: enter the free-stream speed; the app gives the inlet X/Y velocity components for the angle of attack, the Lift/Drag vectors, reference values, Reynolds and Mach, and warns if the Reynolds number differs from the Mesh / y⁺ tab or Mach > 0.3.
+- The blunt trailing-edge option for NACA airfoils was removed (it did not help in the Ansys tests; blunt edges in uploaded files are still handled).
+- The GitHub page now opens in Turkish (README.md); the English version is README.en.md.
+
+## V0.4.1 Beta (Türkçe)
+
+- Fluent ayar yardımcısı: serbest akış hızını girin; uygulama hücum açısına göre inlet X/Y hız bileşenlerini, Lift/Drag vektörlerini, referans değerleri, Reynolds ve Mach'ı verir; Reynolds Mesh / y⁺ sekmesindekinden farklıysa veya Mach > 0.3 ise uyarır.
+- NACA profilleri için küt firar kenarı seçeneği kaldırıldı (Ansys denemelerinde yarar sağlamadı; yüklenen dosyalardaki küt kenarlar yine işleniyor).
+- GitHub sayfası artık Türkçe açılıyor (README.md); İngilizcesi README.en.md.
+
 ## V0.4 Beta
 
 Adds a mesh and y⁺ assistant, a mesh quality check, a Fluent helper and a grid-independence (GCI) calculator to the V0.3 domain generator, and splits the code into a tested package.
