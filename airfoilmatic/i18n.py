@@ -617,12 +617,12 @@ STRINGS = {
         "en": 'Angle of attack α [°]',
     },
     'fl_vel_dir': {
-        "tr": 'Giriş hız yönü (Components)',
-        "en": 'Inlet velocity direction (Components)',
+        "tr": 'Inlet → Magnitude and Direction (yön)',
+        "en": 'Inlet → Magnitude and Direction (direction)',
     },
     'fl_vel_comp': {
-        "tr": 'Hız bileşenleri',
-        "en": 'Velocity components',
+        "tr": 'Inlet → Velocity Specification = Components',
+        "en": 'Inlet → Velocity Specification = Components',
     },
     'fl_drag': {
         "tr": 'Drag kuvvet vektörü',
@@ -649,8 +649,8 @@ STRINGS = {
         "en": 'Reference Values → Density',
     },
     'fluent_note': {
-        "tr": "Hücum açısını hız yönüyle verirseniz, Drag ve Lift raporlarının vektörlerini de bu değerlere çevirmeniz gerekir. (1, 0) / (0, 1) bırakılırsa Cd'ye kaldırmanın bir kısmı karışır.",
-        "en": 'If you set the angle of attack through the velocity direction, the Drag and Lift report vectors must use these values too. Leaving them at (1, 0) / (0, 1) mixes part of the lift into Cd.',
+        "tr": "Hücum açısı geometri döndürülmeden, giriş hızının yönüyle verilir. Inlet'te Velocity Specification = Components seçip X ve Y hızlarını girin (ya da Magnitude and Direction ile hız büyüklüğü + yön). Lift ve Drag raporlarının (Report Definitions → Force) vektörlerini de bu değerlere çevirin: (1, 0) / (0, 1) bırakılırsa Cd'ye kaldırmanın bir kısmı karışır. Reference Values'ta Velocity ve Density'nin girişle aynı olduğundan emin olun.",
+        "en": 'The angle of attack is set through the inlet velocity direction, without rotating the geometry. At the inlet choose Velocity Specification = Components and enter the X and Y velocities (or Magnitude and Direction with the speed and the direction). Set the Lift and Drag report vectors (Report Definitions → Force) to these values too: leaving them at (1, 0) / (0, 1) mixes part of the lift into Cd. Make sure Reference Values Velocity and Density match the inlet.',
     },
     'ph_cells': {
         "tr": 'örn. 160000',
@@ -816,13 +816,6 @@ STRINGS = {
     'fam_n_front': {"tr": "Bölüm (kanat ön)", "en": "Divisions (airfoil front)"},
     'fam_n_rear': {"tr": "Bölüm (kanat arka)", "en": "Divisions (airfoil rear)"},
     'fam_n_wake': {"tr": "Bölüm (iz)", "en": "Divisions (wake)"},
-    'te_mode': {"tr": "Firar kenarı", "en": "Trailing edge"},
-    'te_sharp': {"tr": "Sivri (kapalı)", "en": "Sharp (closed)"},
-    'te_blunt': {"tr": "Küt (standart NACA)", "en": "Blunt (standard NACA)"},
-    'te_mode_help': {
-        "tr": "Sivri: firar kenarı tek noktada kapanır (doğrulama vakaları ve önerilen seçenek). Küt: orijinal NACA tanımı, firar kenarında kalınlığın yaklaşık %2,1'i kadar dik bir yüz kalır (12% profilde ≈ %0.25c). Not: Ansys quad-dominant + inflation denemelerinde küt firar kenarı TE'deki mesh sorunlarını çözmedi.",
-        "en": 'Sharp: the trailing edge closes at a single point (validation cases, recommended). Blunt: the original NACA definition, leaving a vertical TE face about 2.1% of the thickness (≈ 0.25% c for a 12% airfoil). Note: in Ansys quad-dominant + inflation tests the blunt TE did not solve the TE meshing problems.',
-    },
     'geom_info_partial': {
         "tr": 'Seçilen bölme çizgileriyle yüzey {n} parçaya ayrılır. Mapped mesh için altı çizginin hepsi gerekir.',
         "en": 'The selected split lines divide the surface into {n} faces. Mapped meshing needs all six lines.',
@@ -845,11 +838,32 @@ STRINGS = {
     },
     'infl_edges_title_af': {"tr": "Kanat Edge Sizing", "en": "Airfoil Edge Sizing"},
     'ph_value_cd': {"tr": "örn. 0.0123", "en": "e.g. 0.0123"},
+    'fl_speed': {
+        "tr": 'Serbest akış hızı U∞ [m/s]',
+        "en": 'Free-stream speed U∞ [m/s]',
+    },
+    'fl_speed_help': {
+        "tr": "Varsayılan değer, Mesh / y⁺ sekmesindeki Reynolds sayısını veren hızdır (Fluent'in varsayılan havası ile). Kendi hızınızı girebilirsiniz; Reynolds farklı çıkarsa uyarı gösterilir.",
+        "en": "The default is the speed that gives the Reynolds number of the Mesh / y⁺ tab (with Fluent's default air). You can enter your own; a warning is shown if the Reynolds number differs.",
+    },
+    'fl_re_mach': {
+        "tr": 'Bu hızla Reynolds ve Mach',
+        "en": 'Reynolds and Mach at this speed',
+    },
+    'fl_re_mismatch': {
+        "tr": "Bu hız Re = {re_fl:.4e} veriyor; Mesh / y⁺ sekmesindeki Re = {re_mesh:.4e}. İlk hücre yüksekliği o Re'ye göre hesaplandığı için ikisini eşitleyin.",
+        "en": 'This speed gives Re = {re_fl:.4e}; the Mesh / y⁺ tab uses Re = {re_mesh:.4e}. The first-cell height is based on that Re, so make them match.',
+    },
+    'fl_mach_warn': {
+        "tr": "Mach = {m:.2f} > 0.3: sıkıştırılabilirlik etkileri önemlidir; Fluent'te yoğunluğu ideal gaz olarak tanımlayın.",
+        "en": 'Mach = {m:.2f} > 0.3: compressibility matters; use ideal-gas density in Fluent.',
+    },
 }
 
 
 # Turkish versions of the (English) error messages raised by the core modules.
 ERRORS_TR = {
+    'Speed, chord, density and viscosity must be positive': 'Hız, veter, yoğunluk ve viskozite pozitif olmalı',
     'Reynolds number must be at least 1000': 'Reynolds sayısı en az 1000 olmalı',
     'Edge is shorter than the requested cell size': 'Kenar, istenen hücre boyundan kısa; hücre boylarını küçültün',
     'NACA 4-digit code must be 4 digits': 'NACA 4 haneli kod 4 rakamdan oluşmalı',

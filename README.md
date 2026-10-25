@@ -1,66 +1,66 @@
-# AirfoilMatic V0.4 Beta — 2D CFD Domain Generator
+# AirfoilMatic V0.4.1 Beta — 2B CFD Domain Generator
 
-**English** | [Türkçe](README.tr.md)
+**Türkçe** | [English](README.en.md)
 
-**[Run AirfoilMatic in your browser](https://airfoilmatic-gkxdkjpsclawjnbhmzng89.streamlit.app/)**
+**[AirfoilMatic'i Tarayıcıda Çalıştır](https://airfoilmatic-gkxdkjpsclawjnbhmzng89.streamlit.app/)**
 
-AirfoilMatic builds the geometry of a 2D CFD flow domain around an airfoil (NACA 4/5-digit or a custom `.dat` file) and exports it in the Ansys DesignModeler `3D Curve` text format. The domain is already split into six four-sided blocks, so Ansys Meshing can produce a structured (mapped) mesh. It also gives you the matching Edge Sizing settings and a grid-independence (GCI) calculator.
+AirfoilMatic, bir kanat profili (NACA 4/5 haneli ya da özel `.dat` dosyası) etrafında 2B CFD akış alanı geometrisi oluşturur ve Ansys DesignModeler `3D Curve` metin formatında dışa aktarır. Akış alanı baştan altı adet dört kenarlı bloğa bölündüğü için Ansys Meshing yapısal (mapped) mesh üretebilir. Uygulama ayrıca bu bloklara uygun Edge Sizing ayarlarını ve mesh bağımsızlığı (GCI) hesabını da verir.
 
-## Features
-* NACA 4-digit and 5-digit (standard, non-reflexed) airfoils, full-cosine point spacing
-* Custom airfoil files (Selig and Lednicer formats), automatic blunt trailing-edge closing
-* C-grid and rectangular (wind tunnel) domains, split into 6 four-sided blocks
-* Choose which of the six split lines to export (all six are needed for mapped meshing; all six and front axis + wake axis were tested with quad-dominant + inflation), with a warning for a single line, which cannot work
-* Ansys DesignModeler TXT export
-* **Mesh / y⁺ assistant:** first-cell height for a target y⁺ and boundary-layer estimate, with two outputs: Ansys **Inflation** settings (first layer, growth rate, maximum layers) or a mapped-mesh **Edge Sizing** table (Number of Divisions + Bias Factor) with the expected cell count
-* **Mesh quality check** (skewness, orthogonal quality, aspect ratio) against Ansys bands and Fluent limits
-* **y⁺ correction** from a first Fluent result, and a **Fluent setup helper** that gives the velocity direction and the Lift/Drag vectors for an angle of attack
-* **Grid independence:** Grid Convergence Index calculator (Celik et al., 2008) with a Cl/Cd convergence plot, plus an optional suggested grid family
-* Turkish / English interface
+## Özellikler
+* NACA 4 ve 5 haneli (standart, refleks olmayan) profiller, tam kosinüs nokta dağılımı
+* Özel kanat dosyası (Selig ve Lednicer formatları), küt firar kenarının otomatik kapatılması
+* C-Grid ve Dikdörtgen (rüzgar tüneli) domain, 6 adet dört kenarlı blok
+* Altı bölme çizgisinden hangilerinin dışa aktarılacağını seçme (mapped mesh için altısı da gerekir; quad-dominant + inflation ile altısı ve ön eksen + iz ekseni denendi), çalışmayan tek çizgi seçimi için uyarı
+* Ansys DesignModeler TXT dışa aktarma
+* **Mesh / y⁺ asistanı:** hedef y⁺ için ilk hücre yüksekliği ve sınır tabaka tahmini; iki çıktı seçeneği: Ansys **Inflation** ayarları (ilk katman, büyüme oranı, maksimum katman sayısı) ya da mapped mesh için **Edge Sizing** tablosu (Number of Divisions + Bias Factor) ve tahmini hücre sayısı
+* Ansys bantlarına ve Fluent sınırlarına göre **mesh kalite kontrolü** (skewness, orthogonal quality, aspect ratio)
+* İlk Fluent sonucundan **y⁺ düzeltme** ve serbest akış hızı ve hücum açısından inlet X/Y hız bileşenlerini, Lift/Drag vektörlerini ve referans değerleri hesaplayan, Reynolds ve Mach'ı kontrol eden **Fluent ayar yardımcısı**
+* **Mesh bağımsızlığı:** Grid Convergence Index hesabı (Celik vd., 2008), Cl/Cd yakınsama grafiği ve isteğe bağlı önerilen ağ ailesi
+* Türkçe / İngilizce arayüz
 
-## Local installation
+## Yerel kurulum
 ```bash
 git clone https://github.com/meceylan/AirfoilMatic.git
 cd AirfoilMatic
 pip install -r requirements.txt
 streamlit run app.py
 ```
-Run the tests with `pip install pytest` and `pytest`.
+Testleri çalıştırmak için: `pip install pytest` ve ardından `pytest`.
 
-## Ansys workflow
-1. **Import:** In DesignModeler, set `Units > Meter` first, then use `Concept > 3D Curve`, select the downloaded `.txt` file and click `Generate`.
-2. **Surface:** Use `Concept > Surfaces from Edges` with the outer boundary and airfoil edges to create the flow surface.
-3. **Split:** Use `Tools > Projection` with the exported split lines.
-4. **Mesh:** choose one of the two workflows; the **Mesh / y⁺** tab gives the settings for both.
-   * **Inflation (quad-dominant):** export all six lines or the front axis + wake axis (the tested selections; a single line stays as a slit inside one face and fails). Add `Inflation` on all faces with the airfoil edges as boundary (the wake axis optionally too), set the global Element Size to about 0.5c, and add the Edge Sizings from the table with Behavior = Soft (Hard is not supported on inflated edges). Keep the trailing-edge element at about 0.003c or larger: in our Ansys 2024 R2 tests (c = 1 m) about 1 mm failed and about 3 mm worked. Use a sharp trailing edge; blunt TE + inflation failed in our tests. Check that Bounding Box Diagonal is tens of meters before meshing.
-   * **Mapped:** export all six split lines (6 blocks), add `Face Meshing` (Mapped) to all faces and the `Edge Sizing` values from the table.
-   * Inflation and Mapped Face Meshing cannot be combined on the same face.
-5. **Check:** Confirm the cell count and check y⁺ in Fluent. Fluent reports y⁺ at the cell centroid, so expect about half the target value.
+## Ansys iş akışı
+1. **İçe aktarma:** DesignModeler'da önce `Units > Meter` seçin, sonra `Concept > 3D Curve` ile indirdiğiniz `.txt` dosyasını seçip `Generate` deyin.
+2. **Yüzey:** `Concept > Surfaces from Edges` ile dış sınırları ve kanat kenarlarını seçerek akış yüzeyini oluşturun.
+3. **Bölme:** `Tools > Projection` ile dışa aktarılan bölme çizgilerini kullanın.
+4. **Mesh:** iki akıştan birini seçin; **Mesh / y⁺** sekmesi ikisinin de ayarlarını verir.
+   * **Inflation (quad-dominant):** altı çizginin hepsini ya da ön eksen + iz eksenini dışa aktarın (denenmiş seçimler; tek bir çizgi yüzün içinde yarık olarak kalır ve başarısız olur). Tüm yüzeylere `Inflation` ekleyin, Boundary olarak kanat kenarlarını seçin (iz eksenini isteğe bağlı olarak da), genel Element Size'ı yaklaşık 0.5c yapın ve tablodaki Edge Sizing'leri Behavior = Soft ile ekleyin (inflation olan kenarlarda Hard desteklenmez). Firar kenarındaki elemanı yaklaşık 0.003c veya daha büyük tutun: Ansys 2024 R2 denemelerimizde (c = 1 m) yaklaşık 1 mm başarısız oldu, yaklaşık 3 mm çalıştı. Sivri firar kenarı kullanın; küt TE + inflation denemelerimizde başarısız oldu. Mesh atmadan önce Bounding Box Diagonal'ın onlarca metre mertebesinde olduğunu kontrol edin.
+   * **Mapped:** altı bölme çizgisini de dışa aktarın (6 blok), tüm yüzeylere `Face Meshing` (Mapped) ekleyip tablodaki `Edge Sizing` değerlerini girin.
+   * Inflation ile Mapped Face Meshing aynı yüzeyde birlikte kullanılamaz.
+5. **Kontrol:** Hücre sayısını ve Fluent'te y⁺ değerini kontrol edin. Fluent y⁺'ı hücre merkezinde raporladığı için görülen değer hedefin yaklaşık yarısı olur.
 
-## Grid independence (GCI)
-The cell count alone does not tell you whether a mesh is good enough. Results must be shown to change little when the grid is refined. The **Grid Independence** tab:
-1. takes the cell counts and Cl/Cd results of your three Fluent runs,
-2. reports the apparent order *p*, the extrapolated value, and GCI_fine, following Celik et al. (2008), and warns about oscillatory or divergent behavior,
-3. plots Cl and Cd against h = 1/√N with the Richardson fit and the extrapolated value,
-4. optionally suggests a consistent grid family (refinement ratio √2 per direction by default, about 2× cells per level).
+## Mesh bağımsızlığı (GCI)
+Bir mesh'in yeterli olup olmadığını hücre sayısı tek başına göstermez. Mesh inceltildiğinde sonucun çok az değiştiğini göstermek gerekir. **Mesh Bağımsızlığı** sekmesi:
+1. Üç Fluent koşusunun hücre sayılarını ve Cl/Cd sonuçlarını alır,
+2. Celik vd. (2008) yöntemine göre görünür mertebe *p*, ekstrapole değer ve GCI_ince değerlerini raporlar; salınımlı veya ıraksayan davranışta uyarır,
+3. Cl ve Cd'yi h = 1/√N'ye karşı Richardson eğrisi ve ekstrapole değerle birlikte çizer,
+4. İsteğe bağlı olarak tutarlı bir ağ ailesi önerir (varsayılan inceltme oranı her yönde √2, her seviyede yaklaşık 2 kat hücre).
 
-Reference: Celik, I. B., Ghia, U., Roache, P. J., Freitas, C. J., Coleman, H., Raad, P. E., *Procedure for Estimation and Reporting of Uncertainty Due to Discretization in CFD Applications*, J. Fluids Eng. 130(7), 078001, 2008.
+Kaynak: Celik, I. B., Ghia, U., Roache, P. J., Freitas, C. J., Coleman, H., Raad, P. E., *Procedure for Estimation and Reporting of Uncertainty Due to Discretization in CFD Applications*, J. Fluids Eng. 130(7), 078001, 2008.
 
-## Why split at X = 0.3c?
-If the airfoil goes into DesignModeler as a single curve, or as two curves split only at the LE and TE, surface creation can produce sliver faces near the leading edge. Those faces hurt mesh quality.
+## Neden X = 0.3c?
+Kanat DesignModeler'a tek bir eğri olarak ya da yalnızca hücum ve firar kenarından bölünmüş iki eğri olarak aktarıldığında, yüzey oluşturma sırasında hücum kenarında dar açılı hatalı yüzeyler (sliver face) oluşabilir. Bu da mesh kalitesini düşürür.
 
-AirfoilMatic cuts the airfoil vertically at **X = 0.3c** into four segments (upper-front, upper-rear, lower-front, lower-rear):
-1. **Curvature isolation:** The maximum thickness of many airfoils is near 0.3c. Splitting there separates the high-curvature leading-edge region.
-2. **No sliver faces:** The vertical split lines meet the outer boundaries at right angles, which avoids invalid topology at the junctions.
-3. **Mapped meshing:** Every block is four-sided (in the rectangular domain the front blocks need a Side vertex). For the C-grid, the inlet arc is centered on the split line, so the arc ends exactly where the vertical lines meet the outer boundary and no short straight piece is left in front of 0.3c.
+AirfoilMatic kanadı **X = 0.3c** noktasından dikey olarak dört parçaya (üst-ön, üst-arka, alt-ön, alt-arka) böler:
+1. **Eğriliğin ayrılması:** Birçok profilin maksimum kalınlığı 0.3c civarındadır. Buradan bölmek, eğriliği yüksek hücum kenarı bölgesini ayırır.
+2. **Sliver face oluşmaz:** Dikey bölme çizgileri dış sınırlara dik açıyla bağlanır, kesişimlerde geçersiz topoloji oluşmaz.
+3. **Mapped mesh:** Tüm bloklar dört kenarlıdır (dikdörtgen domain'de ön bloklar için Side vertex gerekir). C-Grid'de giriş yayının merkezi bölme çizgisindedir; yay, dikey çizgilerin dış sınıra değdiği noktada biter ve 0.3c'nin önünde kısa bir düz parça kalmaz.
 
-## Technology
-| Component | Technology |
+## Teknoloji
+| Bileşen | Teknoloji |
 |---|---|
 | Framework | Streamlit |
-| Computation | NumPy |
-| Plots | Plotly |
-| Language | Python 3.11+ |
+| Hesaplama | NumPy |
+| Görselleştirme | Plotly |
+| Dil | Python 3.11+ |
 
-## License
-MIT License.
+## Lisans
+MIT Lisansı.
