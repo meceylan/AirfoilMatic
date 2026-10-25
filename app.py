@@ -1,512 +1,518 @@
-import streamlit as st
+import csv
+import io
+import math
+import re
+
 import numpy as np
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+import streamlit as st
+
+from airfoilmatic import __version__ as APP_VERSION, APP_STAGE
+from airfoilmatic.geometry import (DEFAULT_SPLIT, AirfoilError, close_small_te_gap, naca,
+                                   parse_airfoil_file, split_at)
+from airfoilmatic.topology import C_GRID, RECT, SPLIT_LINES, build_domain, line_warnings, select_lines
+from airfoilmatic.export import to_ansys_txt
+from airfoilmatic.mesh import (DEFAULTS, MAX_GOOD_GROWTH, first_cell_height, plan_inflation,
+                               plan_mesh, reynolds)
+from airfoilmatic.gci import compute_gci
+from airfoilmatic.quality import (FLUENT_MAX_SKEWNESS, FLUENT_MIN_ORTHO, RATING_LEVEL,
+                                  expected_wall_aspect_ratio, rate_orthogonal, rate_skewness)
+from airfoilmatic.i18n import LANGS, tr, tr_error
+
+st.set_page_config(page_title=f"AirfoilMatic v{APP_VERSION} {APP_STAGE}", layout="wide")
+
+# ---------------------------------------------------------------- language
+lang_label = st.sidebar.radio("Dil / Language", list(LANGS.values()), horizontal=True)
+L = {v: k for k, v in LANGS.items()}[lang_label]
 
 
-def calculate_naca4(naca, c, n_points=100):
-    m = int(naca[0]) / 100.0
-    p = int(naca[1]) / 10.0
-    t = int(naca[2:4]) / 100.0
-    
-    # 1. Matematiksel Bölme: X=0.3c'den ikiye ayırıyoruz
-    beta_front = np.linspace(0, np.pi/2, n_points)
-    xc_front = 0.3 * (1 - np.cos(beta_front))
-    
-    beta_rear = np.linspace(0, np.pi/2, n_points)
-    xc_rear = 0.3 + 0.7 * np.sin(beta_rear)
-    
-    def get_coords(xc_arr):
-        x = xc_arr * c
-        # -0.1036 katsayısı ile firar kenarı tam kapatılır (Closed TE / Sliver Face önleme)
-        yt = 5 * t * c * (0.2969 * np.sqrt(xc_arr) - 0.1260 * xc_arr - 0.3516 * xc_arr**2 + 0.2843 * xc_arr**3 - 0.1036 * xc_arr**4)
-        
-        yc = np.zeros_like(xc_arr)
-        dyc_dx = np.zeros_like(xc_arr)
-        
-        if p > 0:
-            for i, val in enumerate(xc_arr):
-                if val <= p:
-                    yc[i] = c * (m / p**2) * (2 * p * val - val**2)
-                    dyc_dx[i] = (m / p**2) * (2 * p - 2 * val)
-                else:
-                    yc[i] = c * (m / (1 - p)**2) * (1 - 2 * p + 2 * p * val - val**2)
-                    dyc_dx[i] = (m / (1 - p)**2) * (2 * p - 2 * val)
-                    
-        theta = np.arctan(dyc_dx)
-        xu = x - yt * np.sin(theta)
-        yu = yc + yt * np.cos(theta)
-        xl = x + yt * np.sin(theta)
-        yl = yc - yt * np.cos(theta)
-        return xu, yu, xl, yl
-
-    # 4 Ayrı Dizi: Üst-Ön, Üst-Arka, Alt-Ön, Alt-Arka
-    xu_f, yu_f, xl_f, yl_f = get_coords(xc_front)
-    xu_r, yu_r, xl_r, yl_r = get_coords(xc_rear)
-    
-    return (xu_f, yu_f), (xu_r, yu_r), (xl_f, yl_f), (xl_r, yl_r)
-
-def calculate_naca5(naca, c, n_points=100):
-    L = int(naca[0])
-    P = int(naca[1:3])
-    T = int(naca[3:5])
-    
-    cl_opt = L * 0.15
-    t = T / 100.0
-    
-    table = {
-        10: (0.0580, 361.400),
-        20: (0.1260, 39.060),
-        30: (0.2025, 15.957),
-        40: (0.2900, 6.643),
-        50: (0.3910, 3.230)
-    }
-    
-    if P not in table:
-        st.warning("⚠️ Girdiğiniz NACA 5-digit profilinin kamburluk konumu (P) standart dışıdır. Desteklenen P değerleri: 10, 20, 30, 40, 50 (Örn: 23012).")
-        st.stop()
-        
-    m, k1 = table[P]
-    
-    # 1. Matematiksel Bölme: X=0.3c'den ikiye ayırıyoruz
-    beta_front = np.linspace(0, np.pi/2, n_points)
-    xc_front = 0.3 * (1 - np.cos(beta_front))
-    
-    beta_rear = np.linspace(0, np.pi/2, n_points)
-    xc_rear = 0.3 + 0.7 * np.sin(beta_rear)
-    
-    def get_coords(xc_arr):
-        x = xc_arr * c
-        # -0.1036 katsayısı ile firar kenarı tam kapatılır (Closed TE / Sliver Face önleme)
-        yt = 5 * t * c * (0.2969 * np.sqrt(xc_arr) - 0.1260 * xc_arr - 0.3516 * xc_arr**2 + 0.2843 * xc_arr**3 - 0.1036 * xc_arr**4)
-        
-        yc = np.zeros_like(xc_arr)
-        dyc_dx = np.zeros_like(xc_arr)
-        
-        scale = cl_opt / 0.3 if cl_opt != 0 else 0.0
-        
-        for i, val in enumerate(xc_arr):
-            if val <= m:
-                yc[i] = scale * (k1 / 6.0) * (val**3 - 3 * m * val**2 + m**2 * (3 - m) * val) * c
-                dyc_dx[i] = scale * (k1 / 6.0) * (3 * val**2 - 6 * m * val + m**2 * (3 - m))
-            else:
-                yc[i] = scale * (k1 * m**3 / 6.0) * (1 - val) * c
-                dyc_dx[i] = scale * (-k1 * m**3 / 6.0)
-                
-        theta = np.arctan(dyc_dx)
-        xu = x - yt * np.sin(theta)
-        yu = yc + yt * np.cos(theta)
-        xl = x + yt * np.sin(theta)
-        yl = yc - yt * np.cos(theta)
-        return xu, yu, xl, yl
-
-    xu_f, yu_f, xl_f, yl_f = get_coords(xc_front)
-    xu_r, yu_r, xl_r, yl_r = get_coords(xc_rear)
-    
-    return (xu_f, yu_f), (xu_r, yu_r), (xl_f, yl_f), (xl_r, yl_r)
+def t(key, **kw):
+    return tr(key, L, **kw)
 
 
-def process_custom_airfoil(file_content, c):
-    lines = file_content.decode("utf-8").split('\n')
-    coords = []
-    for line in lines:
-        parts = line.split()
-        if len(parts) >= 2:
-            try:
-                coords.append((float(parts[0]), float(parts[1])))
-            except ValueError:
-                continue
-    
-    coords = np.array(coords) * c
-    X, Y = coords[:, 0], coords[:, 1]
-    
-    # Evrensel Yüzey Ayırıcı (Hem Selig hem Lednicer formatları için)
-    le_idx = np.argmin(X)
-    te_idx = np.argmax(X)
-    
-    i1 = min(le_idx, te_idx)
-    i2 = max(le_idx, te_idx)
-    
-    # Kanadı iki fiziksel yüzeye ayır
-    part_a_X, part_a_Y = X[i1:i2+1], Y[i1:i2+1]
-    part_b_X, part_b_Y = np.concatenate([X[i2:], X[:i1+1]]), np.concatenate([Y[i2:], Y[:i1+1]])
-    
-    # X'e göre sırala (Fermuar / Zigzag etkisini KESİN olarak önler)
-    sort_a = np.argsort(part_a_X)
-    part_a_X, part_a_Y = part_a_X[sort_a], part_a_Y[sort_a]
-    
-    sort_b = np.argsort(part_b_X)
-    part_b_X, part_b_Y = part_b_X[sort_b], part_b_Y[sort_b]
-    
-    # Hangisi Üst, Hangisi Alt? (Y ortalamasına bak)
-    if np.mean(part_a_Y) > np.mean(part_b_Y):
-        Xu, Yu = part_a_X, part_a_Y
-        Xl, Yl = part_b_X, part_b_Y
-    else:
-        Xu, Yu = part_b_X, part_b_Y
-        Xl, Yl = part_a_X, part_a_Y
-        
-    # Aynı X değerlerini temizle (İnterpolasyon için şart)
-    Xu, unq_u = np.unique(Xu, return_index=True); Yu = Yu[unq_u]
-    Xl, unq_l = np.unique(Xl, return_index=True); Yl = Yl[unq_l]
-    
-    # 0.3c noktasını hesapla
-    x_split = 0.3 * c
-    y_split_u = np.interp(x_split, Xu, Yu)
-    y_split_l = np.interp(x_split, Xl, Yl)
-    
-    # 4 Parçaya Böl ve 0.3c Noktasını Zorla Ekle
-    xu_front = np.append(Xu[Xu < x_split], x_split)
-    yu_front = np.append(Yu[Xu < x_split], y_split_u)
-    
-    xu_rear = np.insert(Xu[Xu > x_split], 0, x_split)
-    yu_rear = np.insert(Yu[Xu > x_split], 0, y_split_u)
-    
-    xl_front = np.append(Xl[Xl < x_split], x_split)
-    yl_front = np.append(Yl[Xl < x_split], y_split_l)
-    
-    xl_rear = np.insert(Xl[Xl > x_split], 0, x_split)
-    yl_rear = np.insert(Yl[Xl > x_split], 0, y_split_l)
-    
-    return xu_front, yu_front, xu_rear, yu_rear, xl_front, yl_front, xl_rear, yl_rear, y_split_u, y_split_l
-
-st.set_page_config(page_title="AirfoilMatic v0.3 Beta", layout="wide")
-
-st.title("AirfoilMatic V0.3 Beta: 2B CFD Domain Generator")
-
-# --- 4. ARAYÜZ SADELEŞTİRMESİ ---
-st.sidebar.header("AirfoilMatic V0.3 Beta")
+def te(exc):
+    return tr_error(exc, L)
 
 
-data_source = st.sidebar.radio("Kanat Veri Kaynağı", ['NACA (4 veya 5 Haneli)', 'Özel Kanat (.dat / .txt)'])
+st.title(f"AirfoilMatic V{APP_VERSION} {APP_STAGE}: {t('subtitle')}")
+st.sidebar.header(f"AirfoilMatic V{APP_VERSION} {APP_STAGE}")
 
-naca_input = "0012"
-custom_file = None
-file_name_prefix = "domain"
+# ---------------------------------------------------------------- sidebar inputs
+source = st.sidebar.radio(t("source"), ["naca", "file"],
+                          format_func=lambda k: t("source_naca") if k == "naca" else t("source_file"))
 
-if data_source == 'NACA (4 veya 5 Haneli)':
-    if 'naca_code' not in st.session_state:
-        st.session_state.naca_code = "4412"
-
-    naca_input = st.sidebar.text_input("NACA Kodu", value=st.session_state.naca_code, max_chars=5).strip()
-    st.session_state.naca_code = naca_input
-
-    file_name_prefix = f"domain_naca{naca_input}"
+if source == "naca":
+    naca_code = st.sidebar.text_input(t("naca_code"), value="4412", max_chars=5).strip()
+    te_mode = st.sidebar.radio(t("te_mode"), ["sharp", "blunt"], help=t("te_mode_help"),
+                               format_func=lambda k: t("te_sharp") if k == "sharp" else t("te_blunt"))
+    file_prefix = f"domain_naca{naca_code}"
+    custom_file = None
 else:
-    custom_file = st.sidebar.file_uploader("Özel Kanat Dosyası Yükle (.dat, .txt)", type=["dat", "txt"])
-    if custom_file:
-        file_name_prefix = f"domain_{custom_file.name.split('.')[0]}"
-    else:
-        file_name_prefix = "domain_custom"
+    custom_file = st.sidebar.file_uploader(t("upload"), type=["dat", "txt"])
+    file_prefix = ("domain_" + re.sub(r"[^A-Za-z0-9_.-]+", "_", custom_file.name.rsplit('.', 1)[0]).strip("_")
+                   if custom_file else "domain_custom")
 
-domain_type = st.sidebar.selectbox("Akış Alanı (Domain) Tipi", ['C-Grid (Standart)', 'Dikdörtgen (Rüzgar Tüneli)'])
+domain_kind = st.sidebar.selectbox(t("domain_type"), [C_GRID, RECT],
+                                   format_func=lambda k: t("dom_cgrid") if k == C_GRID else t("dom_rect"))
+chord = st.sidebar.number_input(t("chord"), value=1.0, step=0.1, min_value=0.01)
 
-chord_c = st.sidebar.number_input("Chord Uzunluğu (c) [m]", value=1.0, step=0.1, min_value=0.1)
-
-if domain_type == 'C-Grid (Standart)':
-    R_inlet = st.sidebar.number_input("Giriş Yarıçapı (Rinlet) [m]", value=10.0, step=1.0, min_value=1.0)
-    L_wake = st.sidebar.number_input("Arka İz Uzunluğu (Lwake) [m]", value=20.0, step=1.0, min_value=1.0)
-    # C-Grid: simetrik sınırlar
-    Y_top = R_inlet
-    Y_bottom = R_inlet
+if domain_kind == C_GRID:
+    r_inlet = st.sidebar.number_input(t("r_inlet"), value=10.0, step=1.0, min_value=1.0)
+    l_wake = st.sidebar.number_input(t("l_wake"), value=20.0, step=1.0, min_value=1.0)
+    l_top = l_bottom = r_inlet
 else:
-    L_inlet_rect = st.sidebar.number_input("Giriş Uzaklığı (Linlet) [m]", value=10.0, step=1.0, min_value=1.0)
-    L_wake = st.sidebar.number_input("Arka İz Uzunluğu (Lwake) [m]", value=20.0, step=1.0, min_value=1.0)
-    L_top = st.sidebar.number_input("Üst Sınır Uzaklığı (Ltop) [m]", value=10.0, step=1.0, min_value=1.0)
-    L_bottom = st.sidebar.number_input("Alt Sınır Uzaklığı (Lbottom) [m]", value=10.0, step=1.0, min_value=1.0)
-    # Dikdörtgen: bağımsız sınırlar
-    R_inlet = L_inlet_rect
-    Y_top = L_top
-    Y_bottom = L_bottom
+    r_inlet = st.sidebar.number_input(t("l_inlet"), value=10.0, step=1.0, min_value=1.0)
+    l_wake = st.sidebar.number_input(t("l_wake"), value=20.0, step=1.0, min_value=1.0)
+    l_top = st.sidebar.number_input(t("l_top"), value=10.0, step=1.0, min_value=1.0)
+    l_bottom = st.sidebar.number_input(t("l_bottom"), value=10.0, step=1.0, min_value=1.0)
 
-# Sidebar Download Butonu (sabit alan — placeholder yok, titreme/kaybolma engellendi)
-# Yer tutucu sabit konumda tanımlanıyor; içerik hesaplama sonrası doldurulacak
-sidebar_download_placeholder = st.sidebar.empty()
+st.sidebar.markdown(f"**{t('split_mode')}**", help=t("split_mode_help"))
+kept_lines = [k for k in SPLIT_LINES if st.sidebar.checkbox(t(k), value=True, key=f"line_{k}")]
+all_lines = len(kept_lines) == len(SPLIT_LINES)
 
-st.sidebar.warning("⚠️ Beta Sürümü (v0.3)\nBu araç 2B CFD ön işlemini hızlandırmak için tasarlanmıştır. Çıktıların analiz uygunluğunu (geometri vb.) Ansys ortamında mutlaka doğrulayın.")
+sidebar_download = st.sidebar.empty()
+st.sidebar.warning(t("beta_warning", stage=APP_STAGE, version=APP_VERSION))
 
-# --- GEOMETRİ VE TOPOLOJİ HESAPLAMALARI ---
+# ---------------------------------------------------------------- geometry
 try:
-    if data_source == 'NACA (4 veya 5 Haneli)':
-        if len(naca_input) not in [4, 5] or not naca_input.isdigit():
-            st.error("Lütfen geçerli 4 veya 5 haneli bir NACA kodu girin.")
+    if source == "naca":
+        if len(naca_code) not in (4, 5) or not naca_code.isdigit():
+            st.error(t("err_naca"))
             st.stop()
-            
-        if len(naca_input) == 4:
-            (xu_f, yu_f), (xu_r, yu_r), (xl_f, yl_f), (xl_r, yl_r) = calculate_naca4(naca_input, chord_c, n_points=100)
-        elif len(naca_input) == 5:
-            (xu_f, yu_f), (xu_r, yu_r), (xl_f, yl_f), (xl_r, yl_r) = calculate_naca5(naca_input, chord_c, n_points=100)
-            
-        airfoil_label = f'NACA {naca_input}'
+        airfoil = naca(naca_code, chord, blunt_te=(te_mode == "blunt"))
     else:
         if custom_file is None:
-            st.info("Lütfen bir kanat dosyası yükleyin.")
+            st.info(t("upload_info"))
             st.stop()
-        xu_f, yu_f, xu_r, yu_r, xl_f, yl_f, xl_r, yl_r, y_split_u, y_split_l = process_custom_airfoil(custom_file.read(), chord_c)
-        airfoil_label = 'Özel Kanat'
-except Exception as e:
-    st.error(f"Kanat geometrisi oluşturulurken bir hata oluştu: {e}")
+        airfoil = parse_airfoil_file(custom_file.getvalue(), chord, name=custom_file.name)
+    airfoil = close_small_te_gap(airfoil)
+    split_af = split_at(airfoil, DEFAULT_SPLIT)
+except AirfoilError as e:
+    st.error(t("err_geometry", msg=te(e)))
     st.stop()
 
-# 2. Dikey Bölme Noktaları (X=0.3c koordinatları)
-x_up_03 = xu_f[-1]    
-y_up_03 = yu_f[-1]    
-x_low_03 = xl_f[-1]   
-y_low_03 = yl_f[-1]   
-
-# Firar kenarı tam noktaları (TE)
-x_te_up = xu_r[-1]
-y_te_up = yu_r[-1]
-x_te_low = xl_r[-1]
-y_te_low = yl_r[-1]
-
-# NaN Kayıp Çizgi Kurtarma (Safe Val) Algoritması
-def safe_val(val, fallback_arr):
-    if val is None or np.isnan(val):
-        valid_vals = fallback_arr[~np.isnan(fallback_arr)]
-        return valid_vals[-1] if len(valid_vals) > 0 else 0.0
-    return val
-
-y_up_03 = safe_val(y_up_03, yu_f)
-y_low_03 = safe_val(y_low_03, yl_f)
-y_te_up = safe_val(y_te_up, yu_r)
-y_te_low = safe_val(y_te_low, yl_r)
-
-# Hücum kenarı noktası
-x_le = xu_f[0]
-y_le = safe_val(yu_f[0], yu_f)
-
-domain_groups = []
-split_lines = []
-
-X_exit = chord_c + L_wake
-
-if domain_type == 'C-Grid (Standart)':
-    # Dış Sınırlar (Outer Boundaries)
-    # C-Arc (İnlet)
-    theta_arc = np.linspace(np.pi/2, 3*np.pi/2, 100)
-    x_arc = R_inlet * np.cos(theta_arc)
-    y_arc = R_inlet * np.sin(theta_arc)
-
-    # Üst Sınır
-    x_top = np.linspace(0, X_exit, 50)
-    y_top = np.ones(50) * Y_top
-
-    # Alt Sınır
-    x_bot = np.linspace(0, X_exit, 50)
-    y_bot = -np.ones(50) * Y_bottom
-
-    # Çıkış (Outlet)
-    y_outlet = np.linspace(Y_top, -Y_bottom, 50)
-    x_outlet = np.ones(50) * X_exit
-
-    domain_groups.extend([
-        {"name": "C-Arc (İnlet)", "x": x_arc, "y": y_arc},
-        {"name": "Üst Sınır", "x": x_top, "y": y_top},
-        {"name": "Alt Sınır", "x": x_bot, "y": y_bot},
-        {"name": "Çıkış (Outlet)", "x": x_outlet, "y": y_outlet}
-    ])
-    
-    # İç Bölme Çizgileri
-    # Ön Yatay Eksen (LE'den İnlet'e)
-    x_front_split = np.linspace(-R_inlet, x_le, 50)
-    y_front_split = np.ones(50) * y_le
-else:
-    # Dikdörtgen (Rüzgar Tüneli) Domain
-    # Sol Sınır (İnlet)
-    y_inlet = np.linspace(Y_top, -Y_bottom, 50)
-    x_inlet = -np.ones(50) * R_inlet
-    
-    # Üst Sınır
-    x_top = np.linspace(-R_inlet, X_exit, 50)
-    y_top = np.ones(50) * Y_top
-    
-    # Alt Sınır
-    x_bot = np.linspace(-R_inlet, X_exit, 50)
-    y_bot = -np.ones(50) * Y_bottom
-    
-    # Çıkış (Outlet)
-    y_outlet = np.linspace(Y_top, -Y_bottom, 50)
-    x_outlet = np.ones(50) * X_exit
-    
-    domain_groups.extend([
-        {"name": "Sol Sınır (İnlet)", "x": x_inlet, "y": y_inlet},
-        {"name": "Üst Sınır", "x": x_top, "y": y_top},
-        {"name": "Alt Sınır", "x": x_bot, "y": y_bot},
-        {"name": "Çıkış (Outlet)", "x": x_outlet, "y": y_outlet}
-    ])
-    
-    # İç Bölme Çizgileri
-    # Ön Yatay Eksen (LE'den İnlet'e)
-    x_front_split = np.linspace(-R_inlet, x_le, 50)
-    y_front_split = np.ones(50) * y_le
-
-# Küt Firar Kenarı (Blunt TE) Orta Noktası
-x_te_mid = (x_te_up + x_te_low) / 2.0
-y_te_mid = (y_te_up + y_te_low) / 2.0
-
-# Arka İz Eksen (TE'den Outlet'e) - Y ekseninin tam ortasından başlar
-x_wake_split = np.linspace(x_te_mid, X_exit, 50)
-y_wake_split = np.ones(50) * y_te_mid 
-
-# X=0.3c Dikey Bölmeleri
-x_split_up_03 = np.ones(50) * x_up_03
-y_split_up_03 = np.linspace(y_up_03, Y_top, 50)
-
-x_split_low_03 = np.ones(50) * x_low_03
-y_split_low_03 = np.linspace(y_low_03, -Y_bottom, 50)
-
-# Gerçek Firar Kenarı (Real TE) Dikey Bölmeleri
-x_split_up_te = np.ones(50) * x_te_up
-y_split_up_te = np.linspace(y_te_up, Y_top, 50)
-
-x_split_low_te = np.ones(50) * x_te_low
-y_split_low_te = np.linspace(y_te_low, -Y_bottom, 50)
-
-split_lines.extend([
-    {"name": "Ön Yatay Eksen", "x": x_front_split, "y": y_front_split},
-    {"name": "Arka İz Eksen", "x": x_wake_split, "y": y_wake_split},
-    {"name": "Üst Ön Dikey (X=0.3c)", "x": x_split_up_03, "y": y_split_up_03},
-    {"name": "Alt Ön Dikey (X=0.3c)", "x": x_split_low_03, "y": y_split_low_03},
-    {"name": "Üst Arka Dikey (X=TE)", "x": x_split_up_te, "y": y_split_up_te},
-    {"name": "Alt Arka Dikey (X=TE)", "x": x_split_low_te, "y": y_split_low_te}
-])
-
-# Küt Firar Kenarı (Blunt TE) Kapatma
-te_y_ust = y_te_up
-te_y_alt = y_te_low
-
-# Eğer uçlar açıksa (fark >= 0.001) dikey çizgi ile bağla
-if abs(te_y_ust - te_y_alt) >= 0.001:
-    x_blunt_te = np.linspace(x_te_up, x_te_low, 50)
-    y_blunt_te = np.linspace(te_y_ust, te_y_alt, 50)
-    split_lines.append({"name": "Küt Firar Kenarı Kapatma", "x": x_blunt_te, "y": y_blunt_te})
-
-# --- 5. GÖRSELLEŞTİRME (PLOTLY) ---
-
-# 4. Plotly Çizim Döngüsü (Fill=ToSelf için)
-x_plot = np.concatenate([xu_f, xu_r, xl_r[::-1], xl_f[::-1]])
-y_plot = np.concatenate([yu_f, yu_r, yl_r[::-1], yl_f[::-1]])
-
-def add_airfoil_to_fig(fig_obj):
-    # Çizgileri 4 ayrı parça olarak (saçaklanmayı önlemek için) yüksek kontrastlı camgöbeği ile çiziyoruz
-    fig_obj.add_trace(go.Scatter(x=xu_f, y=yu_f, mode='lines', line=dict(color='#00C2FF', width=3), showlegend=False))
-    fig_obj.add_trace(go.Scatter(x=xu_r, y=yu_r, mode='lines', line=dict(color='#00C2FF', width=3), showlegend=False))
-    fig_obj.add_trace(go.Scatter(x=xl_f, y=yl_f, mode='lines', line=dict(color='#00C2FF', width=3), showlegend=False))
-    fig_obj.add_trace(go.Scatter(x=xl_r, y=yl_r, mode='lines', line=dict(color='#00C2FF', width=3), showlegend=False))
-    
-    # Tüm kapalı poligonu şeffaf kenar çizgisiyle içi dolu (fill='toself') şekilde atıyoruz
-    fig_obj.add_trace(go.Scatter(
-        x=x_plot, 
-        y=y_plot, 
-        fill='toself', 
-        fillcolor='rgba(0, 194, 255, 0.15)', 
-        line=dict(color='rgba(0,0,0,0)', width=0),
-        name=airfoil_label
-    ))
-
-# --- Grafik 1: Yakın Çekim Kanat Profili (Zoom-In) ---
-st.subheader("🔎 Yakın Çekim: Kanat Profili ve Kesme (Split) Noktaları")
-fig_zoom = go.Figure()
-
-# Sadece iç bölmeler (Streamlit kırmızısı ve kesikli çizgi)
-for grp in split_lines:
-    fig_zoom.add_trace(go.Scatter(x=grp['x'], y=grp['y'], mode='lines', name=grp['name'], line=dict(color='#FF4B4B', width=2, dash='dash')))
-
-# Airfoil Poligonu (Saçaklanma Düzeltmesiyle)
-add_airfoil_to_fig(fig_zoom)
-
-fig_zoom.update_layout(
-    xaxis_title="X Koordinatı [m]",
-    yaxis_title="Y Koordinatı [m]",
-    xaxis=dict(range=[-0.1*chord_c, 1.1*chord_c]),
-    yaxis=dict(scaleanchor="x", scaleratio=1, range=[-0.5*chord_c, 0.5*chord_c]),
-    showlegend=True,
-    height=500,
-    paper_bgcolor='rgba(0,0,0,0)',
-    plot_bgcolor='rgba(0,0,0,0)'
-)
-fig_zoom.update_xaxes(gridcolor='rgba(128, 128, 128, 0.2)', zerolinecolor='rgba(128, 128, 128, 0.5)', tickfont=dict(size=12))
-fig_zoom.update_yaxes(gridcolor='rgba(128, 128, 128, 0.2)', zerolinecolor='rgba(128, 128, 128, 0.5)', tickfont=dict(size=12))
-st.plotly_chart(fig_zoom, use_container_width=True, config={'scrollZoom': False, 'displayModeBar': True})
-
-
-# --- Grafik 2: Tam Akış Alanı (Domain) Topolojisi ---
-st.subheader("🌐 Uzak Çekim: CFD Akış Alanı Sınırları")
-fig_full = go.Figure()
-
-# Dış Sınırlar
-for grp in domain_groups:
-    fig_full.add_trace(go.Scatter(x=grp['x'], y=grp['y'], mode='lines', name=grp['name'], line=dict(color='rgba(128, 128, 128, 0.8)', width=2)))
-
-# İç Bölmeler (Streamlit kırmızısı ve kesikli çizgi)
-for grp in split_lines:
-    fig_full.add_trace(go.Scatter(x=grp['x'], y=grp['y'], mode='lines', name=grp['name'], line=dict(color='#FF4B4B', width=2, dash='dash')))
-
-# Airfoil Poligonu (Saçaklanma Düzeltmesiyle)
-add_airfoil_to_fig(fig_full)
-
-fig_full.update_layout(
-    xaxis_title="X Koordinatı [m]",
-    yaxis_title="Y Koordinatı [m]",
-    yaxis=dict(scaleanchor="x", scaleratio=1), 
-    showlegend=True,
-    height=700,
-    paper_bgcolor='rgba(0,0,0,0)',
-    plot_bgcolor='rgba(0,0,0,0)'
-)
-fig_full.update_xaxes(gridcolor='rgba(128, 128, 128, 0.2)', zerolinecolor='rgba(128, 128, 128, 0.5)', tickfont=dict(size=12))
-fig_full.update_yaxes(gridcolor='rgba(128, 128, 128, 0.2)', zerolinecolor='rgba(128, 128, 128, 0.5)', tickfont=dict(size=12))
-st.plotly_chart(fig_full, use_container_width=True, config={'scrollZoom': False, 'displayModeBar': True})
-
-# --- 3. ANSYS TXT EXPORT GÜNCELLEMESİ ---
-def generate_ansys_txt():
-    lines = []
-    
-    def add_points(group_num, x_arr, y_arr):
-        for i, (px, py) in enumerate(zip(x_arr, y_arr)):
-            lines.append(f"{group_num}\t{i+1}\t{px:.6f}\t{py:.6f}\t0.000000")
-
-    # Kanat yüzeyi ilk 4 grup olarak basılıyor
-    add_points(1, xu_f, yu_f) # Grup 1: Üst-Ön
-    add_points(2, xu_r, yu_r) # Grup 2: Üst-Arka
-    add_points(3, xl_f, yl_f) # Grup 3: Alt-Ön
-    add_points(4, xl_r, yl_r) # Grup 4: Alt-Arka
-    
-    # Dış Sınırlar bu 4 grubun peşine ekleniyor
-    grp_idx = 5
-    for grp in domain_groups:
-        add_points(grp_idx, grp['x'], grp['y'])
-        grp_idx += 1
-        
-    # İç Bölme Çizgileri peşinden ekleniyor
-    for grp in split_lines:
-        add_points(grp_idx, grp['x'], grp['y'])
-        grp_idx += 1
-        
-    return "\n".join(lines)
-
 try:
-    txt_data = generate_ansys_txt()
+    domain = build_domain(split_af, domain_kind, r_inlet=r_inlet, l_wake=l_wake,
+                          l_top=l_top, l_bottom=l_bottom)
+except ValueError as e:
+    st.error(t("err_domain", msg=te(e)))
+    st.stop()
 
-    # Sidebar indirme butonu — placeholder hemen doldurulur (titreme minimuma indirilir)
-    with sidebar_download_placeholder:
-        st.download_button(
-            label="⬇️ Ansys TXT İndir",
-            data=txt_data,
-            file_name=f"{file_name_prefix}.txt",
-            mime="text/plain",
-            use_container_width=True,
-            key="download_sidebar"
-        )
+# `domain` keeps every split line (used for sizing plans); `out_domain` is what is
+# drawn and exported for the chosen workflow.
+out_domain = select_lines(domain, kept_lines)
+txt_data = to_ansys_txt(out_domain)
+with sidebar_download:
+    st.download_button(t("download"), data=txt_data, file_name=f"{file_prefix}.txt",
+                       mime="text/plain", use_container_width=True, key="dl_sidebar")
 
-    # Ana sayfa indirme butonu
-    st.download_button(
-        label="⬇️ Ansys TXT İndir",
-        data=txt_data,
-        file_name=f"{file_name_prefix}.txt",
-        mime="text/plain",
-        use_container_width=True,
-        key="download_main"
-    )
-except Exception as e:
-    st.error(f"Dışa aktarma verisi oluşturulurken hata: {e}")
+
+# ---------------------------------------------------------------- helpers
+def airfoil_traces(fig):
+    for c in domain.by_kind("airfoil") + [c for c in domain.curves if c.key == "te_closure"]:
+        fig.add_trace(go.Scatter(x=c.x, y=c.y, mode="lines", showlegend=False,
+                                 line=dict(color="#00C2FF", width=3), hoverinfo="skip"))
+    x = np.concatenate([airfoil.xu, airfoil.xl[::-1]])
+    y = np.concatenate([airfoil.yu, airfoil.yl[::-1]])
+    fig.add_trace(go.Scatter(x=x, y=y, fill="toself", fillcolor="rgba(0, 194, 255, 0.15)",
+                             line=dict(color="rgba(0,0,0,0)", width=0), name=airfoil.name))
+
+
+def style(fig, height, xrange=None, yrange=None):
+    fig.update_layout(xaxis_title=t("x_axis"), yaxis_title=t("y_axis"), showlegend=True, height=height,
+                      paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                      xaxis=dict(range=xrange), yaxis=dict(scaleanchor="x", scaleratio=1, range=yrange))
+    for upd in (fig.update_xaxes, fig.update_yaxes):
+        upd(gridcolor="rgba(128,128,128,0.2)", zerolinecolor="rgba(128,128,128,0.5)", tickfont=dict(size=12))
+
+
+def plan_rows(plan):
+    rows = []
+    for e in plan.edges:
+        rows.append({
+            t("col_group"): t(e.group),
+            t("col_edges"): ", ".join(t(k) for k in e.edges),
+            t("col_n"): e.n,
+            t("col_bias"): float(f"{e.bias:.6g}"),
+            t("col_small"): t(e.small_end),
+            t("col_dsmin"): m_mm(e.ds_min),
+            t("col_dsmax"): m_mm(e.ds_max),
+            t("col_growth"): round(e.growth, 4),
+            t("col_length"): round(e.length, 5),
+        })
+    return rows
+
+
+def rows_to_csv(rows):
+    buf = io.StringIO()
+    w = csv.DictWriter(buf, fieldnames=list(rows[0].keys()))
+    w.writeheader()
+    w.writerows(rows)
+    return buf.getvalue().encode("utf-8-sig")  # BOM so Excel shows Turkish characters
+
+
+tab_geo, tab_mesh, tab_gci = st.tabs([t("tab_geometry"), t("tab_mesh"), t("tab_gci")])
+
+# ================================================================ geometry tab
+with tab_geo:
+    n_faces = max(1, len(kept_lines))
+    st.caption(t("geom_info", split=DEFAULT_SPLIT) if all_lines else (t("geom_info_one") if n_faces == 1 else t("geom_info_partial", n=n_faces)))
+    for kind, key in line_warnings(kept_lines):
+        st.warning(t("warn_single_line", line=t(key)))
+    if domain.blunt_te:
+        st.info(t("blunt_info", gap=split_af.te_gap))
+
+    st.subheader(t("zoom_title"))
+    fig_zoom = go.Figure()
+    for i, c in enumerate([c for c in out_domain.by_kind("split") if c.key != "te_closure"]):
+        fig_zoom.add_trace(go.Scatter(x=c.x, y=c.y, mode="lines", name=t("split_lines"), legendgroup="split",
+                                      showlegend=i == 0, hovertext=t(c.key), hoverinfo="text",
+                                      line=dict(color="#FF4B4B", width=2, dash="dash")))
+    airfoil_traces(fig_zoom)
+    style(fig_zoom, 500, [-0.1 * chord, 1.1 * chord], [-0.5 * chord, 0.5 * chord])
+    st.plotly_chart(fig_zoom, use_container_width=True, config={"scrollZoom": False})
+
+    st.subheader(t("full_title"))
+    fig_full = go.Figure()
+    for c in out_domain.by_kind("boundary"):
+        fig_full.add_trace(go.Scatter(x=c.x, y=c.y, mode="lines", name=t(c.key),
+                                      line=dict(color="rgba(128,128,128,0.8)", width=2)))
+    for i, c in enumerate([c for c in out_domain.by_kind("split") if c.key != "te_closure"]):
+        fig_full.add_trace(go.Scatter(x=c.x, y=c.y, mode="lines", name=t("split_lines"), legendgroup="split",
+                                      showlegend=i == 0, hovertext=t(c.key), hoverinfo="text",
+                                      line=dict(color="#FF4B4B", width=2, dash="dash")))
+    airfoil_traces(fig_full)
+    style(fig_full, 700)
+    st.plotly_chart(fig_full, use_container_width=True, config={"scrollZoom": False})
+
+    st.download_button(t("download"), data=txt_data, file_name=f"{file_prefix}.txt",
+                       mime="text/plain", use_container_width=True, key="dl_main")
+
+# ================================================================ mesh tab
+INFLATION, MAPPED = "inflation", "mapped"
+FAR_FIELD_SIZE = 0.5  # global element size for quad-dominant meshes, in chords
+# With inflation on both the airfoil and the wake axis, Ansys failed or produced
+# degenerate cells at the TE with ~1 mm elements there; ~3 mm (0.003c) worked.
+INFL_MIN_TE = 0.003
+
+
+def m_mm(v):
+    """Length in metres and millimetres, e.g. '1.226e-05 m (0.01226 mm)'."""
+    return f"{v:.4g} m ({v * 1000:.4g} mm)"
+
+
+def short(v, unit=""):
+    return f"{v:.3g} {unit}".strip() if 1e-3 <= abs(v) < 1e4 else f"{v:.2e} {unit}".strip()
+
+
+with tab_mesh:
+    st.markdown(t("mesh_intro"))
+
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        flow_mode = st.radio(t("flow_input"), ["re", "vel"], horizontal=True,
+                             format_func=lambda k: t("flow_re") if k == "re" else t("flow_vel"))
+        u_inf = rho = mu = None
+        if flow_mode == "re":
+            re = st.number_input(t("re"), value=2.0e6, min_value=1.0e3, step=1.0e5, format="%.4e")
+        else:
+            u_inf = st.number_input(t("velocity"), value=30.0, min_value=0.01)
+            rho = st.number_input(t("density"), value=1.225, min_value=1e-6, format="%.4f")
+            mu = st.number_input(t("viscosity"), value=1.7894e-5, min_value=1e-9, format="%.4e")
+            re = reynolds(u_inf, rho, mu, chord)
+    with c2:
+        mesh_mode = st.radio(t("mesh_method"), [INFLATION, MAPPED],
+                             format_func=lambda k: t("method_inflation") if k == INFLATION else t("method_mapped"))
+        y_plus = st.number_input(t("y_plus"), value=DEFAULTS["y_plus"], min_value=0.05, step=0.5)
+    with c3:
+        if mesh_mode == INFLATION:
+            growth = st.number_input(t("growth"), value=1.15, min_value=1.01, max_value=1.5,
+                                     step=0.01, format="%.3f", key="g_infl")
+            coverage = st.number_input(t("coverage"), value=1.5, min_value=0.5, max_value=5.0, step=0.25)
+        else:
+            growth = st.number_input(t("growth"), value=DEFAULTS["growth"], min_value=1.01, max_value=1.5,
+                                     step=0.01, format="%.3f", key="g_map")
+        with st.expander(t("advanced")):
+            ds_le = st.number_input(t("ds_le"), value=DEFAULTS["ds_le"], min_value=1e-5, format="%.4f",
+                                    step=0.0005)
+            ds_split = st.number_input(t("ds_split"), value=DEFAULTS["ds_split"], min_value=1e-4,
+                                       format="%.4f", step=0.001)
+            ds_te = st.number_input(t("ds_te"), value=DEFAULTS["ds_te"], min_value=1e-5, format="%.4f",
+                                    step=0.0005)
+            wake_growth = st.number_input(t("wake_growth"), value=DEFAULTS["wake_growth"], min_value=1.01,
+                                          max_value=1.5, step=0.01, format="%.3f")
+
+    if re < 5e5:
+        st.info(t("low_re_note"))
+    sizing = dict(y_plus=y_plus, growth=growth, ds_le=ds_le, ds_split=ds_split, ds_te=ds_te,
+                  wake_growth=wake_growth)
+    plan = infl = None
+    try:
+        if mesh_mode == INFLATION:
+            infl = plan_inflation(re, chord, y_plus=y_plus, growth=growth, coverage=coverage)
+        else:
+            plan = plan_mesh(domain, split_af, re, **sizing)
+    except (ValueError, OverflowError) as e:
+        st.error(te(e))
+
+    if infl is not None:
+        m = st.columns(4)
+        m[0].metric(t("m_re"), short(re))
+        m[1].metric(t("infl_first"), f"{infl.first_layer * 1000:.4g} mm")
+        m[2].metric(t("infl_layers"), f"{infl.layers}")
+        m[3].metric(t("m_delta"), f"{infl.delta_turb * 1000:.3g} mm")
+        st.subheader(t("infl_table_title"))
+        # Smallest surface element: LE/TE spacing, or a blunt-TE face element.
+        ds_te_infl = max(ds_te, INFL_MIN_TE)
+        smallest = min(ds_le, ds_te_infl) * chord
+        if domain.blunt_te:
+            smallest = min(smallest, split_af.te_gap / 4)
+        defeature = float(f"{smallest / 50:.0e}")   # well below every specified size
+        curv_min = float(f"{smallest / 5:.0e}")     # so curvature sizing never coarsens the edges
+        infl_rows = [
+            {t("col_setting"): "Inflation Option", t("col_value"): "First Layer Thickness"},
+            {t("col_setting"): "First Layer Height", t("col_value"): m_mm(infl.first_layer)},
+            {t("col_setting"): "Maximum Layers", t("col_value"): f"{infl.layers}"},
+            {t("col_setting"): "Growth Rate", t("col_value"): f"{infl.growth:.3g}"},
+            {t("col_setting"): t("infl_total"), t("col_value"): f"{m_mm(infl.total)}  (≈ {infl.total / infl.delta_turb:.2g} δ)"},
+            {t("col_setting"): t("infl_last"), t("col_value"): m_mm(infl.last_layer)},
+            {t("col_setting"): t("glob_size"), t("col_value"): m_mm(FAR_FIELD_SIZE * chord)},
+            {t("col_setting"): t("glob_growth"), t("col_value"): "1.15"},
+            {t("col_setting"): "Defeature Size (Mesh → Sizing)", t("col_value"): m_mm(defeature)},
+            {t("col_setting"): "Curvature Min Size (Mesh → Sizing)", t("col_value"): m_mm(curv_min)},
+        ]
+        st.dataframe(infl_rows, use_container_width=True, hide_index=True)
+        st.caption(t("infl_note"))
+        if domain.blunt_te:
+            st.warning(t("warn_blunt_infl"))
+
+        # Edge Sizing for the airfoil and wake-axis edges (same geometric plan as mapped mode)
+        st.subheader(t("infl_edges_title") if "wake_axis" in kept_lines else t("infl_edges_title_af"))
+        try:
+            edge_plan = plan_mesh(domain, split_af, re, max_wake_cell=FAR_FIELD_SIZE * chord,
+                                  **dict(sizing, ds_te=ds_te_infl))
+            keep = ("g_af_front", "g_af_rear") + (("g_wake",) if "wake_axis" in kept_lines else ())
+            e_rows = [r for e, r in zip(edge_plan.edges, plan_rows(edge_plan)) if e.group in keep]
+            for r, e in zip(e_rows, [e for e in edge_plan.edges if e.group in keep]):
+                if e.group == "g_wake":
+                    r[t("col_edges")] = t("wake_axis")
+            st.dataframe(e_rows, use_container_width=True, hide_index=True,
+                         column_order=[t(k) for k in ("col_group", "col_n", "col_bias", "col_small",
+                                                      "col_dsmin", "col_dsmax", "col_edges")])
+            st.caption(t("infl_edges_note"))
+        except (ValueError, OverflowError) as e:
+            st.error(te(e))
+        if infl.growth > MAX_GOOD_GROWTH:
+            st.warning(t("warn_growth", g=infl.growth, lim=MAX_GOOD_GROWTH))
+        with st.expander(t("howto_title")):
+            st.markdown(t("howto_infl"))
+
+    if plan is not None:
+        if not all_lines:
+            st.warning(t("warn_mapped_lines"))
+        m = st.columns(4)
+        m[0].metric(t("m_re"), short(re))
+        m[1].metric(t("m_dy1"), f"{plan.dy1 * 1000:.4g} mm")
+        m[2].metric(t("m_nbl"), f"{plan.n_bl}")
+        m[3].metric(t("m_cells"), f"{plan.cells:,}")
+        st.markdown(t("m_counts", n_normal=plan.n_normal, n_front=plan.n_front,
+                      n_rear=plan.n_rear, n_wake=plan.n_wake))
+        if plan.max_growth > MAX_GOOD_GROWTH:
+            st.warning(t("warn_growth", g=plan.max_growth, lim=MAX_GOOD_GROWTH))
+        if plan.n_bl < 20:
+            st.warning(t("warn_bl", n=plan.n_bl))
+        st.subheader(t("table_title"))
+        if domain_kind == RECT:
+            st.info(t("rect_note"))
+        rows = plan_rows(plan)
+        st.dataframe(rows, use_container_width=True, hide_index=True,
+                     column_order=[t(k) for k in ("col_group", "col_n", "col_bias", "col_small",
+                                                  "col_dsmin", "col_edges")])
+        st.download_button(t("download_csv"), data=rows_to_csv(rows),
+                           file_name=f"{file_prefix}_edge_sizing.csv", mime="text/csv")
+        with st.expander(t("howto_title")):
+            st.markdown(t("howto"))
+
+    st.caption(t("delta_note", lam=m_mm((infl or plan).delta_lam) if (infl or plan) else "-"))
+
+    # ---- mesh quality check
+    with st.expander(t("quality_title")):
+        st.caption(t("quality_help"))
+        qc = st.columns(4)
+        sk_max = qc[0].number_input(t("q_sk_max"), value=None, min_value=0.0, max_value=1.0, format="%.4f",
+                                    placeholder="0.76")
+        sk_avg = qc[1].number_input(t("q_sk_avg"), value=None, min_value=0.0, max_value=1.0, format="%.4f",
+                                    placeholder="0.016")
+        oq_min = qc[2].number_input(t("q_oq_min"), value=None, min_value=0.0, max_value=1.0, format="%.4f",
+                                    placeholder="0.027")
+        oq_avg = qc[3].number_input(t("q_oq_avg"), value=None, min_value=0.0, max_value=1.0, format="%.4f",
+                                    placeholder="0.995")
+        q_rows = []
+        worst = 0
+        for label, val, rater, limit_ok in (
+                (t("q_sk_max"), sk_max, rate_skewness, lambda v: v < FLUENT_MAX_SKEWNESS),
+                (t("q_sk_avg"), sk_avg, rate_skewness, None),
+                (t("q_oq_min"), oq_min, rate_orthogonal, lambda v: v > FLUENT_MIN_ORTHO),
+                (t("q_oq_avg"), oq_avg, rate_orthogonal, None)):
+            if val is None:
+                continue
+            key = rater(val)
+            fluent = "—" if limit_ok is None else (t("q_pass") if limit_ok(val) else t("q_fail"))
+            worst = max(worst, RATING_LEVEL[key] if limit_ok is not None else 0)
+            if limit_ok is not None and not limit_ok(val):
+                worst = 3
+            q_rows.append({t("q_metric"): label, t("col_value"): f"{val:.4g}",
+                           t("q_rating"): t(key), t("q_fluent"): fluent})
+        if q_rows:
+            st.dataframe(q_rows, use_container_width=True, hide_index=True)
+            msg = ("q_verdict_ok", "q_verdict_check", "q_verdict_bad", "q_verdict_fail")[worst]
+            (st.success if worst == 0 else st.warning if worst < 3 else st.error)(t(msg))
+        dy_ref = infl.first_layer if infl is not None else (plan.dy1 if plan is not None else None)
+        if dy_ref:
+            st.markdown(t("q_ar_expected",
+                          ar_le=expected_wall_aspect_ratio(dy_ref, ds_le * chord),
+                          ar_mid=expected_wall_aspect_ratio(dy_ref, ds_split * chord)))
+        st.markdown(t("q_explain"))
+
+    # ---- y+ correction
+    with st.expander(t("yplus_fix_title")):
+        st.caption(t("yplus_fix_help"))
+        used = st.number_input(t("yplus_used_dy"), value=float(f"{first_cell_height(re, y_plus, chord):.4e}"),
+                               min_value=1e-9, format="%.4e")
+        seen = st.number_input(t("yplus_seen"), value=None, min_value=1e-3, format="%.3f")
+        if seen:
+            st.success(t("yplus_fix_result", dy=m_mm(used * y_plus / seen), target=y_plus))
+
+    # ---- Fluent setup helper
+    with st.expander(t("fluent_title")):
+        aoa = st.number_input(t("aoa"), value=4.25, step=0.25, format="%.2f")
+        a = math.radians(aoa)
+        rows_f = [
+            {t("col_setting"): t("fl_vel_dir"), t("col_value"): f"X = {math.cos(a):.6f},  Y = {math.sin(a):.6f}"},
+            {t("col_setting"): t("fl_drag"), t("col_value"): f"X = {math.cos(a):.6f},  Y = {math.sin(a):.6f}"},
+            {t("col_setting"): t("fl_lift"), t("col_value"): f"X = {-math.sin(a):.6f},  Y = {math.cos(a):.6f}"},
+            {t("col_setting"): t("fl_ref_len"), t("col_value"): f"{chord:g} m"},
+            {t("col_setting"): t("fl_ref_area"), t("col_value"): f"{chord:g} m² (c × 1 m)"},
+        ]
+        if u_inf is not None:
+            rows_f.insert(1, {t("col_setting"): t("fl_vel_comp"),
+                              t("col_value"): f"Ux = {u_inf * math.cos(a):.5g},  Uy = {u_inf * math.sin(a):.5g} m/s"})
+            rows_f += [{t("col_setting"): t("fl_ref_vel"), t("col_value"): f"{u_inf:g} m/s"},
+                       {t("col_setting"): t("fl_ref_rho"), t("col_value"): f"{rho:g} kg/m³"}]
+        st.dataframe(rows_f, use_container_width=True, hide_index=True)
+        st.caption(t("fluent_note"))
+
+# ================================================================ GCI tab
+LEVELS = ("fine", "medium", "coarse")
+
+with tab_gci:
+    st.markdown(t("gci_intro"))
+    st.subheader(t("results_title"))
+    st.caption(t("results_help"))
+    inputs = {"N": [], "Cl": [], "Cd": []}
+    for name in LEVELS:
+        cols = st.columns([1, 2, 2, 2])
+        cols[0].markdown(f"**{t(name)}**")
+        inputs["N"].append(cols[1].number_input(t("col_cells"), min_value=1, step=1, value=None,
+                                                placeholder=t("ph_cells"), key=f"gci_n_{name}"))
+        inputs["Cl"].append(cols[2].number_input("Cl", value=None, format="%.6f", step=1e-4,
+                                                 placeholder=t("ph_value"), key=f"gci_cl_{name}"))
+        inputs["Cd"].append(cols[3].number_input("Cd", value=None, format="%.6f", step=1e-5,
+                                                 placeholder=t("ph_value_cd"), key=f"gci_cd_{name}"))
+
+    n_vals = inputs["N"]
+    st.subheader(t("gci_title"))
+    if any(v is None for v in n_vals) or all(any(v is None for v in inputs[q]) for q in ("Cl", "Cd")):
+        st.info(t("gci_wait"))
+    results = {}
+    for qty in ("Cl", "Cd"):
+        vals = inputs[qty]
+        if any(v is None for v in vals + n_vals):
+            continue
+        try:
+            g = compute_gci(n_vals[0], n_vals[1], n_vals[2], vals[0], vals[1], vals[2])
+        except (ValueError, ZeroDivisionError, OverflowError) as e:
+            st.error(t("gci_err", name=qty, msg=te(e)))
+            results[qty] = (vals, None)
+            continue
+        results[qty] = (vals, g)
+        st.markdown(f"**{qty}**")
+        cols = st.columns(4)
+        cols[0].metric(t("gci_p"), f"{g.p:.3f}")
+        cols[1].metric(t("gci_ext"), f"{g.phi_ext:.5g}")
+        cols[2].metric(t("gci_fine"), f"{100 * g.gci_fine:.3f} %")
+        cols[3].metric(t("gci_asym"), f"{g.asymptotic:.3f}")
+        if not g.diverging:
+            st.markdown(t("gci_report", name=qty, phi=vals[0], unc=abs(vals[0]) * g.gci_fine,
+                          gci=100 * g.gci_fine))
+        if g.oscillatory:
+            st.warning(t("gci_osc"))
+        elif g.diverging:
+            st.warning(t("gci_div"))
+        elif not 0.8 <= g.asymptotic <= 1.2:
+            st.warning(t("gci_asym_warn"))
+        if min(g.r21, g.r32) < 1.3:
+            st.warning(t("gci_r_warn", r=min(g.r21, g.r32)))
+
+    # ---- convergence plot
+    if results:
+        h = [1.0 / math.sqrt(n) for n in n_vals]
+        qtys = list(results)
+        fig = make_subplots(rows=1, cols=len(qtys), subplot_titles=qtys)
+        for j, qty in enumerate(qtys, start=1):
+            vals, g = results[qty]
+            fig.add_trace(go.Scatter(x=h, y=vals, mode="markers+lines", name=t("plot_grids"),
+                                     marker=dict(size=10, color="#00C2FF"), line=dict(color="#00C2FF"),
+                                     showlegend=j == 1, legendgroup="grids",
+                                     error_y=dict(type="data", array=[abs(vals[0]) * g.gci_fine, 0, 0],
+                                                  visible=True) if g and not g.diverging else None), row=1, col=j)
+            if g is not None and not g.diverging:
+                hh = np.linspace(0, max(h), 60)
+                c_fit = (vals[0] - g.phi_ext) / h[0] ** g.p
+                fig.add_trace(go.Scatter(x=hh, y=g.phi_ext + c_fit * hh ** g.p, mode="lines",
+                                         name=t("plot_fit"), line=dict(color="#FF9500", dash="dash"),
+                                         showlegend=j == 1, legendgroup="fit"), row=1, col=j)
+                fig.add_trace(go.Scatter(x=[0], y=[g.phi_ext], mode="markers", name=t("plot_ext"),
+                                         marker=dict(symbol="star", size=14, color="#FF4B4B"),
+                                         showlegend=j == 1, legendgroup="ext"), row=1, col=j)
+            fig.update_xaxes(title_text=t("plot_h"), range=[-0.05 * max(h), 1.08 * max(h)], row=1, col=j)
+        fig.update_layout(height=420, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                          legend=dict(orientation="h", y=-0.25))
+        fig.update_xaxes(gridcolor="rgba(128,128,128,0.2)")
+        fig.update_yaxes(gridcolor="rgba(128,128,128,0.2)")
+        st.plotly_chart(fig, use_container_width=True,
+                        config={"toImageButtonOptions": {"format": "png", "filename": f"{file_prefix}_gci",
+                                                         "scale": 3}})
+        st.caption(t("plot_note"))
+
+    # ---- optional suggested grid family
+    with st.expander(t("family_title")):
+        ratio = st.select_slider(t("refine_ratio"), options=[1.3, math.sqrt(2), 1.5, 2.0], value=math.sqrt(2),
+                                 format_func=lambda r: "√2 ≈ 1.414" if abs(r - math.sqrt(2)) < 1e-9 else f"{r:g}")
+        factors = {"fine": ratio, "medium": 1.0, "coarse": 1.0 / ratio}
+        try:
+            if mesh_mode == INFLATION:
+                fam = {n: plan_inflation(re, chord, y_plus=y_plus, growth=growth, coverage=coverage, refine=k)
+                       for n, k in factors.items()}
+                fam_rows = [{t("level"): t(n), "First Layer Height": m_mm(fam[n].first_layer),
+                             "Growth Rate": round(fam[n].growth, 4), "Maximum Layers": fam[n].layers,
+                             t("fam_sizes"): f"÷ {factors[n]:.3g}" if n != "medium" else "× 1"}
+                            for n in LEVELS]
+                st.dataframe(fam_rows, use_container_width=True, hide_index=True)
+                st.caption(t("family_note_infl"))
+            else:
+                fam = {n: plan_mesh(domain, split_af, re, refine=k, **sizing) for n, k in factors.items()}
+                fam_rows = [{t("level"): t(n), t("m_cells"): f"{fam[n].cells:,}",
+                             t("m_dy1"): m_mm(fam[n].dy1), t("fam_n_normal"): fam[n].n_normal, t("fam_n_front"): fam[n].n_front,
+                             t("fam_n_rear"): fam[n].n_rear, t("fam_n_wake"): fam[n].n_wake}
+                            for n in LEVELS]
+                st.dataframe(fam_rows, use_container_width=True, hide_index=True)
+                st.caption(t("family_note"))
+                dl = st.columns(3)
+                for col, n in zip(dl, LEVELS):
+                    col.download_button(t("download_level", level=t(n)), data=rows_to_csv(plan_rows(fam[n])),
+                                        file_name=f"{file_prefix}_edge_sizing_{n}.csv", mime="text/csv",
+                                        use_container_width=True, key=f"dl_{n}")
+        except (ValueError, OverflowError) as e:
+            st.error(te(e))
