@@ -1,0 +1,3 @@
+   [server]
+   # Airfoil coordinate files are a few KB; keep uploads small.
+   maxUploadSize = 2
