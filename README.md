@@ -1,59 +1,66 @@
-# ✈️ AirfoilMatic V0.3 Beta — 2B CFD Domain Generator
+# AirfoilMatic V0.4 Beta — 2D CFD Domain Generator
 
-**[AirfoilMatic'i Tarayıcıda Çalıştır](https://airfoilmatic-gkxdkjpsclawjnbhmzng89.streamlit.app/)**
+**English** | [Türkçe](README.tr.md)
 
-AirfoilMatik, NACA 4 ve 5 haneli kanat profillerini veya özel kanat dosyalarını (.dat / .txt) kullanarak 2 boyutlu CFD akış alanı (domain) geometrisi oluşturan interaktif bir web uygulamasıdır.
+**[Run AirfoilMatic in your browser](https://airfoilmatic-gkxdkjpsclawjnbhmzng89.streamlit.app/)**
 
-## 🚀 Özellikler
-* NACA 4-Digit ve 5-Digit kanat profili hesaplama
-* Özel kanat dosyası yükleme (Selig ve Lednicer formatları desteklenir)
-* C-Grid ve Dikdörtgen (Rüzgar Tüneli) domain tipleri
-* Yakın çekim ve uzak çekim interaktif Plotly grafikleri
-* Ansys uyumlu TXT dışa aktarma (nokta koordinatları)
-* Küt firar kenarı (Blunt TE) otomatik algılama ve kapatma
+AirfoilMatic builds the geometry of a 2D CFD flow domain around an airfoil (NACA 4/5-digit or a custom `.dat` file) and exports it in the Ansys DesignModeler `3D Curve` text format. The domain is already split into six four-sided blocks, so Ansys Meshing can produce a structured (mapped) mesh. It also gives you the matching Edge Sizing settings and a grid-independence (GCI) calculator.
 
-## 📦 Kurulum (Yerel Çalıştırma)
+## Features
+* NACA 4-digit and 5-digit (standard, non-reflexed) airfoils, full-cosine point spacing
+* Custom airfoil files (Selig and Lednicer formats), automatic blunt trailing-edge closing
+* C-grid and rectangular (wind tunnel) domains, split into 6 four-sided blocks
+* Choose which of the six split lines to export (all six are needed for mapped meshing; all six and front axis + wake axis were tested with quad-dominant + inflation), with a warning for a single line, which cannot work
+* Ansys DesignModeler TXT export
+* **Mesh / y⁺ assistant:** first-cell height for a target y⁺ and boundary-layer estimate, with two outputs: Ansys **Inflation** settings (first layer, growth rate, maximum layers) or a mapped-mesh **Edge Sizing** table (Number of Divisions + Bias Factor) with the expected cell count
+* **Mesh quality check** (skewness, orthogonal quality, aspect ratio) against Ansys bands and Fluent limits
+* **y⁺ correction** from a first Fluent result, and a **Fluent setup helper** that gives the velocity direction and the Lift/Drag vectors for an angle of attack
+* **Grid independence:** Grid Convergence Index calculator (Celik et al., 2008) with a Cl/Cd convergence plot, plus an optional suggested grid family
+* Turkish / English interface
 
-**1. Depoyu klonlayın**
+## Local installation
 ```bash
 git clone https://github.com/meceylan/AirfoilMatic.git
 cd AirfoilMatic
-```
-
-**2. Bağımlılıkları yükleyin**
-```bash
 pip install -r requirements.txt
-```
-
-**3. Uygulamayı çalıştırın**
-```bash
 streamlit run app.py
 ```
+Run the tests with `pip install pytest` and `pytest`.
 
-## 🛠️ Teknoloji
+## Ansys workflow
+1. **Import:** In DesignModeler, set `Units > Meter` first, then use `Concept > 3D Curve`, select the downloaded `.txt` file and click `Generate`.
+2. **Surface:** Use `Concept > Surfaces from Edges` with the outer boundary and airfoil edges to create the flow surface.
+3. **Split:** Use `Tools > Projection` with the exported split lines.
+4. **Mesh:** choose one of the two workflows; the **Mesh / y⁺** tab gives the settings for both.
+   * **Inflation (quad-dominant):** export all six lines or the front axis + wake axis (the tested selections; a single line stays as a slit inside one face and fails). Add `Inflation` on all faces with the airfoil edges as boundary (the wake axis optionally too), set the global Element Size to about 0.5c, and add the Edge Sizings from the table with Behavior = Soft (Hard is not supported on inflated edges). Keep the trailing-edge element at about 0.003c or larger: in our Ansys 2024 R2 tests (c = 1 m) about 1 mm failed and about 3 mm worked. Use a sharp trailing edge; blunt TE + inflation failed in our tests. Check that Bounding Box Diagonal is tens of meters before meshing.
+   * **Mapped:** export all six split lines (6 blocks), add `Face Meshing` (Mapped) to all faces and the `Edge Sizing` values from the table.
+   * Inflation and Mapped Face Meshing cannot be combined on the same face.
+5. **Check:** Confirm the cell count and check y⁺ in Fluent. Fluent reports y⁺ at the cell centroid, so expect about half the target value.
 
-| Bileşen | Teknoloji |
+## Grid independence (GCI)
+The cell count alone does not tell you whether a mesh is good enough. Results must be shown to change little when the grid is refined. The **Grid Independence** tab:
+1. takes the cell counts and Cl/Cd results of your three Fluent runs,
+2. reports the apparent order *p*, the extrapolated value, and GCI_fine, following Celik et al. (2008), and warns about oscillatory or divergent behavior,
+3. plots Cl and Cd against h = 1/√N with the Richardson fit and the extrapolated value,
+4. optionally suggests a consistent grid family (refinement ratio √2 per direction by default, about 2× cells per level).
+
+Reference: Celik, I. B., Ghia, U., Roache, P. J., Freitas, C. J., Coleman, H., Raad, P. E., *Procedure for Estimation and Reporting of Uncertainty Due to Discretization in CFD Applications*, J. Fluids Eng. 130(7), 078001, 2008.
+
+## Why split at X = 0.3c?
+If the airfoil goes into DesignModeler as a single curve, or as two curves split only at the LE and TE, surface creation can produce sliver faces near the leading edge. Those faces hurt mesh quality.
+
+AirfoilMatic cuts the airfoil vertically at **X = 0.3c** into four segments (upper-front, upper-rear, lower-front, lower-rear):
+1. **Curvature isolation:** The maximum thickness of many airfoils is near 0.3c. Splitting there separates the high-curvature leading-edge region.
+2. **No sliver faces:** The vertical split lines meet the outer boundaries at right angles, which avoids invalid topology at the junctions.
+3. **Mapped meshing:** Every block is four-sided (in the rectangular domain the front blocks need a Side vertex). For the C-grid, the inlet arc is centered on the split line, so the arc ends exactly where the vertical lines meet the outer boundary and no short straight piece is left in front of 0.3c.
+
+## Technology
+| Component | Technology |
 |---|---|
 | Framework | Streamlit |
-| Hesaplama | NumPy |
-| Görselleştirme | Plotly |
-| Dil | Python 3.8+ |
+| Computation | NumPy |
+| Plots | Plotly |
+| Language | Python 3.11+ |
 
-## 📄 Lisans
-
-Bu proje MIT Lisansı altında açık kaynak olarak paylaşılmıştır.
-
-## ⚙️ Nasıl Kullanılır? (Ansys İş Akışı)
-AirfoilMatic'ten indirdiğiniz `.txt` dosyasını Ansys ortamında dönüştürmek için şu adımları izleyin:
-1. **İçe Aktarma:** Ansys DesignModeler'ı açın. `Concept > 3D Curve` yolunu izleyin. Koordinat dosyası olarak indirdiğiniz `.txt` dosyasını seçip `Generate` tuşuna basın.
-2. **Yüzey Oluşturma:** `Concept > Surfaces from Edges` aracını seçin. Dış akış sınırlarını ve kanat profili çizgilerini seçerek ana akış yüzeyini (Surface) oluşturun (`Generate`).
-3. **Yüzey Bölme (Projection):** Akış alanını yapısal ağ (structured mesh) için alt bölgelere ayırmak amacıyla `Tools > Projection` komutunu kullanın. İç bölme çizgilerini (dikey kesmeler ve yatay iz ekseni) kullanarak ana yüzeyi 6 ayrı bölgeye bölün. Bu yöntem, Ansys Meshing aşamasında kenar boyutlandırmalarını (Edge Sizing) çok daha detaylı kontrol etmenizi ve Mapped Face Meshing için kusursuz bir topoloji elde etmenizi sağlar.
-
-## 🧠 Teknik Arka Plan ve Topoloji (Neden X = 0.3c?)
-Klasik CFD ön-işlem yöntemlerinde kanat profili tek bir eğri veya hücum/firar kenarından ayrılmış iki parça olarak sisteme aktarıldığında, Ansys DesignModeler yüzey oluşturma aşamasında hücum kenarında dar açılı hatalı yüzeyler (sliver face) üretebilmektedir. Bu durum ağ kalitesini (skewness ve orthogonal quality) olumsuz etkiler.
-
-AirfoilMatic, geometriyi matematiksel olarak tam **X = 0.3c** (kord uzunluğunun %30'u) noktasından dikey olarak 4 ayrı segmente (Üst-Ön, Üst-Arka, Alt-Ön, Alt-Arka) ayırır. Bunun temel mühendislik gerekçeleri şunlardır:
-
-1. **Maksimum Kalınlık Konumu:** Birçok standart aerodinamik profilin (örn. NACA 4-digit) maksimum kalınlığı 0.3c civarında gerçekleşir. Geometriyi bu noktadan bölmek, hücum kenarının yüksek eğriliğe (curvature) sahip bölgelerini izole eder.
-2. **Sliver Face Önleme:** Dikey ayrım çizgisi sayesinde akış alanı, dış sınırlara dik açılarla bağlanır. Bu sayede kesişim noktalarında oluşabilecek geçersiz topoloji (invalid topology) hataları engellenir.
-3. **Yapısal Ağ (Structured Mesh) Geçişi:** Bu 4 bölgeli ayrım, Ansys Meshing modülünde hücum kenarını saran radyal ağ yapısı (C-Grid) ile firar kenarı ve iz bölgesine uzanan doğrusal ağ yapısı (H-Grid) arasında H-Grid / C-Grid hibrit geçişini standartlaştırır. Sonuç olarak tüm alanlar, Mapped Face Meshing için gerekli olan 4-kenarlı (Quadrilateral) formata zorlanmış olur.
+## License
+MIT License.
