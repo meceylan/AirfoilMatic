@@ -430,15 +430,16 @@ def test_freestream_components():
 
 # ------------------------------------------------------------------ ui (V0.4.2)
 
-@pytest.mark.parametrize("dark", [False, True])
-def test_css_has_no_unfilled_placeholders(dark):
+def test_css_has_no_unfilled_placeholders():
     import re as _re
     from airfoilmatic import ui
-    out = ui.css(dark)
+    out = ui.css()
     assert out.startswith("<style>") and out.endswith("</style>")
-    # every placeholder replaced: only hex colours may remain as upper-case tokens
-    leftovers = {w for w in _re.findall(r"\b[A-Z][A-Z0-9_]+\b", out) if not _re.fullmatch(r"[0-9A-F]{6}", w)}
-    assert not leftovers, leftovers
+    assert "CRYSTAL" not in out and "MOBILEpx" not in out and '"FONT"' not in out
+    # every var() used is defined in the .stApp block
+    used = set(_re.findall(r"var\((--am-[a-z0-9-]+)\)", out))
+    defined = set(_re.findall(r"(--am-[a-z0-9-]+):", out))
+    assert used <= defined, used - defined
 
 
 def test_ui_html_is_escaped():
@@ -456,7 +457,11 @@ def test_footer_has_developer_links(lang):
     assert ui.DEVELOPER["university"][lang] in html
 
 
-def test_plot_palettes_complete():
+def test_tables_html():
     from airfoilmatic import ui
-    assert ui.PLOT["light"].keys() == ui.PLOT["dark"].keys()
-    assert ui.THEMES["light"].keys() == ui.THEMES["dark"].keys()
+    rows = [{"Ayar": "First Layer Height", "Değer": "1e-05 m <b>"}]
+    html = ui.table_html(rows)
+    assert "<table" in html and "&lt;b&gt;" in html
+    cards = ui.row_cards_html([{"A": "g1", "B": 1, "C": 2}], ["A", "C"])
+    assert "g1" in cards and ">C<" in cards and ">B<" not in cards
+    assert ui.table_html([]) == "" and ui.row_cards_html([]) == ""

@@ -1,5 +1,19 @@
 # Changelog
 
+## V0.4.3 Beta
+
+- Switching between light and dark mode no longer breaks the page; the colors follow the switch without reloading.
+- Light mode: greener sidebar and page gradient; table rows separated by thin emerald lines that fade to the right.
+- Phones: a finger on a plot now scrolls the page instead of zooming the plot; the full-domain plot shows exactly the domain and its height follows the domain shape (it no longer shows a much larger area); the Ansys Inflation, quality and Fluent tables wrap to fit the screen; wide Edge Sizing tables become one card per row.
+- Full-domain legend: the outer boundaries share one entry.
+
+## V0.4.3 Beta (Türkçe)
+
+- Açık ve koyu tema arasında geçiş yapınca sayfa artık bozulmuyor; renkler yeniden yüklemeden değişiyor.
+- Açık tema: daha yeşil kenar çubuğu ve sayfa geçişi; tablo satırları sağa doğru solan ince zümrüt çizgilerle ayrılıyor.
+- Telefon: grafiğin üzerinde parmakla kaydırınca grafik büyümüyor, sayfa kayıyor; akış alanı grafiği tam olarak domain'i gösteriyor ve yüksekliği domain'in şekline göre ayarlanıyor (artık çok daha büyük bir alan göstermiyor); Ansys Inflation, kalite ve Fluent tabloları ekrana sığacak şekilde satır kaydırıyor; geniş Edge Sizing tabloları her satır bir kart olacak şekilde gösteriliyor.
+- Akış alanı grafiğinde dış sınırlar tek açıklama satırında.
+
 ## V0.4.2 Beta
 
 New look; no change to the geometry, mesh or GCI calculations.

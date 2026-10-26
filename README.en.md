@@ -1,4 +1,4 @@
-# AirfoilMatic V0.4.2 Beta — 2D CFD Domain Generator
+# AirfoilMatic V0.4.3 Beta — 2D CFD Domain Generator
 
 [Türkçe](README.md) | **English**
 
