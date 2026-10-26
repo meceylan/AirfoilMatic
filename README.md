@@ -1,4 +1,4 @@
-# AirfoilMatic V0.4.1 Beta — 2B CFD Domain Generator
+# AirfoilMatic V0.4.2 Beta — 2B CFD Domain Generator
 
 **Türkçe** | [English](README.en.md)
 
@@ -62,5 +62,11 @@ AirfoilMatic kanadı **X = 0.3c** noktasından dikey olarak dört parçaya (üst
 | Görselleştirme | Plotly |
 | Dil | Python 3.11+ |
 
+## Geliştirici
+**Muhammet Emin CEYLAN**, İskenderun Teknik Üniversitesi  
+[LinkedIn](https://www.linkedin.com/in/muhammet-emin-ceylan-b79847334) · [GitHub](https://github.com/meceylan)
+
+Hata ve önerileriniz için [Issues](https://github.com/meceylan/AirfoilMatic/issues) sayfasını kullanabilirsiniz.
+
 ## Lisans
-MIT Lisansı.
+MIT Lisansı. Arayüz yazı tipi Source Serif 4, SIL Open Font License 1.1 ile dağıtılır (`static/fonts/OFL-SourceSerif4.txt`).

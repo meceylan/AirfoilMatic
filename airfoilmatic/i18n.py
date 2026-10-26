@@ -34,7 +34,7 @@ STRINGS = {
     },
     'source_naca': {
         "tr": 'NACA (4 veya 5 haneli)',
-        "en": 'NACA (4 or 5 digit)',
+        "en": 'NACA (4- or 5-digit)',
     },
     'source_file': {
         "tr": 'Özel Kanat (.dat / .txt)',
@@ -45,8 +45,8 @@ STRINGS = {
         "en": 'NACA Code',
     },
     'upload': {
-        "tr": 'Kanat dosyası yükle (Selig / Lednicer)',
-        "en": 'Upload airfoil file (Selig / Lednicer)',
+        "tr": 'Kanat Dosyası Yükle (Selig / Lednicer)',
+        "en": 'Upload Airfoil File (Selig / Lednicer)',
     },
     'upload_info': {
         "tr": 'Lütfen bir kanat dosyası yükleyin.',
@@ -94,7 +94,7 @@ STRINGS = {
     },
     'err_naca': {
         "tr": 'Lütfen geçerli 4 veya 5 haneli bir NACA kodu girin.',
-        "en": 'Please enter a valid 4 or 5 digit NACA code.',
+        "en": 'Please enter a valid 4- or 5-digit NACA code.',
     },
     'err_geometry': {
         "tr": 'Kanat geometrisi oluşturulamadı: {msg}',
@@ -273,8 +273,28 @@ STRINGS = {
         "en": 'Wall-normal growth ratio',
     },
     'advanced': {
-        "tr": 'Gelişmiş: veter yönü hücre boyutları',
-        "en": 'Advanced: chordwise cell sizes',
+        "tr": 'Kanat Yüzeyi Eleman Boyları (İsteğe Bağlı)',
+        "en": 'Airfoil Surface Element Sizes (Optional)',
+    },
+    'advanced_help': {
+        "tr": 'Kanat kenarlarındaki Edge Sizing tablosunu belirler: hücum kenarında, bölme çizgisinde (0.3c) ve firar kenarında istenen eleman boyu, veterin kesri olarak (0.001 = 1 m veterde 1 mm) ve iz ekseninde elemanların büyüme oranı. Duvardan dışarı doğru büyüme (y⁺, ilk katman) bunlardan bağımsızdır. Varsayılanlar çoğu analiz için uygundur.',
+        "en": 'Sets the Edge Sizing table on the airfoil edges: the element size wanted at the leading edge, at the split line (0.3c) and at the trailing edge, as a fraction of the chord (0.001 = 1 mm on a 1 m chord), and the growth ratio along the wake axis. Wall-normal growth (y⁺, first layer) does not depend on these. The defaults suit most analyses.',
+    },
+    'step_flow': {
+        "tr": 'Akış Koşulu',
+        "en": 'Flow Condition',
+    },
+    'step_method': {
+        "tr": 'Yöntem ve y⁺',
+        "en": 'Method and y⁺',
+    },
+    'step_growth': {
+        "tr": 'Büyüme',
+        "en": 'Growth',
+    },
+    'dev_label': {
+        "tr": 'Geliştirici',
+        "en": 'Developer',
     },
     'ds_le': {
         "tr": 'Hücum kenarı hücre boyu / c',
@@ -326,11 +346,11 @@ STRINGS = {
     },
     'warn_bl': {
         "tr": 'Sınır tabaka içinde yalnızca {n} hücre var. Genelde en az 20–30 hücre önerilir; büyüme oranını düşürün.',
-        "en": 'Only {n} cells inside the boundary layer. Usually at least 20–30 are recommended; lower the growth ratio.',
+        "en": 'Only {n} cells inside the boundary layer. At least 20–30 cells are usually recommended; lower the growth ratio.',
     },
     'table_title': {
-        "tr": 'Edge Sizing tablosu',
-        "en": 'Edge Sizing table',
+        "tr": 'Edge Sizing Tablosu',
+        "en": 'Edge Sizing Table',
     },
     'col_group': {
         "tr": 'Kenar grubu',
@@ -354,7 +374,7 @@ STRINGS = {
     },
     'col_small': {
         "tr": 'Küçük eleman tarafı',
-        "en": 'Smallest element at',
+        "en": 'Smaller-element side',
     },
     'col_dsmin': {
         "tr": 'En küçük eleman',
@@ -369,8 +389,8 @@ STRINGS = {
         "en": 'Growth ratio',
     },
     'download_csv': {
-        "tr": 'Tabloyu CSV indir',
-        "en": 'Download table as CSV',
+        "tr": 'Tabloyu CSV Olarak İndir',
+        "en": 'Download Table as CSV',
     },
     'g_af_front': {
         "tr": 'Kanat ön (LE → bölme)',
@@ -429,8 +449,8 @@ STRINGS = {
         "en": 'Wake-axis side',
     },
     'howto_title': {
-        "tr": "Ansys Meshing'de nasıl uygulanır?",
-        "en": 'How to apply in Ansys Meshing',
+        "tr": "Ansys Meshing'de Nasıl Uygulanır?",
+        "en": 'How to Apply in Ansys Meshing',
     },
     'howto': {
         "tr": "1. Projection ile yüzeyi 6 bloğa böldükten sonra Meshing'i açın.\n2. Tüm yüzeylere **Face Meshing** ekleyin (Mapped Mesh = Yes).\n3. Tablodaki her satır için **Edge Sizing** ekleyin: Type = *Number of Divisions*, Behavior = *Hard*, Bias Type = tek yönlü, Bias Factor = tablodaki değer.\n4. Küçük elemanın doğru uçta olduğunu kontrol edin; ters ise kenarı **Reverse Bias** listesine ekleyin.\n5. Mesh'i oluşturduktan sonra hücre sayısının tahmini değere yakın olduğunu ve Fluent'te y⁺'ı kontrol edin.",
@@ -449,8 +469,8 @@ STRINGS = {
         "en": 'Refinement ratio (per direction)',
     },
     'family_title': {
-        "tr": 'Önerilen ağ ailesi (isteğe bağlı)',
-        "en": 'Suggested grid family (optional)',
+        "tr": 'Önerilen Ağ Ailesi (İsteğe Bağlı)',
+        "en": 'Suggested Grid Family (Optional)',
     },
     'level': {
         "tr": 'Seviye',
@@ -477,8 +497,8 @@ STRINGS = {
         "en": '{level} CSV',
     },
     'results_title': {
-        "tr": '1) Fluent sonuçları',
-        "en": '1) Fluent results',
+        "tr": '1) Fluent Sonuçları',
+        "en": '1) Fluent Results',
     },
     'results_help': {
         "tr": "Hücre sayısını Fluent → Domain → Mesh → Info'dan alın. İnce (1) en çok hücreli ağdır. Cl veya Cd'den biri yeterlidir.",
@@ -489,8 +509,8 @@ STRINGS = {
         "en": 'Cell count',
     },
     'gci_title': {
-        "tr": '2) GCI sonuçları',
-        "en": '2) GCI results',
+        "tr": '2) GCI Sonuçları',
+        "en": '2) GCI Results',
     },
     'gci_p': {
         "tr": 'Görünür mertebe p',
@@ -561,8 +581,8 @@ STRINGS = {
         "en": 'Required layers',
     },
     'infl_table_title': {
-        "tr": 'Ansys Inflation ayarları',
-        "en": 'Ansys Inflation settings',
+        "tr": 'Ansys Inflation Ayarları',
+        "en": 'Ansys Inflation Settings',
     },
     'col_setting': {
         "tr": 'Ayar',
@@ -582,15 +602,15 @@ STRINGS = {
     },
     'infl_note': {
         "tr": "Maximum Layers tam olarak hesaplanan katman sayısıdır; First Layer Thickness seçeneğinde Ansys bu sayının tamamını oluşturur, bu yüzden fazla girmeyin. **Genel Element Size uzak alan içindir** (≈ 0.5c): küçük yapmayın. **Defeature Size ve Curvature Min Size'ı da tablodaki değerlere elle girin:** varsayılanları genel boyuttan türetilir (0.5 m için 2.5 mm ve 5 mm) ve kanattaki milimetrik elemanlardan büyüktür; Ansys bu durumda uyarı verir. Bunları en küçük elemanın altında tutmak güvenli bir alışkanlıktır. Kanat çevresindeki incelik genel boyuttan değil, aşağıdaki Edge Sizing'lerden ve Growth Rate ile kademeli geçişten gelir. Genel boyutu milimetre mertebesine çekmek tüm domain'i o boyda doldurur; hücre sayısı patlar ve iz eksenindeki büyük elemanlarla küçük çevre elemanları arasında bozuk üçgenler oluşur.",
-        "en": 'Maximum Layers is exactly the computed layer count; with First Layer Thickness Ansys builds all of them, so do not enter more. **The global Element Size is for the far field** (≈ 0.5c): do not make it small. **Also enter Defeature Size and Curvature Min Size from the table by hand:** their defaults are derived from the global size (2.5 mm and 5 mm for 0.5 m) and are larger than the millimetre-sized elements on the airfoil, which makes Ansys warn. Keeping them below the smallest element is a safe habit. The refinement around the airfoil comes from the Edge Sizings below and the gradual transition set by the Growth Rate. Setting the global size to millimeters fills the whole domain at that size, the cell count explodes, and badly shaped triangles appear where large wake-axis elements meet small surrounding ones.',
+        "en": 'Maximum Layers is exactly the computed layer count; with First Layer Thickness Ansys builds all of them, so do not enter more. **The global Element Size is for the far field** (≈ 0.5c): do not make it small. **Also enter Defeature Size and Curvature Min Size from the table by hand:** their defaults are derived from the global size (2.5 mm and 5 mm for 0.5 m) and are larger than the millimetre-sized elements on the airfoil, which makes Ansys warn. Keeping them below the smallest element is a safe habit. The refinement around the airfoil comes from the Edge Sizings below and the gradual transition set by the Growth Rate. Setting the global size to millimetres fills the whole domain at that size, the cell count explodes, and badly shaped triangles appear where large wake-axis elements meet small surrounding ones.',
     },
     'howto_infl': {
         "tr": "1. Kenar çubuğunda istediğiniz bölme çizgilerini seçin (inflation için zorunlu değil; tek çizgi seçmeyin) ve TXT'yi indirin. DesignModeler'da dosyayı **Units = Meter** iken aktarın, seçtiğiniz çizgilerle Projection yapın.\n2. Mesh → Details → **Bounding Box Diagonal** onlarca metre mertebesinde olmalı (varsayılan domain'de Ansys ≈ 46.6 m gösterdi). Değer binde biri kadar küçükse geometri milimetre olarak okunmuştur; bu durumda mesher belleği tüketip çöker.\n3. Method: **Quadrilateral Dominant**, Geometry = tüm yüzeyler.\n4. **Inflation**: Geometry = tüm yüzeyler, Boundary = **kanat kenarları** (iz ekseni dışa aktarıldıysa isteğe bağlı olarak o da), Inflation Option = First Layer Thickness, değerler tablodan. Küt firar kenarı yüzünü Boundary'ye eklemeyin.\n5. Mesh → Sizing: Element Size ≈ 0.5c, Growth Rate 1.15, Defeature ve Curvature Min Size tablodan. Edge Sizing'leri tablodan **Behavior = Soft** ile ekleyin.\n6. Sorun çıkarsa kontrolleri tek tek ekleyerek deneyin (önce yalnızca yöntem, sonra Edge Sizing'ler, sonra Inflation); hangi adımda bozulduğu sebebi gösterir.\n7. Not: Inflation, **Mapped Face Meshing** ile birlikte çalışmaz.",
         "en": '1. Choose the split lines you want in the sidebar (optional for inflation; do not select a single line) and download the TXT. Import it in DesignModeler with **Units = Meter** and run Projection with the selected lines.\n2. Mesh → Details → **Bounding Box Diagonal** should be tens of meters (Ansys showed ≈ 46.6 m for the default domain). If it is a thousand times smaller the geometry was read in millimeters, and the mesher runs out of memory and crashes.\n3. Method: **Quadrilateral Dominant**, Geometry = all faces.\n4. **Inflation**: Geometry = all faces, Boundary = **airfoil edges** (optionally the wake axis too, if exported), Inflation Option = First Layer Thickness, values from the table. Do not add a blunt TE face to the Boundary.\n5. Mesh → Sizing: Element Size ≈ 0.5c, Growth Rate 1.15, Defeature and Curvature Min Size from the table. Add the Edge Sizings from the table with **Behavior = Soft**.\n6. If something fails, add the controls one at a time (method only, then the Edge Sizings, then Inflation); the step that fails shows the cause.\n7. Note: Inflation does not work together with **Mapped Face Meshing**.',
     },
     'yplus_fix_title': {
-        "tr": 'y⁺ düzeltme (Fluent sonucundan)',
-        "en": 'y⁺ correction (from a Fluent result)',
+        "tr": 'y⁺ Düzeltme (Fluent Sonucundan)',
+        "en": 'y⁺ Correction (from a Fluent Result)',
     },
     'yplus_fix_help': {
         "tr": "İlk çözümden sonra kanat üzerindeki y⁺ değerini girin; y⁺ ilk hücre yüksekliğiyle yaklaşık doğru orantılı olduğu için hedefe ulaşmak gereken yeni ilk hücre yüksekliği hesaplanır. Hedef y⁺ burada da Fluent'in raporladığı değer (hücre merkezi) olarak yorumlanır.",
@@ -609,8 +629,8 @@ STRINGS = {
         "en": 'New first cell height for target y⁺ = {target:g}: **{dy}**',
     },
     'fluent_title': {
-        "tr": 'Fluent ayar yardımcısı (hücum açısı)',
-        "en": 'Fluent setup helper (angle of attack)',
+        "tr": 'Fluent Ayar Yardımcısı (Hücum Açısı)',
+        "en": 'Fluent Setup Helper (Angle of Attack)',
     },
     'aoa': {
         "tr": 'Hücum açısı α [°]',
@@ -669,8 +689,8 @@ STRINGS = {
         "en": 'Divergent behavior: the change grows as the grid is refined. The GCI is not reliable; check the mesh or iterative convergence.',
     },
     'plot_grids': {
-        "tr": "Ağlar (ince'de GCI hata çubuğu)",
-        "en": 'Grids (GCI error bar on fine)',
+        "tr": "Ağlar (hata çubuğu: ince ağın GCI'ı)",
+        "en": 'Grids (error bar: GCI of the fine grid)',
     },
     'plot_fit': {
         "tr": 'Richardson eğrisi',
@@ -697,8 +717,8 @@ STRINGS = {
         "en": 'The medium grid is the Mesh / y⁺ tab settings. For the fine and coarse grids, divide or multiply all other element sizes (Edge/Face Sizing) by the same ratio so refinement is consistent everywhere.',
     },
     'quality_title': {
-        "tr": 'Mesh kalite kontrolü (Skewness / Orthogonal Quality / Aspect Ratio)',
-        "en": 'Mesh quality check (Skewness / Orthogonal Quality / Aspect Ratio)',
+        "tr": 'Mesh Kalite Kontrolü (Skewness / Orthogonal Quality / Aspect Ratio)',
+        "en": 'Mesh Quality Check (Skewness / Orthogonal Quality / Aspect Ratio)',
     },
     'quality_help': {
         "tr": "Değerleri Ansys Meshing → Mesh → Quality → Mesh Metric ya da Fluent → Mesh → Quality'den alın. Boş bıraktıklarınız değerlendirilmez.",
@@ -781,8 +801,8 @@ STRINGS = {
         "en": "**What do they mean?**\n- **Skewness (0 = ideal, 1 = degenerate):** How far a cell deviates from an equilateral/square shape. High skewness causes flux and gradient errors and convergence problems. Ansys bands: 0–0.25 excellent, 0.25–0.50 very good, 0.50–0.80 good, 0.80–0.94 acceptable, 0.95–0.97 bad, 0.98–1 unacceptable. Fluent: max < 0.95.\n- **Orthogonal Quality (1 = ideal, 0 = degenerate):** How well face normals align with the vectors joining cell centers. Fluent's solver is most sensitive to this. Ansys bands: 0–0.001 unacceptable, 0.001–0.14 bad, 0.15–0.20 acceptable, 0.20–0.69 good, 0.70–0.95 very good, 0.95–1 excellent. Fluent: min > 0.01, with a much higher average.\n- **Aspect Ratio:** Longest / shortest edge. Boundary-layer cells should be long in the flow direction and thin normal to the wall, so values of 100–10,000 are normal there. Fluent gives no numeric limit; what matters is avoiding sudden changes where the flow changes rapidly.\n- **Average vs worst value:** The average shows the overall picture; max/min shows the worst cell. A few bad cells away from the airfoil are usually tolerated.\n- **Relation to grid independence:** The quality check is done for each grid separately and comes before the GCI. All three grids should meet these limits; otherwise differences in the GCI may come from bad cells rather than resolution.",
     },
     'infl_edges_title': {
-        "tr": 'Kanat ve iz ekseni Edge Sizing',
-        "en": 'Airfoil and wake-axis Edge Sizing',
+        "tr": 'Kanat ve İz Ekseni Edge Sizing',
+        "en": 'Airfoil and Wake-Axis Edge Sizing',
     },
     'infl_edges_note': {
         "tr": "**Firar kenarı:** inflation'da firar kenarındaki eleman ≈ 0.003c'nin altına indirilmez (c = 1 m için 3 mm). Ansys 2024 R2 denemelerimizde (c = 1 m) yaklaşık 1 mm'de mesh oluşmadı veya bozuk hücre çıktı, yaklaşık 3 mm'de çalıştı; başka veter uzunlukları denenmedi. Daha ince TE çözünürlüğü için mapped mesh kullanın. Type = Number of Divisions, Bias Type = tek yönlü (`--- -- -` simgesi, çift yönlü değil), Bias Factor = tablodaki değer; Behavior = Soft (inflation olan kenarlarda Hard desteklenmez). Kanat kenarlarının hepsi dosyada hücum kenarından firar kenarına doğru yazılır, bu yüzden üst ve alt kenar aynı yönde davranır. Doğru dağılım: **kanat ön** kenarlarında elemanlar hücum kenarında küçük, 0.3c'ye doğru büyür; **kanat arka** kenarlarında 0.3c'de büyük, firar kenarına doğru küçülür; **iz ekseninde** firar kenarında küçük, çıkışa doğru büyür. Bir grup ters çıkarsa o kenarları aynı Edge Sizing'in **Reverse Bias** alanına ekleyin. Böylece 0.3c'de ön ve arka kenarın elemanları, TE'de de kanat ve iz ekseninin ilk elemanları aynı boyda olur. Inflation'ın ilk hücreleri çok ince olduğu için duvardaki eleman boyunun ani değişmesi doğrudan düşük orthogonal quality olarak görünür.",
@@ -797,8 +817,8 @@ STRINGS = {
         "en": 'Global Growth Rate (Mesh → Sizing)',
     },
     'split_mode': {
-        "tr": 'Bölme çizgileri',
-        "en": 'Split lines',
+        "tr": 'Bölme Çizgileri',
+        "en": 'Split Lines',
     },
     'split_mode_help': {
         "tr": "Dışa aktarılacak bölme çizgilerini seçin. Mapped mesh için altısı da gerekir (6 blok). Ansys 2024 R2'de denenenler: altı çizginin hepsi (mapped ve quad-dominant + inflation) ile ön eksen + iz ekseni (quad-dominant + inflation). Diğer seçimler denenmedi. Tek bir çizgi seçmeyin: yüzeyi bölmez, yüzün içinde yarık olarak kalır ve inflation başarısız olur.",

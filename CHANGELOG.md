@@ -1,5 +1,29 @@
 # Changelog
 
+## V0.4.2 Beta
+
+New look; no change to the geometry, mesh or GCI calculations.
+
+- Emerald theme for light and dark mode: page gradient, crystal (gradient) result card and buttons, emerald frames on inputs, cards, plots and tables. Plot colors follow the theme; the airfoil fill is a leading-to-trailing-edge gradient.
+- Source Serif 4 font, self-hosted (works without Google Fonts, includes Turkish characters).
+- Short header: "AirfoilMatic" with a small version badge and subtitle.
+- Mesh / y⁺ tab: inputs grouped as 1 Flow condition, 2 Method and y⁺, 3 Growth; results shown as compact cards (Reynolds is no longer shown as a large result, since it is an input). "Advanced: chordwise cell sizes" is renamed "Airfoil Surface Element Sizes (Optional)" and explains what it sets.
+- Consistent capitalization of headings (Turkish and English).
+- Beta note restyled; developer name, university, LinkedIn and GitHub at the bottom of the sidebar and in the ⋮ → About menu; "Report a bug" opens GitHub Issues.
+- Requires Streamlit 1.55–1.66 and Plotly ≥ 5.20.
+
+## V0.4.2 Beta (Türkçe)
+
+Yeni görünüm; geometri, mesh ve GCI hesaplarında değişiklik yok.
+
+- Açık ve koyu tema için zümrüt yeşili: sayfa geçişi, kristal (geçişli) sonuç kartı ve düğmeler, giriş kutularında, kartlarda, grafiklerde ve tablolarda zümrüt çerçeveler. Grafik renkleri temaya uyar; kanat içi hücum kenarından firar kenarına renk geçişiyle dolar.
+- Source Serif 4 yazı tipi, uygulamanın içinden yüklenir (Google Fonts gerekmez, Türkçe karakterler dahil).
+- Kısa başlık: "AirfoilMatic", yanında küçük sürüm etiketi ve alt başlık.
+- Mesh / y⁺ sekmesi: girişler 1 Akış Koşulu, 2 Yöntem ve y⁺, 3 Büyüme olarak gruplandı; sonuçlar küçük kartlarda (Reynolds bir girdi olduğu için artık büyük sonuç olarak gösterilmiyor). "Gelişmiş: veter yönü hücre boyutları" bölümünün adı "Kanat Yüzeyi Eleman Boyları (İsteğe Bağlı)" oldu ve neyi ayarladığını açıklıyor.
+- Başlıklarda büyük/küçük harf tutarlı hale getirildi (Türkçe ve İngilizce).
+- Beta notu yeniden tasarlandı; geliştirici adı, üniversite, LinkedIn ve GitHub kenar çubuğunun altında ve ⋮ → About menüsünde; "Report a bug" GitHub Issues sayfasını açar.
+- Streamlit 1.55–1.66 ve Plotly ≥ 5.20 gerekir.
+
 ## V0.4.1 Beta
 
 - Fluent setup helper: enter the free-stream speed; the app gives the inlet X/Y velocity components for the angle of attack, the Lift/Drag vectors, reference values, Reynolds and Mach, and warns if the Reynolds number differs from the Mesh / y⁺ tab or Mach > 0.3.

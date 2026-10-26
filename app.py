@@ -20,8 +20,11 @@ from airfoilmatic.fluent import AIR_DENSITY, AIR_VISCOSITY, freestream, speed_fo
 from airfoilmatic.quality import (FLUENT_MAX_SKEWNESS, FLUENT_MIN_ORTHO, RATING_LEVEL,
                                   expected_wall_aspect_ratio, rate_orthogonal, rate_skewness)
 from airfoilmatic.i18n import LANGS, tr, tr_error
+from airfoilmatic import ui
 
-st.set_page_config(page_title=f"AirfoilMatic v{APP_VERSION} {APP_STAGE}", layout="wide")
+st.set_page_config(page_title=f"AirfoilMatic v{APP_VERSION} {APP_STAGE}", layout="wide",
+                   menu_items={"Report a bug": f"{ui.DEVELOPER['repo']}/issues",
+                               "About": ui.about_markdown("tr") + "\n\n---\n\n" + ui.about_markdown("en")})
 
 # ---------------------------------------------------------------- language
 lang_label = st.sidebar.radio("Dil / Language", list(LANGS.values()), horizontal=True)
@@ -36,8 +39,11 @@ def te(exc):
     return tr_error(exc, L)
 
 
-st.title(f"AirfoilMatic V{APP_VERSION} {APP_STAGE}: {t('subtitle')}")
-st.sidebar.header(f"AirfoilMatic V{APP_VERSION} {APP_STAGE}")
+# Light or dark, as chosen in the app settings (st.context.theme needs Streamlit >= 1.46).
+DARK = getattr(getattr(st.context, "theme", None), "type", "light") == "dark"
+PLOT = ui.PLOT[ui.theme_name(DARK)]
+st.markdown(ui.css(DARK), unsafe_allow_html=True)
+st.markdown(ui.header_html(APP_VERSION, APP_STAGE, t("subtitle")), unsafe_allow_html=True)
 
 # ---------------------------------------------------------------- sidebar inputs
 source = st.sidebar.radio(t("source"), ["naca", "file"],
@@ -71,7 +77,8 @@ kept_lines = [k for k in SPLIT_LINES if st.sidebar.checkbox(t(k), value=True, ke
 all_lines = len(kept_lines) == len(SPLIT_LINES)
 
 sidebar_download = st.sidebar.empty()
-st.sidebar.warning(t("beta_warning", stage=APP_STAGE, version=APP_VERSION))
+st.sidebar.markdown(ui.note_html(t("beta_warning", stage=APP_STAGE, version=APP_VERSION)), unsafe_allow_html=True)
+st.sidebar.markdown(ui.footer_html(L, t("dev_label")), unsafe_allow_html=True)
 
 # ---------------------------------------------------------------- geometry
 try:
@@ -104,26 +111,30 @@ out_domain = select_lines(domain, kept_lines)
 txt_data = to_ansys_txt(out_domain)
 with sidebar_download:
     st.download_button(t("download"), data=txt_data, file_name=f"{file_prefix}.txt",
-                       mime="text/plain", use_container_width=True, key="dl_sidebar")
+                       mime="text/plain", use_container_width=True, key="dl_sidebar",
+                       type="primary")
 
 
 # ---------------------------------------------------------------- helpers
 def airfoil_traces(fig):
     for c in domain.by_kind("airfoil") + [c for c in domain.curves if c.key == "te_closure"]:
         fig.add_trace(go.Scatter(x=c.x, y=c.y, mode="lines", showlegend=False,
-                                 line=dict(color="#00C2FF", width=3), hoverinfo="skip"))
+                                 line=dict(color=PLOT["line"], width=2.5), hoverinfo="skip"))
     x = np.concatenate([airfoil.xu, airfoil.xl[::-1]])
     y = np.concatenate([airfoil.yu, airfoil.yl[::-1]])
-    fig.add_trace(go.Scatter(x=x, y=y, fill="toself", fillcolor="rgba(0, 194, 255, 0.15)",
+    # emerald fill from the leading edge (deep) to the trailing edge (light); needs plotly >= 5.20
+    fig.add_trace(go.Scatter(x=x, y=y, fill="toself",
+                             fillgradient=dict(type="horizontal", colorscale=[[0, PLOT["fill"][0]], [1, PLOT["fill"][1]]]),
                              line=dict(color="rgba(0,0,0,0)", width=0), name=airfoil.name))
 
 
 def style(fig, height, xrange=None, yrange=None):
     fig.update_layout(xaxis_title=t("x_axis"), yaxis_title=t("y_axis"), showlegend=True, height=height,
-                      paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                      paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font=dict(family=ui.FONT),
+                      margin=dict(l=10, r=10, t=10, b=10), legend=dict(orientation="h", y=1.08, x=0),
                       xaxis=dict(range=xrange), yaxis=dict(scaleanchor="x", scaleratio=1, range=yrange))
     for upd in (fig.update_xaxes, fig.update_yaxes):
-        upd(gridcolor="rgba(128,128,128,0.2)", zerolinecolor="rgba(128,128,128,0.5)", tickfont=dict(size=12))
+        upd(gridcolor=PLOT["grid"], zerolinecolor=PLOT["zero"], tickfont=dict(size=12))
 
 
 def plan_rows(plan):
@@ -167,26 +178,29 @@ with tab_geo:
     for i, c in enumerate([c for c in out_domain.by_kind("split") if c.key != "te_closure"]):
         fig_zoom.add_trace(go.Scatter(x=c.x, y=c.y, mode="lines", name=t("split_lines"), legendgroup="split",
                                       showlegend=i == 0, hovertext=t(c.key), hoverinfo="text",
-                                      line=dict(color="#FF4B4B", width=2, dash="dash")))
+                                      line=dict(color=PLOT["split"], width=1.5, dash="dash")))
     airfoil_traces(fig_zoom)
     style(fig_zoom, 500, [-0.1 * chord, 1.1 * chord], [-0.5 * chord, 0.5 * chord])
-    st.plotly_chart(fig_zoom, use_container_width=True, config={"scrollZoom": False})
+    with st.container(key="plot_zoom"):
+        st.plotly_chart(fig_zoom, use_container_width=True, config={"scrollZoom": False})
 
     st.subheader(t("full_title"))
     fig_full = go.Figure()
     for c in out_domain.by_kind("boundary"):
         fig_full.add_trace(go.Scatter(x=c.x, y=c.y, mode="lines", name=t(c.key),
-                                      line=dict(color="rgba(128,128,128,0.8)", width=2)))
+                                      line=dict(color=PLOT["boundary"], width=1.5)))
     for i, c in enumerate([c for c in out_domain.by_kind("split") if c.key != "te_closure"]):
         fig_full.add_trace(go.Scatter(x=c.x, y=c.y, mode="lines", name=t("split_lines"), legendgroup="split",
                                       showlegend=i == 0, hovertext=t(c.key), hoverinfo="text",
-                                      line=dict(color="#FF4B4B", width=2, dash="dash")))
+                                      line=dict(color=PLOT["split"], width=1.5, dash="dash")))
     airfoil_traces(fig_full)
     style(fig_full, 700)
-    st.plotly_chart(fig_full, use_container_width=True, config={"scrollZoom": False})
+    with st.container(key="plot_full"):
+        st.plotly_chart(fig_full, use_container_width=True, config={"scrollZoom": False})
 
     st.download_button(t("download"), data=txt_data, file_name=f"{file_prefix}.txt",
-                       mime="text/plain", use_container_width=True, key="dl_main")
+                       mime="text/plain", use_container_width=True, key="dl_main",
+                       type="primary")
 
 # ================================================================ mesh tab
 INFLATION, MAPPED = "inflation", "mapped"
@@ -206,10 +220,11 @@ def short(v, unit=""):
 
 
 with tab_mesh:
-    st.markdown(t("mesh_intro"))
+    st.caption(t("mesh_intro"))
 
     c1, c2, c3 = st.columns(3)
-    with c1:
+    with c1.container(key="card_flow"):
+        st.markdown(ui.step_html(1, t("step_flow")), unsafe_allow_html=True)
         flow_mode = st.radio(t("flow_input"), ["re", "vel"], horizontal=True,
                              format_func=lambda k: t("flow_re") if k == "re" else t("flow_vel"))
         u_inf = rho = mu = None
@@ -220,11 +235,14 @@ with tab_mesh:
             rho = st.number_input(t("density"), value=1.225, min_value=1e-6, format="%.4f")
             mu = st.number_input(t("viscosity"), value=1.7894e-5, min_value=1e-9, format="%.4e")
             re = reynolds(u_inf, rho, mu, chord)
-    with c2:
+            st.caption(f"Re = {short(re)}")
+    with c2.container(key="card_method"):
+        st.markdown(ui.step_html(2, t("step_method")), unsafe_allow_html=True)
         mesh_mode = st.radio(t("mesh_method"), [INFLATION, MAPPED],
                              format_func=lambda k: t("method_inflation") if k == INFLATION else t("method_mapped"))
         y_plus = st.number_input(t("y_plus"), value=DEFAULTS["y_plus"], min_value=0.05, step=0.5)
-    with c3:
+    with c3.container(key="card_growth"):
+        st.markdown(ui.step_html(3, t("step_growth")), unsafe_allow_html=True)
         if mesh_mode == INFLATION:
             growth = st.number_input(t("growth"), value=1.15, min_value=1.01, max_value=1.5,
                                      step=0.01, format="%.3f", key="g_infl")
@@ -232,15 +250,16 @@ with tab_mesh:
         else:
             growth = st.number_input(t("growth"), value=DEFAULTS["growth"], min_value=1.01, max_value=1.5,
                                      step=0.01, format="%.3f", key="g_map")
-        with st.expander(t("advanced")):
-            ds_le = st.number_input(t("ds_le"), value=DEFAULTS["ds_le"], min_value=1e-5, format="%.4f",
-                                    step=0.0005)
-            ds_split = st.number_input(t("ds_split"), value=DEFAULTS["ds_split"], min_value=1e-4,
-                                       format="%.4f", step=0.001)
-            ds_te = st.number_input(t("ds_te"), value=DEFAULTS["ds_te"], min_value=1e-5, format="%.4f",
-                                    step=0.0005)
-            wake_growth = st.number_input(t("wake_growth"), value=DEFAULTS["wake_growth"], min_value=1.01,
-                                          max_value=1.5, step=0.01, format="%.3f")
+    # Chordwise sizes: full width under the three cards so the inputs are not squeezed.
+    with st.expander(t("advanced")):
+        st.caption(t("advanced_help"))
+        a1, a2, a3, a4 = st.columns(4)
+        ds_le = a1.number_input(t("ds_le"), value=DEFAULTS["ds_le"], min_value=1e-5, format="%.4f", step=0.0005)
+        ds_split = a2.number_input(t("ds_split"), value=DEFAULTS["ds_split"], min_value=1e-4, format="%.4f",
+                                   step=0.001)
+        ds_te = a3.number_input(t("ds_te"), value=DEFAULTS["ds_te"], min_value=1e-5, format="%.4f", step=0.0005)
+        wake_growth = a4.number_input(t("wake_growth"), value=DEFAULTS["wake_growth"], min_value=1.01,
+                                      max_value=1.5, step=0.01, format="%.3f")
 
     if re < 5e5:
         st.info(t("low_re_note"))
@@ -256,11 +275,13 @@ with tab_mesh:
         st.error(te(e))
 
     if infl is not None:
-        m = st.columns(4)
-        m[0].metric(t("m_re"), short(re))
-        m[1].metric(t("infl_first"), f"{infl.first_layer * 1000:.4g} mm")
-        m[2].metric(t("infl_layers"), f"{infl.layers}")
-        m[3].metric(t("m_delta"), f"{infl.delta_turb * 1000:.3g} mm")
+        # Reynolds is an input, so it only appears as a note under the boundary-layer card.
+        st.markdown(ui.cards_html([
+            (t("infl_first"), f"{infl.first_layer * 1000:.4g} mm", "First Layer Height", True),
+            (t("infl_layers"), f"{infl.layers}", "Maximum Layers", False),
+            (t("infl_total"), f"{infl.total * 1000:.3g} mm", f"≈ {infl.total / infl.delta_turb:.2g} δ", False),
+            (t("m_delta"), f"{infl.delta_turb * 1000:.3g} mm", f"Re = {short(re)}", False),
+        ]), unsafe_allow_html=True)
         st.subheader(t("infl_table_title"))
         # Smallest surface element: LE/TE spacing, or a blunt-TE face element.
         ds_te_infl = max(ds_te, INFL_MIN_TE)
@@ -310,11 +331,11 @@ with tab_mesh:
     if plan is not None:
         if not all_lines:
             st.warning(t("warn_mapped_lines"))
-        m = st.columns(4)
-        m[0].metric(t("m_re"), short(re))
-        m[1].metric(t("m_dy1"), f"{plan.dy1 * 1000:.4g} mm")
-        m[2].metric(t("m_nbl"), f"{plan.n_bl}")
-        m[3].metric(t("m_cells"), f"{plan.cells:,}")
+        st.markdown(ui.cards_html([
+            (t("m_dy1"), f"{plan.dy1 * 1000:.4g} mm", f"Re = {short(re)}", True),
+            (t("m_nbl"), f"{plan.n_bl}", "", False),
+            (t("m_cells"), f"{plan.cells:,}", "", False),
+        ]), unsafe_allow_html=True)
         st.markdown(t("m_counts", n_normal=plan.n_normal, n_front=plan.n_front,
                       n_rear=plan.n_rear, n_wake=plan.n_wake))
         if plan.max_growth > MAX_GOOD_GROWTH:
@@ -478,7 +499,7 @@ with tab_gci:
         for j, qty in enumerate(qtys, start=1):
             vals, g = results[qty]
             fig.add_trace(go.Scatter(x=h, y=vals, mode="markers+lines", name=t("plot_grids"),
-                                     marker=dict(size=10, color="#00C2FF"), line=dict(color="#00C2FF"),
+                                     marker=dict(size=10, color=PLOT["line"]), line=dict(color=PLOT["line"]),
                                      showlegend=j == 1, legendgroup="grids",
                                      error_y=dict(type="data", array=[abs(vals[0]) * g.gci_fine, 0, 0],
                                                   visible=True) if g and not g.diverging else None), row=1, col=j)
@@ -486,19 +507,20 @@ with tab_gci:
                 hh = np.linspace(0, max(h), 60)
                 c_fit = (vals[0] - g.phi_ext) / h[0] ** g.p
                 fig.add_trace(go.Scatter(x=hh, y=g.phi_ext + c_fit * hh ** g.p, mode="lines",
-                                         name=t("plot_fit"), line=dict(color="#FF9500", dash="dash"),
+                                         name=t("plot_fit"), line=dict(color=PLOT["fit"], dash="dash"),
                                          showlegend=j == 1, legendgroup="fit"), row=1, col=j)
                 fig.add_trace(go.Scatter(x=[0], y=[g.phi_ext], mode="markers", name=t("plot_ext"),
-                                         marker=dict(symbol="star", size=14, color="#FF4B4B"),
+                                         marker=dict(symbol="star", size=14, color=PLOT["ext"]),
                                          showlegend=j == 1, legendgroup="ext"), row=1, col=j)
             fig.update_xaxes(title_text=t("plot_h"), range=[-0.05 * max(h), 1.08 * max(h)], row=1, col=j)
         fig.update_layout(height=420, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                          legend=dict(orientation="h", y=-0.25))
-        fig.update_xaxes(gridcolor="rgba(128,128,128,0.2)")
-        fig.update_yaxes(gridcolor="rgba(128,128,128,0.2)")
-        st.plotly_chart(fig, use_container_width=True,
-                        config={"toImageButtonOptions": {"format": "png", "filename": f"{file_prefix}_gci",
-                                                         "scale": 3}})
+                          font=dict(family=ui.FONT), legend=dict(orientation="h", y=-0.25))
+        fig.update_xaxes(gridcolor=PLOT["grid"])
+        fig.update_yaxes(gridcolor=PLOT["grid"])
+        with st.container(key="plot_gci"):
+            st.plotly_chart(fig, use_container_width=True,
+                            config={"toImageButtonOptions": {"format": "png", "filename": f"{file_prefix}_gci",
+                                                             "scale": 3}})
         st.caption(t("plot_note"))
 
     # ---- optional suggested grid family
