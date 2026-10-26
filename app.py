@@ -39,10 +39,9 @@ def te(exc):
     return tr_error(exc, L)
 
 
-# Light or dark, as chosen in the app settings (st.context.theme needs Streamlit >= 1.46).
-DARK = getattr(getattr(st.context, "theme", None), "type", "light") == "dark"
-PLOT = ui.PLOT[ui.theme_name(DARK)]
-st.markdown(ui.css(DARK), unsafe_allow_html=True)
+# One stylesheet for light and dark (CSS light-dark()), so a theme switch needs no rerun.
+PLOT = ui.PLOT
+st.markdown(ui.css(), unsafe_allow_html=True)
 st.markdown(ui.header_html(APP_VERSION, APP_STAGE, t("subtitle")), unsafe_allow_html=True)
 
 # ---------------------------------------------------------------- sidebar inputs
@@ -128,11 +127,15 @@ def airfoil_traces(fig):
                              line=dict(color="rgba(0,0,0,0)", width=0), name=airfoil.name))
 
 
-def style(fig, height, xrange=None, yrange=None):
+def style(fig, height, xrange=None, yrange=None, fit_domain=False):
     fig.update_layout(xaxis_title=t("x_axis"), yaxis_title=t("y_axis"), showlegend=True, height=height,
                       paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font=dict(family=ui.FONT),
                       margin=dict(l=10, r=10, t=10, b=10), legend=dict(orientation="h", y=1.08, x=0),
-                      xaxis=dict(range=xrange), yaxis=dict(scaleanchor="x", scaleratio=1, range=yrange))
+                      # fit_domain: keep the given ranges and shrink the drawing area to keep 1:1, instead of
+                      # widening the y range (on phones that showed far more than the domain)
+                      xaxis=dict(range=xrange, constrain="domain" if fit_domain else None),
+                      yaxis=dict(scaleanchor="x", scaleratio=1, range=yrange,
+                                 constrain="domain" if fit_domain else None))
     for upd in (fig.update_xaxes, fig.update_yaxes):
         upd(gridcolor=PLOT["grid"], zerolinecolor=PLOT["zero"], tickfont=dict(size=12))
 
@@ -152,6 +155,13 @@ def plan_rows(plan):
             t("col_length"): round(e.length, 5),
         })
     return rows
+
+
+def wide_table(rows, key, columns=None):
+    """Dataframe on wide screens, one card per row on phones (CSS switches between them)."""
+    with st.container(key=f"wide_{key}"):
+        st.dataframe(rows, use_container_width=True, hide_index=True, column_order=columns)
+    st.markdown(ui.row_cards_html(rows, columns), unsafe_allow_html=True)
 
 
 def rows_to_csv(rows):
@@ -180,23 +190,39 @@ with tab_geo:
                                       showlegend=i == 0, hovertext=t(c.key), hoverinfo="text",
                                       line=dict(color=PLOT["split"], width=1.5, dash="dash")))
     airfoil_traces(fig_zoom)
-    style(fig_zoom, 500, [-0.1 * chord, 1.1 * chord], [-0.5 * chord, 0.5 * chord])
+    style(fig_zoom, 440, [-0.1 * chord, 1.1 * chord], [-0.5 * chord, 0.5 * chord])
     with st.container(key="plot_zoom"):
         st.plotly_chart(fig_zoom, use_container_width=True, config={"scrollZoom": False})
 
     st.subheader(t("full_title"))
     fig_full = go.Figure()
-    for c in out_domain.by_kind("boundary"):
-        fig_full.add_trace(go.Scatter(x=c.x, y=c.y, mode="lines", name=t(c.key),
+    # one legend entry for all outer boundaries (the legend fits a phone); hover still names each one
+    for i, c in enumerate(out_domain.by_kind("boundary")):
+        fig_full.add_trace(go.Scatter(x=c.x, y=c.y, mode="lines", name=t("boundaries"), legendgroup="bnd",
+                                      showlegend=i == 0, hovertext=t(c.key), hoverinfo="text",
                                       line=dict(color=PLOT["boundary"], width=1.5)))
     for i, c in enumerate([c for c in out_domain.by_kind("split") if c.key != "te_closure"]):
         fig_full.add_trace(go.Scatter(x=c.x, y=c.y, mode="lines", name=t("split_lines"), legendgroup="split",
                                       showlegend=i == 0, hovertext=t(c.key), hoverinfo="text",
                                       line=dict(color=PLOT["split"], width=1.5, dash="dash")))
     airfoil_traces(fig_full)
-    style(fig_full, 700)
+    # Show exactly the domain (+4 %); the figure height follows its aspect ratio.
+    xs = np.concatenate([c.x for c in out_domain.curves])
+    ys = np.concatenate([c.y for c in out_domain.curves])
+    pad = 0.04 * max(np.ptp(xs), np.ptp(ys))
+    xr = [xs.min() - pad, xs.max() + pad]
+    yr = [ys.min() - pad, ys.max() + pad]
+    # The card takes the domain's aspect ratio (plus room for the legend), and the chart stretches
+    # to fill it, so a narrow phone gets a short chart instead of a tall one with empty space.
+    aspect = (xr[1] - xr[0]) / (yr[1] - yr[0])
+    st.markdown(f"<style>.st-key-plot_full{{aspect-ratio:{aspect:.3f} / 1;min-height:300px;max-height:760px}}"
+                f".st-key-plot_full [data-testid='stPlotlyChart']{{flex:1 1 auto;min-height:0}}</style>",
+                unsafe_allow_html=True)
+    style(fig_full, None, xr, yr, fit_domain=True)
+    # legend in its own top margin: on a phone it wraps to two rows and must not cover the drawing
+    fig_full.update_layout(legend=dict(orientation="h", x=0, y=1.0, yanchor="bottom"), margin=dict(t=64, b=10))
     with st.container(key="plot_full"):
-        st.plotly_chart(fig_full, use_container_width=True, config={"scrollZoom": False})
+        st.plotly_chart(fig_full, width="stretch", height="stretch", config={"scrollZoom": False})
 
     st.download_button(t("download"), data=txt_data, file_name=f"{file_prefix}.txt",
                        mime="text/plain", use_container_width=True, key="dl_main",
@@ -302,7 +328,7 @@ with tab_mesh:
             {t("col_setting"): "Defeature Size (Mesh → Sizing)", t("col_value"): m_mm(defeature)},
             {t("col_setting"): "Curvature Min Size (Mesh → Sizing)", t("col_value"): m_mm(curv_min)},
         ]
-        st.dataframe(infl_rows, use_container_width=True, hide_index=True)
+        st.markdown(ui.table_html(infl_rows), unsafe_allow_html=True)
         st.caption(t("infl_note"))
         if domain.blunt_te:
             st.warning(t("warn_blunt_infl"))
@@ -317,9 +343,8 @@ with tab_mesh:
             for r, e in zip(e_rows, [e for e in edge_plan.edges if e.group in keep]):
                 if e.group == "g_wake":
                     r[t("col_edges")] = t("wake_axis")
-            st.dataframe(e_rows, use_container_width=True, hide_index=True,
-                         column_order=[t(k) for k in ("col_group", "col_n", "col_bias", "col_small",
-                                                      "col_dsmin", "col_dsmax", "col_edges")])
+            wide_table(e_rows, "infl_edges", [t(k) for k in ("col_group", "col_n", "col_bias", "col_small",
+                                                             "col_dsmin", "col_dsmax", "col_edges")])
             st.caption(t("infl_edges_note"))
         except (ValueError, OverflowError) as e:
             st.error(te(e))
@@ -346,9 +371,8 @@ with tab_mesh:
         if domain_kind == RECT:
             st.info(t("rect_note"))
         rows = plan_rows(plan)
-        st.dataframe(rows, use_container_width=True, hide_index=True,
-                     column_order=[t(k) for k in ("col_group", "col_n", "col_bias", "col_small",
-                                                  "col_dsmin", "col_edges")])
+        wide_table(rows, "edge_sizing", [t(k) for k in ("col_group", "col_n", "col_bias", "col_small",
+                                                        "col_dsmin", "col_edges")])
         st.download_button(t("download_csv"), data=rows_to_csv(rows),
                            file_name=f"{file_prefix}_edge_sizing.csv", mime="text/csv")
         with st.expander(t("howto_title")):
@@ -385,7 +409,7 @@ with tab_mesh:
             q_rows.append({t("q_metric"): label, t("col_value"): f"{val:.4g}",
                            t("q_rating"): t(key), t("q_fluent"): fluent})
         if q_rows:
-            st.dataframe(q_rows, use_container_width=True, hide_index=True)
+            st.markdown(ui.table_html(q_rows), unsafe_allow_html=True)
             msg = ("q_verdict_ok", "q_verdict_check", "q_verdict_bad", "q_verdict_fail")[worst]
             (st.success if worst == 0 else st.warning if worst < 3 else st.error)(t(msg))
         dy_ref = infl.first_layer if infl is not None else (plan.dy1 if plan is not None else None)
@@ -432,7 +456,7 @@ with tab_mesh:
                 {t("col_setting"): t("fl_ref_area"), t("col_value"): f"{chord:g} m² (c × 1 m)"},
                 {t("col_setting"): t("fl_re_mach"), t("col_value"): f"Re = {fs.reynolds:.4e},  M = {fs.mach:.3f}"},
             ]
-            st.dataframe(rows_f, use_container_width=True, hide_index=True)
+            st.markdown(ui.table_html(rows_f), unsafe_allow_html=True)
             if abs(fs.reynolds - re) > 0.01 * re:
                 st.warning(t("fl_re_mismatch", re_fl=fs.reynolds, re_mesh=re))
             if fs.mach > 0.3:
@@ -536,7 +560,7 @@ with tab_gci:
                              "Growth Rate": round(fam[n].growth, 4), "Maximum Layers": fam[n].layers,
                              t("fam_sizes"): f"÷ {factors[n]:.3g}" if n != "medium" else "× 1"}
                             for n in LEVELS]
-                st.dataframe(fam_rows, use_container_width=True, hide_index=True)
+                wide_table(fam_rows, "family_infl")
                 st.caption(t("family_note_infl"))
             else:
                 fam = {n: plan_mesh(domain, split_af, re, refine=k, **sizing) for n, k in factors.items()}
@@ -544,7 +568,7 @@ with tab_gci:
                              t("m_dy1"): m_mm(fam[n].dy1), t("fam_n_normal"): fam[n].n_normal, t("fam_n_front"): fam[n].n_front,
                              t("fam_n_rear"): fam[n].n_rear, t("fam_n_wake"): fam[n].n_wake}
                             for n in LEVELS]
-                st.dataframe(fam_rows, use_container_width=True, hide_index=True)
+                wide_table(fam_rows, "family_mapped")
                 st.caption(t("family_note"))
                 dl = st.columns(3)
                 for col, n in zip(dl, LEVELS):

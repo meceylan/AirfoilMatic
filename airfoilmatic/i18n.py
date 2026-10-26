@@ -280,6 +280,10 @@ STRINGS = {
         "tr": 'Kanat kenarlarındaki Edge Sizing tablosunu belirler: hücum kenarında, bölme çizgisinde (0.3c) ve firar kenarında istenen eleman boyu, veterin kesri olarak (0.001 = 1 m veterde 1 mm) ve iz ekseninde elemanların büyüme oranı. Duvardan dışarı doğru büyüme (y⁺, ilk katman) bunlardan bağımsızdır. Varsayılanlar çoğu analiz için uygundur.',
         "en": 'Sets the Edge Sizing table on the airfoil edges: the element size wanted at the leading edge, at the split line (0.3c) and at the trailing edge, as a fraction of the chord (0.001 = 1 mm on a 1 m chord), and the growth ratio along the wake axis. Wall-normal growth (y⁺, first layer) does not depend on these. The defaults suit most analyses.',
     },
+    'boundaries': {
+        "tr": 'Dış sınırlar',
+        "en": 'Outer boundaries',
+    },
     'step_flow': {
         "tr": 'Akış Koşulu',
         "en": 'Flow Condition',
