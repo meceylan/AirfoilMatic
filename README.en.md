@@ -1,4 +1,4 @@
-# AirfoilMatic V0.4.1 Beta — 2D CFD Domain Generator
+# AirfoilMatic V0.4.2 Beta — 2D CFD Domain Generator
 
 [Türkçe](README.md) | **English**
 
@@ -62,5 +62,11 @@ AirfoilMatic cuts the airfoil vertically at **X = 0.3c** into four segments (upp
 | Plots | Plotly |
 | Language | Python 3.11+ |
 
+## Developer
+**Muhammet Emin CEYLAN**, Iskenderun Technical University  
+[LinkedIn](https://www.linkedin.com/in/muhammet-emin-ceylan-b79847334) · [GitHub](https://github.com/meceylan)
+
+Please use the [Issues](https://github.com/meceylan/AirfoilMatic/issues) page for bugs and suggestions.
+
 ## License
-MIT License.
+MIT License. The interface font, Source Serif 4, is distributed under the SIL Open Font License 1.1 (`static/fonts/OFL-SourceSerif4.txt`).

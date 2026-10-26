@@ -426,3 +426,37 @@ def test_freestream_components():
     assert zero.uy == 0 and abs(zero.lift[0]) == 0 and zero.lift[1] == 1
     with pytest.raises(ValueError):
         freestream(4, 0, 1)
+
+
+# ------------------------------------------------------------------ ui (V0.4.2)
+
+@pytest.mark.parametrize("dark", [False, True])
+def test_css_has_no_unfilled_placeholders(dark):
+    import re as _re
+    from airfoilmatic import ui
+    out = ui.css(dark)
+    assert out.startswith("<style>") and out.endswith("</style>")
+    # every placeholder replaced: only hex colours may remain as upper-case tokens
+    leftovers = {w for w in _re.findall(r"\b[A-Z][A-Z0-9_]+\b", out) if not _re.fullmatch(r"[0-9A-F]{6}", w)}
+    assert not leftovers, leftovers
+
+
+def test_ui_html_is_escaped():
+    from airfoilmatic import ui
+    assert "<script>" not in ui.cards_html([("<script>", "1 mm", "x", True)])
+    assert "am-crystal" in ui.cards_html([("a", "1", "", True)])
+    assert "<b>Beta</b>" in ui.note_html("Beta\nbody")
+
+
+@pytest.mark.parametrize("lang", ["tr", "en"])
+def test_footer_has_developer_links(lang):
+    from airfoilmatic import ui
+    html = ui.footer_html(lang, "Dev")
+    assert ui.DEVELOPER["linkedin"] in html and ui.DEVELOPER["github"] in html
+    assert ui.DEVELOPER["university"][lang] in html
+
+
+def test_plot_palettes_complete():
+    from airfoilmatic import ui
+    assert ui.PLOT["light"].keys() == ui.PLOT["dark"].keys()
+    assert ui.THEMES["light"].keys() == ui.THEMES["dark"].keys()
