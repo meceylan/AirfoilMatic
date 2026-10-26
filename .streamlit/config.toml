@@ -1,3 +1,62 @@
-   [server]
-   # Airfoil coordinate files are a few KB; keep uploads small.
-   maxUploadSize = 2
+[server]
+# Airfoil coordinate files are a few KB; keep uploads small.
+maxUploadSize = 2
+# Serves static/ (the self-hosted font below) at app/static/.
+enableStaticServing = true
+
+# Source Serif 4 (SIL Open Font License, see static/fonts/OFL-SourceSerif4.txt).
+# Self-hosted so the app looks the same without Google Fonts; latin-ext covers Turkish.
+[[theme.fontFaces]]
+family = "AirfoilMatic Serif"
+url = "app/static/fonts/source-serif-4-latin-wght-normal.woff2"
+weight = "200 900"
+unicodeRange = "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD"
+
+[[theme.fontFaces]]
+family = "AirfoilMatic Serif"
+url = "app/static/fonts/source-serif-4-latin-ext-wght-normal.woff2"
+weight = "200 900"
+unicodeRange = "U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C4,U+2113,U+2C60-2C7F,U+A720-A7FF"
+
+[theme]
+font = "AirfoilMatic Serif"
+headingFont = "AirfoilMatic Serif"
+codeFont = "monospace"
+baseFontSize = 15
+baseRadius = "0.6rem"
+showWidgetBorder = true
+showSidebarBorder = true
+headingFontWeights = [600, 600, 600, 600, 600, 600]
+metricValueFontSize = "1.75rem"
+
+# Emerald palette; app.py adds gradients, cards and plot colors on top (airfoilmatic/ui.py).
+[theme.light]
+primaryColor = "#1F6B47"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F3F5F4"
+textColor = "#111A15"
+borderColor = "#E4E9E6"
+dataframeHeaderBackgroundColor = "#F3F5F4"
+# st.info boxes in emerald instead of blue
+blueColor = "#1C6142"
+blueBackgroundColor = "#E3F2EA"
+blueTextColor = "#174A31"
+
+[theme.light.sidebar]
+backgroundColor = "#F7F8F7"
+secondaryBackgroundColor = "#EDF1EE"
+
+[theme.dark]
+primaryColor = "#3FBF85"
+backgroundColor = "#070F0B"
+secondaryBackgroundColor = "#0F1B15"
+textColor = "#E6EFEA"
+borderColor = "#1C2C24"
+dataframeHeaderBackgroundColor = "#0F1B15"
+blueColor = "#5EBD91"
+blueBackgroundColor = "#123324"
+blueTextColor = "#CDEBDD"
+
+[theme.dark.sidebar]
+backgroundColor = "#0A140F"
+secondaryBackgroundColor = "#13221A"
