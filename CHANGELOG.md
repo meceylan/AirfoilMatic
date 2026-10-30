@@ -1,5 +1,27 @@
 # Changelog
 
+## V0.5.0 Beta
+
+Simpler app; no change to the geometry, mesh or Fluent calculations.
+
+- Grid Independence (GCI) tab removed, together with its code and tests.
+- Default inlet radius / inlet distance is 15 m (top and bottom distances of the rectangular domain too).
+- Close-up plot sized like the full-domain plot: it shows the airfoil with a small margin at 1:1 and is much shorter on phones.
+- The six split-line checkboxes are in a collapsed "Split Lines (6/6)" box in the sidebar.
+- Mesh / y⁺ tab: the long notes (Inflation settings, trailing-edge limit, boundary-layer formula) moved into the "How to apply in Ansys Meshing" box; the division counts are shown under the cell-count card.
+- Deprecated `use_container_width` replaced (no warnings in the logs).
+
+## V0.5.0 Beta (Türkçe)
+
+Daha sade uygulama; geometri, mesh ve Fluent hesaplarında değişiklik yok.
+
+- Mesh Bağımsızlığı (GCI) sekmesi, kodu ve testleriyle birlikte kaldırıldı.
+- Giriş yarıçapı / giriş uzaklığı varsayılanı 15 m (dikdörtgen domain'in üst ve alt uzaklıkları da).
+- Yakın çekim grafiği akış alanı grafiği gibi boyutlanıyor: kanadı küçük bir payla 1:1 gösteriyor, telefonda çok daha kısa.
+- Altı bölme çizgisi onay kutusu kenar çubuğunda kapalı bir "Bölme Çizgileri (6/6)" kutusunda.
+- Mesh / y⁺ sekmesi: uzun notlar (Inflation ayarları, firar kenarı sınırı, sınır tabaka bağıntısı) "Ansys Meshing'de Nasıl Uygulanır?" kutusuna taşındı; bölüm sayıları hücre sayısı kartının altında.
+- Eskiyen `use_container_width` değiştirildi (kayıtlarda uyarı yok).
+
 ## V0.4.3 Beta
 
 - Switching between light and dark mode no longer breaks the page; the colors follow the switch without reloading.
