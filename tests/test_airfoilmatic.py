@@ -11,7 +11,6 @@ from airfoilmatic.topology import C_GRID, RECT, build_domain
 from airfoilmatic.export import to_ansys_txt
 from airfoilmatic.mesh import (first_cell_height, n_for_growth, plan_mesh, ratio_for,
                                two_end_spacing, geometric_length)
-from airfoilmatic.gci import compute_gci
 from airfoilmatic.i18n import STRINGS
 
 
@@ -237,26 +236,6 @@ def test_refinement_family_scales_cells():
     assert cells[2] / cells[1] == pytest.approx(2.0, rel=0.1)
 
 
-# ------------------------------------------------------------------ GCI
-
-def test_gci_celik_example():
-    # Celik et al. (2008), Table 1, phi = dimensionless reattachment length
-    g = compute_gci(18000, 8000, 4500, 6.063, 5.972, 5.863)
-    assert g.r21 == pytest.approx(1.5)
-    assert g.r32 == pytest.approx(1.333, abs=1e-3)
-    assert g.p == pytest.approx(1.53, abs=0.01)
-    assert g.phi_ext == pytest.approx(6.1685, abs=1e-3)
-    assert 100 * g.e_a21 == pytest.approx(1.5, abs=0.05)
-    assert 100 * g.e_ext21 == pytest.approx(1.7, abs=0.05)
-    assert 100 * g.gci_fine == pytest.approx(2.2, abs=0.05)
-    assert not g.oscillatory
-
-
-def test_gci_order_check():
-    with pytest.raises(ValueError):
-        compute_gci(1000, 2000, 500, 1, 1.1, 1.2)
-
-
 # ------------------------------------------------------------------ i18n
 
 def test_all_strings_have_both_languages():
@@ -320,13 +299,6 @@ def test_export_keeps_curve_end_points_small_chord():
 def test_low_reynolds_rejected():
     with pytest.raises(ValueError):
         first_cell_height(1.0, 1.0, 1.0)
-
-
-def test_gci_flags_divergence_and_degenerate():
-    g = compute_gci(1e6, 5e5, 2.5e5, 1.00, 1.04, 1.06)
-    assert g.diverging
-    with pytest.raises(ValueError):
-        compute_gci(1e6, 5e5, 2.5e5, 1.0, 1.02, 1.04)
 
 
 # ------------------------------------------------------------------ mesh quality

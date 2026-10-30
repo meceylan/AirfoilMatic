@@ -1,10 +1,10 @@
-# AirfoilMatic V0.4.3 Beta — 2B CFD Domain Generator
+# AirfoilMatic V0.5.0 Beta — 2B CFD Domain Generator
 
 **Türkçe** | [English](README.en.md)
 
 **[AirfoilMatic'i Tarayıcıda Çalıştır](https://airfoilmatic-gkxdkjpsclawjnbhmzng89.streamlit.app/)**
 
-AirfoilMatic, bir kanat profili (NACA 4/5 haneli ya da özel `.dat` dosyası) etrafında 2B CFD akış alanı geometrisi oluşturur ve Ansys DesignModeler `3D Curve` metin formatında dışa aktarır. Akış alanı baştan altı adet dört kenarlı bloğa bölündüğü için Ansys Meshing yapısal (mapped) mesh üretebilir. Uygulama ayrıca bu bloklara uygun Edge Sizing ayarlarını ve mesh bağımsızlığı (GCI) hesabını da verir.
+AirfoilMatic, bir kanat profili (NACA 4/5 haneli ya da özel `.dat` dosyası) etrafında 2B CFD akış alanı geometrisi oluşturur ve Ansys DesignModeler `3D Curve` metin formatında dışa aktarır. Akış alanı baştan altı adet dört kenarlı bloğa bölündüğü için Ansys Meshing yapısal (mapped) mesh üretebilir. Uygulama ayrıca bu bloklara uygun mesh ayarlarını (Inflation, Edge Sizing) ve Fluent kurulum değerlerini de verir.
 
 ## Özellikler
 * NACA 4 ve 5 haneli (standart, refleks olmayan) profiller, tam kosinüs nokta dağılımı
@@ -15,7 +15,6 @@ AirfoilMatic, bir kanat profili (NACA 4/5 haneli ya da özel `.dat` dosyası) et
 * **Mesh / y⁺ asistanı:** hedef y⁺ için ilk hücre yüksekliği ve sınır tabaka tahmini; iki çıktı seçeneği: Ansys **Inflation** ayarları (ilk katman, büyüme oranı, maksimum katman sayısı) ya da mapped mesh için **Edge Sizing** tablosu (Number of Divisions + Bias Factor) ve tahmini hücre sayısı
 * Ansys bantlarına ve Fluent sınırlarına göre **mesh kalite kontrolü** (skewness, orthogonal quality, aspect ratio)
 * İlk Fluent sonucundan **y⁺ düzeltme** ve serbest akış hızı ve hücum açısından inlet X/Y hız bileşenlerini, Lift/Drag vektörlerini ve referans değerleri hesaplayan, Reynolds ve Mach'ı kontrol eden **Fluent ayar yardımcısı**
-* **Mesh bağımsızlığı:** Grid Convergence Index hesabı (Celik vd., 2008), Cl/Cd yakınsama grafiği ve isteğe bağlı önerilen ağ ailesi
 * Türkçe / İngilizce arayüz
 
 ## Yerel kurulum
@@ -36,15 +35,6 @@ Testleri çalıştırmak için: `pip install pytest` ve ardından `pytest`.
    * **Mapped:** altı bölme çizgisini de dışa aktarın (6 blok), tüm yüzeylere `Face Meshing` (Mapped) ekleyip tablodaki `Edge Sizing` değerlerini girin.
    * Inflation ile Mapped Face Meshing aynı yüzeyde birlikte kullanılamaz.
 5. **Kontrol:** Hücre sayısını ve Fluent'te y⁺ değerini kontrol edin. Fluent y⁺'ı hücre merkezinde raporladığı için görülen değer hedefin yaklaşık yarısı olur.
-
-## Mesh bağımsızlığı (GCI)
-Bir mesh'in yeterli olup olmadığını hücre sayısı tek başına göstermez. Mesh inceltildiğinde sonucun çok az değiştiğini göstermek gerekir. **Mesh Bağımsızlığı** sekmesi:
-1. Üç Fluent koşusunun hücre sayılarını ve Cl/Cd sonuçlarını alır,
-2. Celik vd. (2008) yöntemine göre görünür mertebe *p*, ekstrapole değer ve GCI_ince değerlerini raporlar; salınımlı veya ıraksayan davranışta uyarır,
-3. Cl ve Cd'yi h = 1/√N'ye karşı Richardson eğrisi ve ekstrapole değerle birlikte çizer,
-4. İsteğe bağlı olarak tutarlı bir ağ ailesi önerir (varsayılan inceltme oranı her yönde √2, her seviyede yaklaşık 2 kat hücre).
-
-Kaynak: Celik, I. B., Ghia, U., Roache, P. J., Freitas, C. J., Coleman, H., Raad, P. E., *Procedure for Estimation and Reporting of Uncertainty Due to Discretization in CFD Applications*, J. Fluids Eng. 130(7), 078001, 2008.
 
 ## Neden X = 0.3c?
 Kanat DesignModeler'a tek bir eğri olarak ya da yalnızca hücum ve firar kenarından bölünmüş iki eğri olarak aktarıldığında, yüzey oluşturma sırasında hücum kenarında dar açılı hatalı yüzeyler (sliver face) oluşabilir. Bu da mesh kalitesini düşürür.
