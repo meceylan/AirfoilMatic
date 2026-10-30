@@ -50,6 +50,7 @@ _CSS = """
   --am-note-text:light-dark(#174A31,#CDEBDD); --am-head:light-dark(rgba(196,226,209,.72),rgba(12,30,22,.72));
   background:linear-gradient(180deg,var(--am-top) 0px,var(--am-mid) 520px,var(--am-bot) 1400px) !important;
 }
+[data-testid="stMainBlockContainer"]{container-type:inline-size;}   /* lets plot cards size from the column width */
 [data-testid="stHeader"]{background:var(--am-head) !important;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);}
 [data-testid="stSidebar"]{background:linear-gradient(180deg,var(--am-sbt),var(--am-sbb)) !important;}
 

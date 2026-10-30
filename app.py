@@ -1,11 +1,9 @@
 import csv
 import io
-import math
 import re
 
 import numpy as np
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 import streamlit as st
 
 from airfoilmatic import __version__ as APP_VERSION, APP_STAGE
@@ -15,7 +13,6 @@ from airfoilmatic.topology import C_GRID, RECT, SPLIT_LINES, build_domain, line_
 from airfoilmatic.export import to_ansys_txt
 from airfoilmatic.mesh import (DEFAULTS, MAX_GOOD_GROWTH, first_cell_height, plan_inflation,
                                plan_mesh, reynolds)
-from airfoilmatic.gci import compute_gci
 from airfoilmatic.fluent import AIR_DENSITY, AIR_VISCOSITY, freestream, speed_for_reynolds
 from airfoilmatic.quality import (FLUENT_MAX_SKEWNESS, FLUENT_MIN_ORTHO, RATING_LEVEL,
                                   expected_wall_aspect_ratio, rate_orthogonal, rate_skewness)
@@ -62,17 +59,20 @@ domain_kind = st.sidebar.selectbox(t("domain_type"), [C_GRID, RECT],
 chord = st.sidebar.number_input(t("chord"), value=1.0, step=0.1, min_value=0.01)
 
 if domain_kind == C_GRID:
-    r_inlet = st.sidebar.number_input(t("r_inlet"), value=10.0, step=1.0, min_value=1.0)
+    r_inlet = st.sidebar.number_input(t("r_inlet"), value=15.0, step=1.0, min_value=1.0)
     l_wake = st.sidebar.number_input(t("l_wake"), value=20.0, step=1.0, min_value=1.0)
     l_top = l_bottom = r_inlet
 else:
-    r_inlet = st.sidebar.number_input(t("l_inlet"), value=10.0, step=1.0, min_value=1.0)
+    r_inlet = st.sidebar.number_input(t("l_inlet"), value=15.0, step=1.0, min_value=1.0)
     l_wake = st.sidebar.number_input(t("l_wake"), value=20.0, step=1.0, min_value=1.0)
-    l_top = st.sidebar.number_input(t("l_top"), value=10.0, step=1.0, min_value=1.0)
-    l_bottom = st.sidebar.number_input(t("l_bottom"), value=10.0, step=1.0, min_value=1.0)
+    l_top = st.sidebar.number_input(t("l_top"), value=15.0, step=1.0, min_value=1.0)
+    l_bottom = st.sidebar.number_input(t("l_bottom"), value=15.0, step=1.0, min_value=1.0)
 
-st.sidebar.markdown(f"**{t('split_mode')}**", help=t("split_mode_help"))
-kept_lines = [k for k in SPLIT_LINES if st.sidebar.checkbox(t(k), value=True, key=f"line_{k}")]
+# Six checkboxes are rarely changed, so they sit in a collapsed expander that shows how many are on.
+n_on = sum(st.session_state.get(f"line_{k}", True) for k in SPLIT_LINES)
+with st.sidebar.expander(f"{t('split_mode')} ({n_on}/{len(SPLIT_LINES)})"):
+    st.caption(t("split_mode_help"))
+    kept_lines = [k for k in SPLIT_LINES if st.checkbox(t(k), value=True, key=f"line_{k}")]
 all_lines = len(kept_lines) == len(SPLIT_LINES)
 
 sidebar_download = st.sidebar.empty()
@@ -110,7 +110,7 @@ out_domain = select_lines(domain, kept_lines)
 txt_data = to_ansys_txt(out_domain)
 with sidebar_download:
     st.download_button(t("download"), data=txt_data, file_name=f"{file_prefix}.txt",
-                       mime="text/plain", use_container_width=True, key="dl_sidebar",
+                       mime="text/plain", width="stretch", key="dl_sidebar",
                        type="primary")
 
 
@@ -140,6 +140,23 @@ def style(fig, height, xrange=None, yrange=None, fit_domain=False):
         upd(gridcolor=PLOT["grid"], zerolinecolor=PLOT["zero"], tickfont=dict(size=12))
 
 
+def fitted_chart(fig, key, xr, yr):
+    """Show exactly xr x yr at 1:1. The card takes that aspect ratio and the chart stretches to fill it,
+    so the chart is short on a phone and grows with the domain instead of showing empty space."""
+    aspect = (xr[1] - xr[0]) / (yr[1] - yr[0])
+    # Card height = drawing width / aspect + room for legend, axes and padding. 100cqw is the width of
+    # the main column (a CSS container, see ui.py); ~100 px of it go to padding and the y axis.
+    st.markdown(f"<style>.st-key-{key}{{height:calc((100cqw - 100px) / {aspect:.3f} + 170px) !important;flex:0 0 auto !important;"
+                f"min-height:230px;max-height:780px}}"
+                f".st-key-{key} [data-testid='stPlotlyChart']{{flex:1 1 auto;min-height:0}}</style>",
+                unsafe_allow_html=True)
+    style(fig, None, xr, yr, fit_domain=True)
+    # legend in its own top margin: on a phone it wraps to two rows and must not cover the drawing
+    fig.update_layout(legend=dict(orientation="h", x=0, y=1.03, yanchor="bottom"), margin=dict(t=70, b=10))
+    with st.container(key=key):
+        st.plotly_chart(fig, width="stretch", height="stretch", config={"scrollZoom": False})
+
+
 def plan_rows(plan):
     rows = []
     for e in plan.edges:
@@ -160,7 +177,7 @@ def plan_rows(plan):
 def wide_table(rows, key, columns=None):
     """Dataframe on wide screens, one card per row on phones (CSS switches between them)."""
     with st.container(key=f"wide_{key}"):
-        st.dataframe(rows, use_container_width=True, hide_index=True, column_order=columns)
+        st.dataframe(rows, width="stretch", hide_index=True, column_order=columns)
     st.markdown(ui.row_cards_html(rows, columns), unsafe_allow_html=True)
 
 
@@ -172,7 +189,7 @@ def rows_to_csv(rows):
     return buf.getvalue().encode("utf-8-sig")  # BOM so Excel shows Turkish characters
 
 
-tab_geo, tab_mesh, tab_gci = st.tabs([t("tab_geometry"), t("tab_mesh"), t("tab_gci")])
+tab_geo, tab_mesh = st.tabs([t("tab_geometry"), t("tab_mesh")])
 
 # ================================================================ geometry tab
 with tab_geo:
@@ -190,9 +207,10 @@ with tab_geo:
                                       showlegend=i == 0, hovertext=t(c.key), hoverinfo="text",
                                       line=dict(color=PLOT["split"], width=1.5, dash="dash")))
     airfoil_traces(fig_zoom)
-    style(fig_zoom, 440, [-0.1 * chord, 1.1 * chord], [-0.5 * chord, 0.5 * chord])
-    with st.container(key="plot_zoom"):
-        st.plotly_chart(fig_zoom, use_container_width=True, config={"scrollZoom": False})
+    # airfoil plus a little margin; thick sections (up to ~30 %) still fit in +-0.3c
+    t_half = max(np.max(np.abs(airfoil.yu)), np.max(np.abs(airfoil.yl)))
+    y_half = max(0.3 * chord, 1.3 * t_half)
+    fitted_chart(fig_zoom, "plot_zoom", [-0.08 * chord, 1.08 * chord], [-y_half, y_half])
 
     st.subheader(t("full_title"))
     fig_full = go.Figure()
@@ -206,26 +224,14 @@ with tab_geo:
                                       showlegend=i == 0, hovertext=t(c.key), hoverinfo="text",
                                       line=dict(color=PLOT["split"], width=1.5, dash="dash")))
     airfoil_traces(fig_full)
-    # Show exactly the domain (+4 %); the figure height follows its aspect ratio.
+    # exactly the domain (+4 %)
     xs = np.concatenate([c.x for c in out_domain.curves])
     ys = np.concatenate([c.y for c in out_domain.curves])
     pad = 0.04 * max(np.ptp(xs), np.ptp(ys))
-    xr = [xs.min() - pad, xs.max() + pad]
-    yr = [ys.min() - pad, ys.max() + pad]
-    # The card takes the domain's aspect ratio (plus room for the legend), and the chart stretches
-    # to fill it, so a narrow phone gets a short chart instead of a tall one with empty space.
-    aspect = (xr[1] - xr[0]) / (yr[1] - yr[0])
-    st.markdown(f"<style>.st-key-plot_full{{aspect-ratio:{aspect:.3f} / 1;min-height:300px;max-height:760px}}"
-                f".st-key-plot_full [data-testid='stPlotlyChart']{{flex:1 1 auto;min-height:0}}</style>",
-                unsafe_allow_html=True)
-    style(fig_full, None, xr, yr, fit_domain=True)
-    # legend in its own top margin: on a phone it wraps to two rows and must not cover the drawing
-    fig_full.update_layout(legend=dict(orientation="h", x=0, y=1.0, yanchor="bottom"), margin=dict(t=64, b=10))
-    with st.container(key="plot_full"):
-        st.plotly_chart(fig_full, width="stretch", height="stretch", config={"scrollZoom": False})
+    fitted_chart(fig_full, "plot_full", [xs.min() - pad, xs.max() + pad], [ys.min() - pad, ys.max() + pad])
 
     st.download_button(t("download"), data=txt_data, file_name=f"{file_prefix}.txt",
-                       mime="text/plain", use_container_width=True, key="dl_main",
+                       mime="text/plain", width="stretch", key="dl_main",
                        type="primary")
 
 # ================================================================ mesh tab
@@ -329,7 +335,6 @@ with tab_mesh:
             {t("col_setting"): "Curvature Min Size (Mesh → Sizing)", t("col_value"): m_mm(curv_min)},
         ]
         st.markdown(ui.table_html(infl_rows), unsafe_allow_html=True)
-        st.caption(t("infl_note"))
         if domain.blunt_te:
             st.warning(t("warn_blunt_infl"))
 
@@ -345,13 +350,15 @@ with tab_mesh:
                     r[t("col_edges")] = t("wake_axis")
             wide_table(e_rows, "infl_edges", [t(k) for k in ("col_group", "col_n", "col_bias", "col_small",
                                                              "col_dsmin", "col_dsmax", "col_edges")])
-            st.caption(t("infl_edges_note"))
         except (ValueError, OverflowError) as e:
             st.error(te(e))
         if infl.growth > MAX_GOOD_GROWTH:
             st.warning(t("warn_growth", g=infl.growth, lim=MAX_GOOD_GROWTH))
         with st.expander(t("howto_title")):
             st.markdown(t("howto_infl"))
+            st.markdown(t("infl_note"))
+            st.markdown(t("infl_edges_note"))
+            st.caption(t("delta_note", lam=m_mm(infl.delta_lam)))
 
     if plan is not None:
         if not all_lines:
@@ -359,10 +366,10 @@ with tab_mesh:
         st.markdown(ui.cards_html([
             (t("m_dy1"), f"{plan.dy1 * 1000:.4g} mm", f"Re = {short(re)}", True),
             (t("m_nbl"), f"{plan.n_bl}", "", False),
-            (t("m_cells"), f"{plan.cells:,}", "", False),
+            (t("m_cells"), f"{plan.cells:,}",
+             t("m_counts_short", n_normal=plan.n_normal, n_front=plan.n_front, n_rear=plan.n_rear,
+               n_wake=plan.n_wake), False),
         ]), unsafe_allow_html=True)
-        st.markdown(t("m_counts", n_normal=plan.n_normal, n_front=plan.n_front,
-                      n_rear=plan.n_rear, n_wake=plan.n_wake))
         if plan.max_growth > MAX_GOOD_GROWTH:
             st.warning(t("warn_growth", g=plan.max_growth, lim=MAX_GOOD_GROWTH))
         if plan.n_bl < 20:
@@ -377,8 +384,7 @@ with tab_mesh:
                            file_name=f"{file_prefix}_edge_sizing.csv", mime="text/csv")
         with st.expander(t("howto_title")):
             st.markdown(t("howto"))
-
-    st.caption(t("delta_note", lam=m_mm((infl or plan).delta_lam) if (infl or plan) else "-"))
+            st.caption(t("delta_note", lam=m_mm(plan.delta_lam)))
 
     # ---- mesh quality check
     with st.expander(t("quality_title")):
@@ -462,118 +468,3 @@ with tab_mesh:
             if fs.mach > 0.3:
                 st.warning(t("fl_mach_warn", m=fs.mach))
         st.caption(t("fluent_note"))
-
-# ================================================================ GCI tab
-LEVELS = ("fine", "medium", "coarse")
-
-with tab_gci:
-    st.markdown(t("gci_intro"))
-    st.subheader(t("results_title"))
-    st.caption(t("results_help"))
-    inputs = {"N": [], "Cl": [], "Cd": []}
-    for name in LEVELS:
-        cols = st.columns([1, 2, 2, 2])
-        cols[0].markdown(f"**{t(name)}**")
-        inputs["N"].append(cols[1].number_input(t("col_cells"), min_value=1, step=1, value=None,
-                                                placeholder=t("ph_cells"), key=f"gci_n_{name}"))
-        inputs["Cl"].append(cols[2].number_input("Cl", value=None, format="%.6f", step=1e-4,
-                                                 placeholder=t("ph_value"), key=f"gci_cl_{name}"))
-        inputs["Cd"].append(cols[3].number_input("Cd", value=None, format="%.6f", step=1e-5,
-                                                 placeholder=t("ph_value_cd"), key=f"gci_cd_{name}"))
-
-    n_vals = inputs["N"]
-    st.subheader(t("gci_title"))
-    if any(v is None for v in n_vals) or all(any(v is None for v in inputs[q]) for q in ("Cl", "Cd")):
-        st.info(t("gci_wait"))
-    results = {}
-    for qty in ("Cl", "Cd"):
-        vals = inputs[qty]
-        if any(v is None for v in vals + n_vals):
-            continue
-        try:
-            g = compute_gci(n_vals[0], n_vals[1], n_vals[2], vals[0], vals[1], vals[2])
-        except (ValueError, ZeroDivisionError, OverflowError) as e:
-            st.error(t("gci_err", name=qty, msg=te(e)))
-            results[qty] = (vals, None)
-            continue
-        results[qty] = (vals, g)
-        st.markdown(f"**{qty}**")
-        cols = st.columns(4)
-        cols[0].metric(t("gci_p"), f"{g.p:.3f}")
-        cols[1].metric(t("gci_ext"), f"{g.phi_ext:.5g}")
-        cols[2].metric(t("gci_fine"), f"{100 * g.gci_fine:.3f} %")
-        cols[3].metric(t("gci_asym"), f"{g.asymptotic:.3f}")
-        if not g.diverging:
-            st.markdown(t("gci_report", name=qty, phi=vals[0], unc=abs(vals[0]) * g.gci_fine,
-                          gci=100 * g.gci_fine))
-        if g.oscillatory:
-            st.warning(t("gci_osc"))
-        elif g.diverging:
-            st.warning(t("gci_div"))
-        elif not 0.8 <= g.asymptotic <= 1.2:
-            st.warning(t("gci_asym_warn"))
-        if min(g.r21, g.r32) < 1.3:
-            st.warning(t("gci_r_warn", r=min(g.r21, g.r32)))
-
-    # ---- convergence plot
-    if results:
-        h = [1.0 / math.sqrt(n) for n in n_vals]
-        qtys = list(results)
-        fig = make_subplots(rows=1, cols=len(qtys), subplot_titles=qtys)
-        for j, qty in enumerate(qtys, start=1):
-            vals, g = results[qty]
-            fig.add_trace(go.Scatter(x=h, y=vals, mode="markers+lines", name=t("plot_grids"),
-                                     marker=dict(size=10, color=PLOT["line"]), line=dict(color=PLOT["line"]),
-                                     showlegend=j == 1, legendgroup="grids",
-                                     error_y=dict(type="data", array=[abs(vals[0]) * g.gci_fine, 0, 0],
-                                                  visible=True) if g and not g.diverging else None), row=1, col=j)
-            if g is not None and not g.diverging:
-                hh = np.linspace(0, max(h), 60)
-                c_fit = (vals[0] - g.phi_ext) / h[0] ** g.p
-                fig.add_trace(go.Scatter(x=hh, y=g.phi_ext + c_fit * hh ** g.p, mode="lines",
-                                         name=t("plot_fit"), line=dict(color=PLOT["fit"], dash="dash"),
-                                         showlegend=j == 1, legendgroup="fit"), row=1, col=j)
-                fig.add_trace(go.Scatter(x=[0], y=[g.phi_ext], mode="markers", name=t("plot_ext"),
-                                         marker=dict(symbol="star", size=14, color=PLOT["ext"]),
-                                         showlegend=j == 1, legendgroup="ext"), row=1, col=j)
-            fig.update_xaxes(title_text=t("plot_h"), range=[-0.05 * max(h), 1.08 * max(h)], row=1, col=j)
-        fig.update_layout(height=420, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                          font=dict(family=ui.FONT), legend=dict(orientation="h", y=-0.25))
-        fig.update_xaxes(gridcolor=PLOT["grid"])
-        fig.update_yaxes(gridcolor=PLOT["grid"])
-        with st.container(key="plot_gci"):
-            st.plotly_chart(fig, use_container_width=True,
-                            config={"toImageButtonOptions": {"format": "png", "filename": f"{file_prefix}_gci",
-                                                             "scale": 3}})
-        st.caption(t("plot_note"))
-
-    # ---- optional suggested grid family
-    with st.expander(t("family_title")):
-        ratio = st.select_slider(t("refine_ratio"), options=[1.3, math.sqrt(2), 1.5, 2.0], value=math.sqrt(2),
-                                 format_func=lambda r: "√2 ≈ 1.414" if abs(r - math.sqrt(2)) < 1e-9 else f"{r:g}")
-        factors = {"fine": ratio, "medium": 1.0, "coarse": 1.0 / ratio}
-        try:
-            if mesh_mode == INFLATION:
-                fam = {n: plan_inflation(re, chord, y_plus=y_plus, growth=growth, coverage=coverage, refine=k)
-                       for n, k in factors.items()}
-                fam_rows = [{t("level"): t(n), "First Layer Height": m_mm(fam[n].first_layer),
-                             "Growth Rate": round(fam[n].growth, 4), "Maximum Layers": fam[n].layers,
-                             t("fam_sizes"): f"÷ {factors[n]:.3g}" if n != "medium" else "× 1"}
-                            for n in LEVELS]
-                wide_table(fam_rows, "family_infl")
-                st.caption(t("family_note_infl"))
-            else:
-                fam = {n: plan_mesh(domain, split_af, re, refine=k, **sizing) for n, k in factors.items()}
-                fam_rows = [{t("level"): t(n), t("m_cells"): f"{fam[n].cells:,}",
-                             t("m_dy1"): m_mm(fam[n].dy1), t("fam_n_normal"): fam[n].n_normal, t("fam_n_front"): fam[n].n_front,
-                             t("fam_n_rear"): fam[n].n_rear, t("fam_n_wake"): fam[n].n_wake}
-                            for n in LEVELS]
-                wide_table(fam_rows, "family_mapped")
-                st.caption(t("family_note"))
-                dl = st.columns(3)
-                for col, n in zip(dl, LEVELS):
-                    col.download_button(t("download_level", level=t(n)), data=rows_to_csv(plan_rows(fam[n])),
-                                        file_name=f"{file_prefix}_edge_sizing_{n}.csv", mime="text/csv",
-                                        use_container_width=True, key=f"dl_{n}")
-        except (ValueError, OverflowError) as e:
-            st.error(te(e))

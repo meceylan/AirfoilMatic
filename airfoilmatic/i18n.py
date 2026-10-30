@@ -24,10 +24,6 @@ STRINGS = {
         "tr": 'Mesh / y⁺',
         "en": 'Mesh / y⁺',
     },
-    'tab_gci': {
-        "tr": 'Mesh Bağımsızlığı',
-        "en": 'Grid Independence',
-    },
     'source': {
         "tr": 'Kanat Veri Kaynağı',
         "en": 'Airfoil Source',
@@ -284,6 +280,10 @@ STRINGS = {
         "tr": 'Dış sınırlar',
         "en": 'Outer boundaries',
     },
+    'm_counts_short': {
+        "tr": 'normal {n_normal} · ön {n_front} · arka {n_rear} · iz {n_wake} bölüm',
+        "en": 'normal {n_normal} · front {n_front} · rear {n_rear} · wake {n_wake} divisions',
+    },
     'step_flow': {
         "tr": 'Akış Koşulu',
         "en": 'Flow Condition',
@@ -316,10 +316,6 @@ STRINGS = {
         "tr": 'İz bölgesi büyüme oranı',
         "en": 'Wake growth ratio',
     },
-    'm_re': {
-        "tr": 'Reynolds',
-        "en": 'Reynolds',
-    },
     'm_dy1': {
         "tr": 'İlk hücre yüksekliği',
         "en": 'First cell height',
@@ -335,10 +331,6 @@ STRINGS = {
     'm_cells': {
         "tr": 'Tahmini toplam hücre',
         "en": 'Estimated total cells',
-    },
-    'm_counts': {
-        "tr": 'Bölüm sayıları — normal: **{n_normal}**, ön: **{n_front}**, arka: **{n_rear}**, iz: **{n_wake}**',
-        "en": 'Division counts — normal: **{n_normal}**, front: **{n_front}**, rear: **{n_rear}**, wake: **{n_wake}**',
     },
     'delta_note': {
         "tr": "Sınır tabaka kalınlığı türbülanslı düz levha bağıntısıyla (δ ≈ 0.37·c·Re⁻⁰·²) tahmin edilir; laminer karşılığı δ ≈ {lam}. İlk hücre yüksekliği Schlichting sürtünme katsayısı ile hesaplanır. Fluent y⁺'ı hücre merkezinde raporladığı için çözümde görülen değer yaklaşık yarısı olur. Sonuçları her zaman Fluent'te y⁺ konturu ile kontrol edin.",
@@ -464,94 +456,6 @@ STRINGS = {
         "tr": "Dikdörtgen domain'de ön bloklar 5 köşelidir. Face Meshing ayarında giriş köşesini (üst ve alt köşe) **Side** olarak işaretleyin; giriş yarısı ve ön sınır parçası birlikte kanat ön kenarının karşısına düşer.",
         "en": 'In the rectangular domain the front blocks have 5 corners. In Face Meshing, set the inlet corners (top and bottom) as **Side** vertices; the inlet half and the front boundary segment together form the side opposite the airfoil front.',
     },
-    'gci_intro': {
-        "tr": 'Aynı topolojide sistematik olarak inceltilmiş üç ağın sonuçlarını girin. Sonuçlar **Grid Convergence Index** (Celik vd., 2008, *J. Fluids Eng.* 130(7)) ile değerlendirilir ve grafiğe dökülür.',
-        "en": 'Enter the results of three systematically refined grids with the same topology. They are evaluated with the **Grid Convergence Index** (Celik et al., 2008, *J. Fluids Eng.* 130(7)) and plotted.',
-    },
-    'refine_ratio': {
-        "tr": 'İnceltme oranı (her yönde)',
-        "en": 'Refinement ratio (per direction)',
-    },
-    'family_title': {
-        "tr": 'Önerilen Ağ Ailesi (İsteğe Bağlı)',
-        "en": 'Suggested Grid Family (Optional)',
-    },
-    'level': {
-        "tr": 'Seviye',
-        "en": 'Level',
-    },
-    'fine': {
-        "tr": 'İnce (1)',
-        "en": 'Fine (1)',
-    },
-    'medium': {
-        "tr": 'Orta (2)',
-        "en": 'Medium (2)',
-    },
-    'coarse': {
-        "tr": 'Kaba (3)',
-        "en": 'Coarse (3)',
-    },
-    'family_note': {
-        "tr": "Her seviye için Edge Sizing tablosunu indirip Ansys'te ayrı bir mesh oluşturun. Celik vd. inceltme oranının 1.3'ten büyük olmasını önerir.",
-        "en": 'Download the Edge Sizing table for each level and build a separate mesh in Ansys. Celik et al. recommend a refinement ratio larger than 1.3.',
-    },
-    'download_level': {
-        "tr": '{level} CSV',
-        "en": '{level} CSV',
-    },
-    'results_title': {
-        "tr": '1) Fluent Sonuçları',
-        "en": '1) Fluent Results',
-    },
-    'results_help': {
-        "tr": "Hücre sayısını Fluent → Domain → Mesh → Info'dan alın. İnce (1) en çok hücreli ağdır. Cl veya Cd'den biri yeterlidir.",
-        "en": 'Take the cell count from Fluent → Domain → Mesh → Info. Fine (1) is the grid with the most cells. Either Cl or Cd is enough.',
-    },
-    'col_cells': {
-        "tr": 'Hücre sayısı',
-        "en": 'Cell count',
-    },
-    'gci_title': {
-        "tr": '2) GCI Sonuçları',
-        "en": '2) GCI Results',
-    },
-    'gci_p': {
-        "tr": 'Görünür mertebe p',
-        "en": 'Apparent order p',
-    },
-    'gci_ext': {
-        "tr": 'Ekstrapole değer',
-        "en": 'Extrapolated value',
-    },
-    'gci_fine': {
-        "tr": 'GCI ince²¹',
-        "en": 'GCI fine²¹',
-    },
-    'gci_asym': {
-        "tr": 'Asimptotik oran (≈1 olmalı)',
-        "en": 'Asymptotic ratio (≈1)',
-    },
-    'gci_report': {
-        "tr": 'Raporlanacak sonuç: **{name} = {phi:.5g} ± {unc:.2g}** (GCI = %{gci:.2f})',
-        "en": 'Reported result: **{name} = {phi:.5g} ± {unc:.2g}** (GCI = {gci:.2f}%)',
-    },
-    'gci_osc': {
-        "tr": 'Salınımlı yakınsama (ε32/ε21 < 0). GCI güvenilir değil; daha ince ağlar veya daha sıkı iterasyon yakınsaması gerekebilir.',
-        "en": 'Oscillatory convergence (ε32/ε21 < 0). The GCI is not reliable; finer grids or tighter iterative convergence may be needed.',
-    },
-    'gci_asym_warn': {
-        "tr": "Asimptotik aralık oranı 1'den uzak; ağlar henüz asimptotik yakınsama bölgesinde olmayabilir.",
-        "en": 'Asymptotic range ratio is far from 1; the grids may not be in the asymptotic range yet.',
-    },
-    'gci_r_warn': {
-        "tr": 'İnceltme oranı r = {r:.3f} < 1.3. Sonuçlar arasındaki fark iterasyon hatasından ayırt edilemeyebilir.',
-        "en": 'Refinement ratio r = {r:.3f} < 1.3. Differences may not be distinguishable from iteration error.',
-    },
-    'gci_err': {
-        "tr": '{name} için GCI hesaplanamadı: {msg}',
-        "en": 'GCI could not be computed for {name}: {msg}',
-    },
     'split_lines': {
         "tr": 'Bölme çizgileri',
         "en": 'Split lines',
@@ -676,50 +580,6 @@ STRINGS = {
         "tr": "Hücum açısı geometri döndürülmeden, giriş hızının yönüyle verilir. Inlet'te Velocity Specification = Components seçip X ve Y hızlarını girin (ya da Magnitude and Direction ile hız büyüklüğü + yön). Lift ve Drag raporlarının (Report Definitions → Force) vektörlerini de bu değerlere çevirin: (1, 0) / (0, 1) bırakılırsa Cd'ye kaldırmanın bir kısmı karışır. Reference Values'ta Velocity ve Density'nin girişle aynı olduğundan emin olun.",
         "en": 'The angle of attack is set through the inlet velocity direction, without rotating the geometry. At the inlet choose Velocity Specification = Components and enter the X and Y velocities (or Magnitude and Direction with the speed and the direction). Set the Lift and Drag report vectors (Report Definitions → Force) to these values too: leaving them at (1, 0) / (0, 1) mixes part of the lift into Cd. Make sure Reference Values Velocity and Density match the inlet.',
     },
-    'ph_cells': {
-        "tr": 'örn. 160000',
-        "en": 'e.g. 160000',
-    },
-    'ph_value': {
-        "tr": 'örn. 0.4512',
-        "en": 'e.g. 0.4512',
-    },
-    'gci_wait': {
-        "tr": 'Sonuçları görmek için üç ağın hücre sayılarını ve Cl ve/veya Cd değerlerini girin.',
-        "en": 'Enter the cell counts and Cl and/or Cd of all three grids to see the results.',
-    },
-    'gci_div': {
-        "tr": "Iraksayan davranış: ağ inceldikçe değişim büyüyor. GCI güvenilir değil; mesh'i veya iterasyon yakınsamasını kontrol edin.",
-        "en": 'Divergent behavior: the change grows as the grid is refined. The GCI is not reliable; check the mesh or iterative convergence.',
-    },
-    'plot_grids': {
-        "tr": "Ağlar (hata çubuğu: ince ağın GCI'ı)",
-        "en": 'Grids (error bar: GCI of the fine grid)',
-    },
-    'plot_fit': {
-        "tr": 'Richardson eğrisi',
-        "en": 'Richardson fit',
-    },
-    'plot_ext': {
-        "tr": 'Ekstrapole değer (h → 0)',
-        "en": 'Extrapolated value (h → 0)',
-    },
-    'plot_h': {
-        "tr": 'h = 1/√N',
-        "en": 'h = 1/√N',
-    },
-    'plot_note': {
-        "tr": 'Grafiği PNG olarak indirmek için sağ üstteki kamera simgesini kullanın.',
-        "en": 'Use the camera icon at the top right to download the plot as PNG.',
-    },
-    'fam_sizes': {
-        "tr": 'Diğer eleman boyutları',
-        "en": 'Other element sizes',
-    },
-    'family_note_infl': {
-        "tr": 'Orta ağ, Mesh / y⁺ sekmesindeki ayarlardır. İnce ve kaba ağda tabloda olmayan tüm eleman boyutlarını (Edge/Face Sizing) aynı oranla bölün ya da çarpın ki inceltme her yerde tutarlı olsun.',
-        "en": 'The medium grid is the Mesh / y⁺ tab settings. For the fine and coarse grids, divide or multiply all other element sizes (Edge/Face Sizing) by the same ratio so refinement is consistent everywhere.',
-    },
     'quality_title': {
         "tr": 'Mesh Kalite Kontrolü (Skewness / Orthogonal Quality / Aspect Ratio)',
         "en": 'Mesh Quality Check (Skewness / Orthogonal Quality / Aspect Ratio)',
@@ -836,10 +696,6 @@ STRINGS = {
         "tr": 'Aşıldı',
         "en": 'Exceeded',
     },
-    'fam_n_normal': {"tr": "Bölüm (duvar-normal)", "en": "Divisions (wall-normal)"},
-    'fam_n_front': {"tr": "Bölüm (kanat ön)", "en": "Divisions (airfoil front)"},
-    'fam_n_rear': {"tr": "Bölüm (kanat arka)", "en": "Divisions (airfoil rear)"},
-    'fam_n_wake': {"tr": "Bölüm (iz)", "en": "Divisions (wake)"},
     'geom_info_partial': {
         "tr": 'Seçilen bölme çizgileriyle yüzey {n} parçaya ayrılır. Mapped mesh için altı çizginin hepsi gerekir.',
         "en": 'The selected split lines divide the surface into {n} faces. Mapped meshing needs all six lines.',
@@ -861,7 +717,6 @@ STRINGS = {
         "en": "The surface stays as a single face (no split lines, or only one selected). Mapped meshing needs all six lines.",
     },
     'infl_edges_title_af': {"tr": "Kanat Edge Sizing", "en": "Airfoil Edge Sizing"},
-    'ph_value_cd': {"tr": "örn. 0.0123", "en": "e.g. 0.0123"},
     'fl_speed': {
         "tr": 'Serbest akış hızı U∞ [m/s]',
         "en": 'Free-stream speed U∞ [m/s]',
@@ -904,10 +759,6 @@ ERRORS_TR = {
     'Split location must be between 0.05c and 0.9c': 'Bölme konumu 0.05c ile 0.9c arasında olmalı',
     'Skewness must be between 0 and 1': 'Skewness 0 ile 1 arasında olmalı',
     'Orthogonal quality must be between 0 and 1': 'Orthogonal quality 0 ile 1 arasında olmalı',
-    'Cell counts must satisfy N1 (fine) > N2 > N3 (coarse)': 'Hücre sayıları N1 (ince) > N2 > N3 (kaba) sırasında olmalı',
-    'Fine-grid value is zero; relative errors are undefined': 'İnce ağ değeri sıfır; bağıl hata tanımsız',
-    'Solutions on two grids are identical; p cannot be computed': 'İki ağın sonucu aynı; mertebe p hesaplanamaz',
-    'Apparent order p is ~0 (the two error differences are almost equal); GCI is not meaningful for these values': 'Görünür mertebe p ≈ 0 (iki fark neredeyse eşit); bu değerlerle GCI anlamlı değil',
     'Wake length must be at least 0.5c': 'İz uzunluğu en az 0.5c olmalı',
     'Inlet radius must be larger than the chord': 'Giriş yarıçapı veter uzunluğundan büyük olmalı',
     'Top/bottom boundaries must be at least 0.5c away from the airfoil': 'Üst/alt sınırlar kanattan en az 0.5c uzakta olmalı',
