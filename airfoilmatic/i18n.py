@@ -13,8 +13,8 @@ STRINGS = {
         "en": '2D CFD Domain Generator',
     },
     'beta_warning': {
-        "tr": '{stage} Sürümü (v{version})\nBu araç 2B CFD ön işlemini hızlandırmak için tasarlanmıştır. Çıktıların analiz uygunluğunu (geometri, mesh kalitesi) Ansys ortamında mutlaka doğrulayın.',
-        "en": '{stage} version (v{version})\nThis tool speeds up 2D CFD pre-processing. Always verify the outputs (geometry, mesh quality) in Ansys.',
+        "tr": "{stage} v{version}\nÇıktıları Ansys'te kontrol edin.",
+        "en": '{stage} v{version}\nCheck the outputs in Ansys.',
     },
     'tab_geometry': {
         "tr": 'Geometri',
@@ -689,8 +689,8 @@ STRINGS = {
         "en": 'Split Lines',
     },
     'split_mode_help': {
-        "tr": "Dışa aktarılacak bölme çizgilerini seçin. Mapped mesh için altısı da gerekir (6 blok). Ansys 2024 R2'de denenenler: altı çizginin hepsi (mapped ve quad-dominant + inflation) ile ön eksen + iz ekseni (quad-dominant + inflation). Diğer seçimler denenmedi. Tek bir çizgi seçmeyin: yüzeyi bölmez, yüzün içinde yarık olarak kalır ve inflation başarısız olur.",
-        "en": 'Choose which split lines to export. Mapped meshing needs all six (6 blocks). Tested in Ansys 2024 R2: all six lines (mapped and quad-dominant + inflation) and front axis + wake axis (quad-dominant + inflation). Other selections are untested. Do not select a single line: it does not divide the surface, stays as a slit inside one face and inflation fails.',
+        "tr": 'Mapped mesh için altısı da gerekir. Inflation için altısı ya da ön eksen + iz ekseni. Tek çizgi seçmeyin.',
+        "en": 'Mapped meshing needs all six. For inflation: all six, or front axis + wake axis. Do not select a single line.',
     },
     'q_pass': {
         "tr": 'Sağlanıyor',
