@@ -1,5 +1,15 @@
 # Changelog
 
+## V0.5.3 Beta
+
+- Fixed: the "Split Lines" box closed after every checkbox click.
+- Downloaded files are named `AirfoilMatic_NACA4412_CGrid.txt` (airfoil and domain type in the name).
+
+## V0.5.3 Beta (Türkçe)
+
+- Düzeltildi: "Bölme Çizgileri" kutusu her onay kutusu tıklamasında kapanıyordu.
+- İndirilen dosyaların adı `AirfoilMatic_NACA4412_CGrid.txt` şeklinde (kanat ve domain tipi adında).
+
 ## V0.5.2 Beta
 
 - Geometry plots no longer fill a desktop screen (close-up at most 430 px high, full domain 520 px).

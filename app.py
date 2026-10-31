@@ -52,16 +52,17 @@ source = st.sidebar.radio(t("source"), ["naca", "file"],
 
 if source == "naca":
     naca_code = st.sidebar.text_input(t("naca_code"), value="4412", max_chars=5).strip()
-    file_prefix = f"domain_naca{naca_code}"
+    file_prefix = f"AirfoilMatic_NACA{naca_code}"
     custom_file = None
 else:
     custom_file = st.sidebar.file_uploader(t("upload"), type=["dat", "txt"])
-    file_prefix = ("domain_" + re.sub(r"[^A-Za-z0-9_.-]+", "_", custom_file.name.rsplit('.', 1)[0]).strip("_")
-                   if custom_file else "domain_custom")
+    file_prefix = ("AirfoilMatic_" + re.sub(r"[^A-Za-z0-9_.-]+", "_", custom_file.name.rsplit('.', 1)[0]).strip("_")
+                   if custom_file else "AirfoilMatic_custom")
 
 domain_kind = st.sidebar.selectbox(t("domain_type"), [C_GRID, RECT],
                                    format_func=lambda k: t("dom_cgrid") if k == C_GRID else t("dom_rect"))
 chord = st.sidebar.number_input(t("chord"), value=1.0, step=0.1, min_value=0.01)
+file_prefix += "_CGrid" if domain_kind == C_GRID else "_Rect"
 
 if domain_kind == C_GRID:
     r_inlet = st.sidebar.number_input(t("r_inlet"), value=15.0, step=1.0, min_value=1.0)
@@ -74,8 +75,11 @@ else:
     l_bottom = st.sidebar.number_input(t("l_bottom"), value=15.0, step=1.0, min_value=1.0)
 
 # Six checkboxes are rarely changed, so they sit in a collapsed expander that shows how many are on.
+# The label must not change between reruns, otherwise Streamlit treats it as a new
+# expander and closes it after every click; the count is shown inside instead.
 n_on = sum(st.session_state.get(f"line_{k}", True) for k in SPLIT_LINES)
-with st.sidebar.expander(f"{t('split_mode')} ({n_on}/{len(SPLIT_LINES)})"):
+with st.sidebar.expander(t("split_mode")):
+    st.caption(f"{n_on}/{len(SPLIT_LINES)}")
     st.caption(t("split_mode_help"))
     kept_lines = [k for k in SPLIT_LINES if st.checkbox(t(k), value=True, key=f"line_{k}")]
 all_lines = len(kept_lines) == len(SPLIT_LINES)
