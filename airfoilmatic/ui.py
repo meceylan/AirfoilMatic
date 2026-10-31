@@ -73,6 +73,11 @@ _CSS = """
     linear-gradient(var(--am-base),var(--am-base)) padding-box,
     linear-gradient(135deg,var(--am-e1),var(--am-e2)) border-box !important;}
 
+/* the three Mesh-tab input cards: same height in one row (column stretches, card fills it) */
+[data-testid="stColumn"]:has([class*="st-key-card_"]) > [data-testid="stVerticalBlock"],
+[data-testid="stLayoutWrapper"]:has(> [class*="st-key-card_"]),
+[class*="st-key-card_"]{flex:1 1 auto !important;}
+
 /* tables and metrics: emerald accent on the left */
 [data-testid="stDataFrame"]{border-left:4px solid var(--am-acc);border-radius:.8rem;overflow:hidden;
   box-shadow:0 10px 26px -20px var(--am-sh);}

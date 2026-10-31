@@ -1,5 +1,15 @@
 # Changelog
 
+## V0.5.3.1 Beta
+
+- Mesh / y⁺ tab: the three input cards have the same height.
+- Shorter beta note and split-line help in the sidebar.
+
+## V0.5.3.1 Beta (Türkçe)
+
+- Mesh / y⁺ sekmesi: üç giriş kartı aynı yükseklikte.
+- Kenar çubuğunda beta notu ve bölme çizgisi açıklaması kısaldı.
+
 ## V0.5.3 Beta
 
 - Fixed: the "Split Lines" box closed after every checkbox click.
