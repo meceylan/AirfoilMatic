@@ -3,6 +3,11 @@ import io
 import re
 
 import numpy as np
+# Import pandas fully before any Plotly figure is built. Plotly looks pandas up in
+# sys.modules without importing it; while another server thread is still importing
+# pandas (seen on Streamlit Cloud, Python 3.14), Plotly gets a half-loaded module
+# and fails with "AttributeError: ... Series". This import waits until pandas is ready.
+import pandas  # noqa: F401  (installed with Streamlit)
 import plotly.graph_objects as go
 import streamlit as st
 
