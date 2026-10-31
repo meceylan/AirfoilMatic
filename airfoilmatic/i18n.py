@@ -57,8 +57,8 @@ STRINGS = {
         "en": 'C-Grid (Standard)',
     },
     'dom_rect': {
-        "tr": 'Dikdörtgen (Rüzgar Tüneli)',
-        "en": 'Rectangle (Wind Tunnel)',
+        "tr": 'Dikdörtgen',
+        "en": 'Rectangle',
     },
     'chord': {
         "tr": 'Veter Uzunluğu (c) [m]',
@@ -283,6 +283,10 @@ STRINGS = {
     'm_counts_short': {
         "tr": 'normal {n_normal} · ön {n_front} · arka {n_rear} · iz {n_wake} bölüm',
         "en": 'normal {n_normal} · front {n_front} · rear {n_rear} · wake {n_wake} divisions',
+    },
+    'named_sel': {
+        "tr": "**Sınır adları (Named Selection):** Meshing'de giriş kenarını (C-Grid'de yay, dikdörtgende sol kenar) üst ve alt sınırla birlikte `inlet`, arka sınırı `outlet`, kanat kenarlarını `wall` olarak adlandırın. Fluent'te `inlet` velocity-inlet, `outlet` pressure-outlet, `wall` duvar olur. Dikdörtgen domain'de de üst ve alt sınır `inlet`'e dahildir: hücum açısı hız bileşenleriyle verildiği için akış bu sınırlardan girip çıkabilmelidir; symmetry veya wall burada akışı yanlış yönlendirir.",
+        "en": "**Boundary names (Named Selections):** in Meshing, name the inlet edge (the arc for the C-grid, the left edge for the rectangle) together with the top and bottom boundaries `inlet`, the rear boundary `outlet` and the airfoil edges `wall`. In Fluent `inlet` becomes a velocity inlet, `outlet` a pressure outlet and `wall` a wall. The rectangle's top and bottom also belong to `inlet`: the angle of attack is set by the velocity components, so flow must be able to cross them; symmetry or wall there would turn the flow.",
     },
     'step_flow': {
         "tr": 'Akış Koşulu',

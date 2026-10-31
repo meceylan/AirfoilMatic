@@ -1,5 +1,15 @@
 # Changelog
 
+## V0.5.2 Beta
+
+- Geometry plots no longer fill a desktop screen (close-up at most 430 px high, full domain 520 px).
+- Rectangular domain: top and bottom boundaries belong to the velocity inlet (the angle of attack is set through the velocity components); "(Wind Tunnel)" removed from its name. The "How to apply" boxes now list the Named Selections: `inlet`, `outlet`, `wall`.
+
+## V0.5.2 Beta (Türkçe)
+
+- Geometri grafikleri bilgisayar ekranını artık kaplamıyor (yakın çekim en fazla 430 px, akış alanı 520 px yüksekliğinde).
+- Dikdörtgen domain: üst ve alt sınırlar velocity inlet'e dahil (hücum açısı hız bileşenleriyle veriliyor); adındaki "(Rüzgar Tüneli)" kaldırıldı. "Nasıl Uygulanır?" kutuları artık Named Selection adlarını veriyor: `inlet`, `outlet`, `wall`.
+
 ## V0.5.1 Beta
 
 - Fixed: on Streamlit Cloud (Python 3.14) the app could stop at the first plot with "AttributeError … Series". Plotly read pandas while another server thread was still importing it; the app now imports pandas fully before drawing.

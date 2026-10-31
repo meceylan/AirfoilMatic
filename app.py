@@ -145,14 +145,14 @@ def style(fig, height, xrange=None, yrange=None, fit_domain=False):
         upd(gridcolor=PLOT["grid"], zerolinecolor=PLOT["zero"], tickfont=dict(size=12))
 
 
-def fitted_chart(fig, key, xr, yr):
+def fitted_chart(fig, key, xr, yr, max_h=780):
     """Show exactly xr x yr at 1:1. The card takes that aspect ratio and the chart stretches to fill it,
     so the chart is short on a phone and grows with the domain instead of showing empty space."""
     aspect = (xr[1] - xr[0]) / (yr[1] - yr[0])
     # Card height = drawing width / aspect + room for legend, axes and padding. 100cqw is the width of
     # the main column (a CSS container, see ui.py); ~100 px of it go to padding and the y axis.
     st.markdown(f"<style>.st-key-{key}{{height:calc((100cqw - 100px) / {aspect:.3f} + 170px) !important;flex:0 0 auto !important;"
-                f"min-height:230px;max-height:780px}}"
+                f"min-height:230px;max-height:{max_h}px}}"
                 f".st-key-{key} [data-testid='stPlotlyChart']{{flex:1 1 auto;min-height:0}}</style>",
                 unsafe_allow_html=True)
     style(fig, None, xr, yr, fit_domain=True)
@@ -215,7 +215,8 @@ with tab_geo:
     # airfoil plus a little margin; thick sections (up to ~30 %) still fit in +-0.3c
     t_half = max(np.max(np.abs(airfoil.yu)), np.max(np.abs(airfoil.yl)))
     y_half = max(0.3 * chord, 1.3 * t_half)
-    fitted_chart(fig_zoom, "plot_zoom", [-0.08 * chord, 1.08 * chord], [-y_half, y_half])
+    # capped so the plots do not fill a desktop screen; on phones the width already keeps them short
+    fitted_chart(fig_zoom, "plot_zoom", [-0.08 * chord, 1.08 * chord], [-y_half, y_half], max_h=430)
 
     st.subheader(t("full_title"))
     fig_full = go.Figure()
@@ -233,7 +234,8 @@ with tab_geo:
     xs = np.concatenate([c.x for c in out_domain.curves])
     ys = np.concatenate([c.y for c in out_domain.curves])
     pad = 0.04 * max(np.ptp(xs), np.ptp(ys))
-    fitted_chart(fig_full, "plot_full", [xs.min() - pad, xs.max() + pad], [ys.min() - pad, ys.max() + pad])
+    fitted_chart(fig_full, "plot_full", [xs.min() - pad, xs.max() + pad], [ys.min() - pad, ys.max() + pad],
+                 max_h=520)
 
     st.download_button(t("download"), data=txt_data, file_name=f"{file_prefix}.txt",
                        mime="text/plain", width="stretch", key="dl_main",
@@ -360,6 +362,7 @@ with tab_mesh:
         if infl.growth > MAX_GOOD_GROWTH:
             st.warning(t("warn_growth", g=infl.growth, lim=MAX_GOOD_GROWTH))
         with st.expander(t("howto_title")):
+            st.markdown(t("named_sel"))
             st.markdown(t("howto_infl"))
             st.markdown(t("infl_note"))
             st.markdown(t("infl_edges_note"))
@@ -388,6 +391,7 @@ with tab_mesh:
         st.download_button(t("download_csv"), data=rows_to_csv(rows),
                            file_name=f"{file_prefix}_edge_sizing.csv", mime="text/csv")
         with st.expander(t("howto_title")):
+            st.markdown(t("named_sel"))
             st.markdown(t("howto"))
             st.caption(t("delta_note", lam=m_mm(plan.delta_lam)))
 
