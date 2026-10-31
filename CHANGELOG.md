@@ -1,5 +1,13 @@
 # Changelog
 
+## V0.5.1 Beta
+
+- Fixed: on Streamlit Cloud (Python 3.14) the app could stop at the first plot with "AttributeError … Series". Plotly read pandas while another server thread was still importing it; the app now imports pandas fully before drawing.
+
+## V0.5.1 Beta (Türkçe)
+
+- Düzeltildi: Streamlit Cloud'da (Python 3.14) uygulama ilk grafikte "AttributeError … Series" hatasıyla durabiliyordu. Plotly, pandas'ı sunucunun başka bir iş parçacığı henüz yüklerken okuyordu; uygulama artık çizimden önce pandas'ı tamamen yüklüyor.
+
 ## V0.5.0 Beta
 
 Simpler app; no change to the geometry, mesh or Fluent calculations.
