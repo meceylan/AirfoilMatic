@@ -205,7 +205,7 @@ with tab_geo:
     n_faces = max(1, len(kept_lines))
     st.caption(t("geom_info", split=DEFAULT_SPLIT) if all_lines else (t("geom_info_one") if n_faces == 1 else t("geom_info_partial", n=n_faces)))
     for kind, key in line_warnings(kept_lines):
-        st.warning(t("warn_single_line", line=t(key)))
+        st.warning(t("warn_single_line", line=t(key)) if kind == "single_line" else t("warn_wake_no_front"))
     if domain.blunt_te:
         st.info(t("blunt_info", gap=split_af.te_gap))
 

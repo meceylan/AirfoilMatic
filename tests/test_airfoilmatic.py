@@ -347,6 +347,7 @@ def test_line_selection():
     assert len(groups) == 4 + 4 + 2
     assert line_warnings(["wake_axis"]) == [("single_line", "wake_axis")]
     assert line_warnings([]) == [] and line_warnings(["front_axis", "wake_axis"]) == []
+    assert line_warnings(["wake_axis", "te_up", "te_low"]) == [("wake_without_front", "wake_axis")]
 
 def test_low_growth_family_does_not_overflow():
     import math as _m

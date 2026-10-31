@@ -1,5 +1,15 @@
 # Changelog
 
+## V0.5.3.3 Beta
+
+- Inflation guidance corrected after the NACA 0012 tests in Ansys 2024 R2: add the wake axis to the Inflation Boundary and export the front axis too. With front axis + wake axis the mesh had max skewness 0.62 and min orthogonal quality 0.62; without the wake axis the sharp TE tip had degenerate cells, without the front axis inflation failed.
+- New warning when the wake axis is selected without the front axis.
+
+## V0.5.3.3 Beta (Türkçe)
+
+- NACA 0012 denemelerinden (Ansys 2024 R2) sonra inflation talimatı düzeltildi: iz eksenini Inflation Boundary'sine ekleyin ve ön ekseni de dışa aktarın. Ön eksen + iz ekseniyle mesh'te max skewness 0.62, min orthogonal quality 0.62 çıktı; iz ekseni olmadan sivri firar kenarının ucunda dejenere hücreler, ön eksen olmadan inflation hatası oluştu.
+- İz ekseni ön eksen olmadan seçildiğinde yeni uyarı.
+
 ## V0.5.3.2 Beta
 
 - Inflation mode: the trailing-edge surface element is now at least 1.5 times the last inflation layer (and at least 0.003c). With a 3 mm TE element and a 4.3 mm last layer (NACA 0012, Re 2×10⁶) Ansys 2024 R2 inflation failed; with a larger TE element it worked.
