@@ -251,6 +251,7 @@ FAR_FIELD_SIZE = 0.5  # global element size for quad-dominant meshes, in chords
 # With inflation on both the airfoil and the wake axis, Ansys failed or produced
 # degenerate cells at the TE with ~1 mm elements there; ~3 mm (0.003c) worked.
 INFL_MIN_TE = 0.003
+INFL_TE_FACTOR = 1.5   # TE surface element / last inflation layer, at least
 
 
 def m_mm(v):
@@ -327,7 +328,10 @@ with tab_mesh:
         ]), unsafe_allow_html=True)
         st.subheader(t("infl_table_title"))
         # Smallest surface element: LE/TE spacing, or a blunt-TE face element.
-        ds_te_infl = max(ds_te, INFL_MIN_TE)
+        # At the sharp TE the upper and lower inflation stacks meet; Ansys 2024 R2 failed whenever the TE
+        # surface element was smaller than the last inflation layer (NACA 0012, Re 2e6: 3 mm TE vs 4.3 mm
+        # last layer failed, ~5.8 mm worked). Keep the TE element >= 1.5x the last layer and >= 0.003c.
+        ds_te_infl = max(ds_te, INFL_MIN_TE, INFL_TE_FACTOR * infl.last_layer / chord)
         smallest = min(ds_le, ds_te_infl) * chord
         if domain.blunt_te:
             smallest = min(smallest, split_af.te_gap / 4)
