@@ -1,5 +1,13 @@
 # Changelog
 
+## V0.5.3.4 Beta
+
+- Edge Sizing tables show Number of Divisions and Bias Factor as text, so a Turkish-locale browser no longer turns 2.154 into 2,154 and values can be pasted into Ansys directly.
+
+## V0.5.3.4 Beta (Türkçe)
+
+- Edge Sizing tablolarında Number of Divisions ve Bias Factor metin olarak gösteriliyor; Türkçe tarayıcı artık 2.154'ü 2,154 yapmıyor, değerler doğrudan Ansys'e yapıştırılabilir.
+
 ## V0.5.3.3 Beta
 
 - Inflation guidance corrected after the NACA 0012 tests in Ansys 2024 R2: add the wake axis to the Inflation Boundary and export the front axis too. With front axis + wake axis the mesh had max skewness 0.62 and min orthogonal quality 0.62; without the wake axis the sharp TE tip had degenerate cells, without the front axis inflation failed.

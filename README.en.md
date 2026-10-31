@@ -1,4 +1,4 @@
-# AirfoilMatic V0.5.3.3 Beta — 2D CFD Domain Generator
+# AirfoilMatic V0.5.3.4 Beta — 2D CFD Domain Generator
 
 [Türkçe](README.md) | **English**
 
@@ -31,10 +31,23 @@ Run the tests with `pip install pytest` and `pytest`.
 2. **Surface:** Use `Concept > Surfaces from Edges` with the outer boundary and airfoil edges to create the flow surface.
 3. **Split:** Use `Tools > Projection` with the exported split lines.
 4. **Mesh:** choose one of the two workflows; the **Mesh / y⁺** tab gives the settings for both.
-   * **Inflation (quad-dominant):** export all six lines or the front axis + wake axis (the tested selections; a single line stays as a slit inside one face and fails). Add `Inflation` on all faces with the airfoil edges as boundary (the wake axis optionally too), set the global Element Size to about 0.5c, and add the Edge Sizings from the table with Behavior = Soft (Hard is not supported on inflated edges). Keep the trailing-edge element at about 0.003c or larger: in our Ansys 2024 R2 tests (c = 1 m) about 1 mm failed and about 3 mm worked. Use a sharp trailing edge; blunt TE + inflation failed in our tests. Check that Bounding Box Diagonal is tens of meters before meshing.
+   * **Inflation (quad-dominant):** export the front axis + wake axis (or all six lines); a single line, or the wake axis without the front axis, makes inflation fail. Add `Inflation` on all faces with the airfoil edges **and the wake axis** as boundary, set the global Element Size to about 0.5c and enter the Edge Sizings from the table. The app keeps the trailing-edge element at least 1.5x the last inflation layer (and at least 0.003c); otherwise Ansys cannot build the inflation. Use a sharp trailing edge; blunt TE + inflation failed in our tests.
    * **Mapped:** export all six split lines (6 blocks), add `Face Meshing` (Mapped) to all faces and the `Edge Sizing` values from the table.
    * Inflation and Mapped Face Meshing cannot be combined on the same face.
 5. **Check:** Confirm the cell count and check y⁺ in Fluent. Fluent reports y⁺ at the cell centroid, so expect about half the target value.
+
+## Validation: NACA 0012
+The domain and inflation mesh from the app were compared with Ladson's wind-tunnel data (NASA TM-4074, Table I: M = 0.15, Re = 2 × 10⁶, free transition, α = 4.25°).
+
+**Setup:** c = 1 m, C-grid (R = 15 m, wake 20 m), front axis + wake axis, target y⁺ = 1. Ansys Fluent 2024 R2, Transition SST, U = 51.04 m/s, ρ = 1.225 kg/m³, μ = 3.126 × 10⁻⁵ Pa·s, inlet Tu = 1% and viscosity ratio 100. All settings were taken from the app's Mesh / y⁺ tab.
+
+| Mesh | Elements | Max skewness | Min orth. quality | Cl | Cd |
+|---|---|---|---|---|---|
+| A (growth 1.15) | ~38,500 | 0.62 | 0.62 | 0.4469 | 0.00658 |
+| B (growth 1.10) | 53,314 | 0.73 | 0.65 | 0.4481 | 0.00647 |
+| Ladson (experiment) | | | | 0.4450 | 0.00670 |
+
+Cl is within 1% of the experiment and Cd within 2–3.5%; the scatter between different wind tunnels for the NACA 0012 is of the same order (McCroskey, NASA TM-100019). y⁺ on the airfoil is 0.14–1.14. Residuals fully converged in 1000 iterations.
 
 ## Why split at X = 0.3c?
 If the airfoil goes into DesignModeler as a single curve, or as two curves split only at the LE and TE, surface creation can produce sliver faces near the leading edge. Those faces hurt mesh quality.
