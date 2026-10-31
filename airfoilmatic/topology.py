@@ -180,4 +180,8 @@ def line_warnings(keep):
     warnings = []
     if len(keep) == 1:
         warnings.append(("single_line", keep[0]))
+    elif "wake_axis" in keep and "front_axis" not in keep:
+        # Ansys 2024 R2, NACA 0012 with inflation on airfoil + wake axis: failed without the
+        # front axis, worked with it (min orthogonal quality 0.62).
+        warnings.append(("wake_without_front", "wake_axis"))
     return warnings
