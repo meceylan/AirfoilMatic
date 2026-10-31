@@ -1,5 +1,15 @@
 # Changelog
 
+## V0.5.3.2 Beta
+
+- Inflation mode: the trailing-edge surface element is now at least 1.5 times the last inflation layer (and at least 0.003c). With a 3 mm TE element and a 4.3 mm last layer (NACA 0012, Re 2×10⁶) Ansys 2024 R2 inflation failed; with a larger TE element it worked.
+- How-to: do not add the wake axis to the Inflation Boundary; the "Hard edges are not supported" warning alone is harmless.
+
+## V0.5.3.2 Beta (Türkçe)
+
+- Inflation modu: firar kenarındaki yüzey elemanı artık en az son inflation katmanının 1.5 katı (ve en az 0.003c). 3 mm TE elemanı ve 4.3 mm son katmanla (NACA 0012, Re 2×10⁶) Ansys 2024 R2'de inflation başarısız oldu; daha büyük TE elemanıyla çalıştı.
+- Nasıl uygulanır: iz eksenini Inflation'ın Boundary'sine eklemeyin; "Hard edges are not supported" uyarısı tek başına zararsızdır.
+
 ## V0.5.3.1 Beta
 
 - Mesh / y⁺ tab: the three input cards have the same height.
