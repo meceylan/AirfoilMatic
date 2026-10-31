@@ -1,4 +1,4 @@
-# AirfoilMatic V0.5.3.3 Beta — 2B CFD Domain Generator
+# AirfoilMatic V0.5.3.4 Beta — 2B CFD Domain Generator
 
 **Türkçe** | [English](README.en.md)
 
@@ -31,10 +31,23 @@ Testleri çalıştırmak için: `pip install pytest` ve ardından `pytest`.
 2. **Yüzey:** `Concept > Surfaces from Edges` ile dış sınırları ve kanat kenarlarını seçerek akış yüzeyini oluşturun.
 3. **Bölme:** `Tools > Projection` ile dışa aktarılan bölme çizgilerini kullanın.
 4. **Mesh:** iki akıştan birini seçin; **Mesh / y⁺** sekmesi ikisinin de ayarlarını verir.
-   * **Inflation (quad-dominant):** altı çizginin hepsini ya da ön eksen + iz eksenini dışa aktarın (denenmiş seçimler; tek bir çizgi yüzün içinde yarık olarak kalır ve başarısız olur). Tüm yüzeylere `Inflation` ekleyin, Boundary olarak kanat kenarlarını seçin (iz eksenini isteğe bağlı olarak da), genel Element Size'ı yaklaşık 0.5c yapın ve tablodaki Edge Sizing'leri Behavior = Soft ile ekleyin (inflation olan kenarlarda Hard desteklenmez). Firar kenarındaki elemanı yaklaşık 0.003c veya daha büyük tutun: Ansys 2024 R2 denemelerimizde (c = 1 m) yaklaşık 1 mm başarısız oldu, yaklaşık 3 mm çalıştı. Sivri firar kenarı kullanın; küt TE + inflation denemelerimizde başarısız oldu. Mesh atmadan önce Bounding Box Diagonal'ın onlarca metre mertebesinde olduğunu kontrol edin.
+   * **Inflation (quad-dominant):** ön eksen + iz eksenini (ya da altı çizginin hepsini) dışa aktarın; tek çizgi ya da ön eksen olmadan iz ekseni inflation hatası verir. Tüm yüzeylere `Inflation` ekleyin, Boundary olarak kanat kenarlarını **ve iz eksenini** seçin. Genel Element Size'ı yaklaşık 0.5c yapın ve tablodaki Edge Sizing'leri girin. Uygulama firar kenarı elemanını son inflation katmanının en az 1.5 katı (ve en az 0.003c) tutar; aksi halde Ansys inflation'ı oluşturamaz. Sivri firar kenarı kullanın; küt TE + inflation denemelerimizde başarısız oldu.
    * **Mapped:** altı bölme çizgisini de dışa aktarın (6 blok), tüm yüzeylere `Face Meshing` (Mapped) ekleyip tablodaki `Edge Sizing` değerlerini girin.
    * Inflation ile Mapped Face Meshing aynı yüzeyde birlikte kullanılamaz.
 5. **Kontrol:** Hücre sayısını ve Fluent'te y⁺ değerini kontrol edin. Fluent y⁺'ı hücre merkezinde raporladığı için görülen değer hedefin yaklaşık yarısı olur.
+
+## Doğrulama: NACA 0012
+Uygulamanın ürettiği domain ve inflation mesh'i, Ladson'ın rüzgar tüneli verisiyle karşılaştırıldı (NASA TM-4074, Tablo I: M = 0.15, Re = 2 × 10⁶, serbest geçiş, α = 4.25°).
+
+**Kurulum:** c = 1 m, C-Grid (R = 15 m, iz 20 m), ön eksen + iz ekseni, hedef y⁺ = 1. Ansys Fluent 2024 R2, Transition SST, U = 51.04 m/s, ρ = 1.225 kg/m³, μ = 3.126 × 10⁻⁵ Pa·s, girişte Tu = %1 ve viskozite oranı 100. Tüm ayarlar uygulamanın Mesh / y⁺ sekmesinden alındı.
+
+| Mesh | Eleman | Max skewness | Min orth. quality | Cl | Cd |
+|---|---|---|---|---|---|
+| A (büyüme 1.15) | ~38 500 | 0.62 | 0.62 | 0.4469 | 0.00658 |
+| B (büyüme 1.10) | 53 314 | 0.73 | 0.65 | 0.4481 | 0.00647 |
+| Ladson (deney) | | | | 0.4450 | 0.00670 |
+
+Cl deneyden %1'den az, Cd %2–3.5 sapıyor; NACA 0012 için farklı rüzgar tünelleri arasındaki dağılım da bu mertebede (McCroskey, NASA TM-100019). Kanat üzerinde y⁺ 0.14–1.14 arasında. Residual'lar 1000 iterasyonda tamamen yakınsadı.
 
 ## Neden X = 0.3c?
 Kanat DesignModeler'a tek bir eğri olarak ya da yalnızca hücum ve firar kenarından bölünmüş iki eğri olarak aktarıldığında, yüzey oluşturma sırasında hücum kenarında dar açılı hatalı yüzeyler (sliver face) oluşabilir. Bu da mesh kalitesini düşürür.

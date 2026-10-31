@@ -172,8 +172,8 @@ def plan_rows(plan):
         rows.append({
             t("col_group"): t(e.group),
             t("col_edges"): ", ".join(t(k) for k in e.edges),
-            t("col_n"): e.n,
-            t("col_bias"): float(f"{e.bias:.6g}"),
+            t("col_n"): str(e.n),
+            t("col_bias"): f"{e.bias:.6g}",  # text: browser locale would show 2,154 and break pasting into Ansys
             t("col_small"): t(e.small_end),
             t("col_dsmin"): m_mm(e.ds_min),
             t("col_dsmax"): m_mm(e.ds_max),
