@@ -1,4 +1,4 @@
-# AirfoilMatic V0.5.3.4 Beta — 2D CFD Domain Generator
+# AirfoilMatic V0.5.4 Beta — 2D CFD Domain Generator
 
 [Türkçe](README.md) | **English**
 
@@ -8,7 +8,7 @@ AirfoilMatic builds the geometry of a 2D CFD flow domain around an airfoil (NACA
 
 ## Features
 * NACA 4-digit and 5-digit (standard, non-reflexed) airfoils, full-cosine point spacing
-* Custom airfoil files (Selig and Lednicer formats), automatic blunt trailing-edge closing
+* Custom airfoil files (Selig and Lednicer formats; decimal commas, `;` separators, mm or percent units and files that start at the leading edge are read too), automatic blunt trailing-edge closing
 * C-grid and rectangular (wind tunnel) domains, split into 6 four-sided blocks
 * Choose which of the six split lines to export (all six are needed for mapped meshing; all six and front axis + wake axis were tested with quad-dominant + inflation), with a warning for a single line, which cannot work
 * Ansys DesignModeler TXT export
@@ -24,7 +24,7 @@ cd AirfoilMatic
 pip install -r requirements.txt
 streamlit run app.py
 ```
-Run the tests with `pip install pytest` and `pytest`.
+Run the tests with `pip install pytest` and `pytest`. `tests/test_app.py` runs the app itself headless (Streamlit AppTest).
 
 ## Ansys workflow
 1. **Import:** In DesignModeler, set `Units > Meter` first, then use `Concept > 3D Curve`, select the downloaded `.txt` file and click `Generate`.

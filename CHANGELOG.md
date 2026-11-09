@@ -1,5 +1,31 @@
 # Changelog
 
+## V0.5.4 Beta
+
+Fixes from a line-by-line review of the geometry, topology and sizing code. Every item has a test that failed before the fix.
+
+- **Wrong bias direction (Edge Sizing).** The "Smaller-element side" column always said "Trailing-edge side" for the airfoil rear edges. In inflation mode the TE element is at least 1.5x the last layer, so at low Reynolds numbers (below about 2×10⁵ with the defaults) or with a small split-line size it is larger than the element at the split line, and the small elements belong at the split line. The column now names the end that really has the smallest element (also when the LE size is set larger than the split size).
+- **Custom files that silently lost their first point.** A file saved as "UTF-8 with BOM" without a title line, and files written in millimetres or percent whose first point has y > 1.5, lost the upper trailing-edge point; the airfoil then got a false blunt trailing edge (0.16% c in the test). Both are read correctly now.
+- **More coordinate files are read:** decimal commas (`0,500000`, as Excel writes in a Turkish locale), `;` separators, UTF-16 files, and files that start at the leading edge (two LE → TE blocks without the count line, or one LE → TE → LE loop). These were rejected before.
+- **Crash at very low Reynolds number.** With velocity input and Re below 1000 the page stopped with a traceback; it now shows the error message only.
+- **Inflation mode: wake growth input removed.** The wake axis ends at the far-field element size, which fixes its progression, so the input changed nothing in the table.
+- A first cell longer than an edge (extreme y⁺ at very low Re in a small domain) is rejected instead of showing a Bias Factor of 1e+48.
+- Fluent helper lists the viscosity the Reynolds number is based on.
+- New `tests/test_app.py`: runs the app headless in both languages, both domains and both mesh modes.
+
+## V0.5.4 Beta (Türkçe)
+
+Geometri, topoloji ve eleman boyu kodunun satır satır incelenmesinden çıkan düzeltmeler. Her madde, düzeltmeden önce başarısız olan bir testle kanıtlandı.
+
+- **Yanlış bias yönü (Edge Sizing).** "Küçük eleman tarafı" sütunu kanat arka kenarları için her zaman "Firar kenarı tarafı" yazıyordu. Inflation modunda firar kenarı elemanı en az son katmanın 1.5 katı olduğu için, düşük Reynolds sayılarında (varsayılanlarla yaklaşık 2×10⁵ altı) ya da küçük bölme çizgisi boyunda bu eleman bölme çizgisindeki elemandan büyük çıkıyor; küçük elemanlar bölme çizgisinde olmalı. Sütun artık gerçekten en küçük elemanın olduğu ucu yazıyor (hücum kenarı boyu bölme boyundan büyük girildiğinde de).
+- **İlk noktasını sessizce kaybeden özel dosyalar.** Başlık satırı olmadan "UTF-8 with BOM" olarak kaydedilmiş dosyalar ve ilk noktasında y > 1.5 olan milimetre ya da yüzde birimli dosyalar üst firar kenarı noktasını kaybediyordu; kanat sahte bir küt firar kenarı alıyordu (testte %0.16 c). İkisi de artık doğru okunuyor.
+- **Daha fazla koordinat dosyası okunuyor:** ondalık virgül (`0,500000`; Türkçe Excel böyle yazar), `;` ayırıcı, UTF-16 dosyalar ve hücum kenarından başlayan dosyalar (sayı satırı olmadan iki LE → TE bloğu ya da tek LE → TE → LE döngüsü). Bunlar önceden reddediliyordu.
+- **Çok düşük Reynolds sayısında çökme.** Hız girişiyle Re 1000'in altına düştüğünde sayfa hata dökümüyle duruyordu; artık yalnızca hata mesajı gösteriliyor.
+- **Inflation modu: iz büyüme oranı girişi kaldırıldı.** İz ekseni genel eleman boyunda bittiği için dağılım zaten belirli; giriş tabloda hiçbir şeyi değiştirmiyordu.
+- İlk hücrenin bir kenardan uzun olduğu durum (küçük domain'de çok düşük Re ve çok yüksek y⁺) artık reddediliyor; önceden Bias Factor 1e+48 gösteriliyordu.
+- Fluent yardımcısı Reynolds sayısının dayandığı viskoziteyi de listeliyor.
+- Yeni `tests/test_app.py`: uygulamayı iki dilde, iki domain tipinde ve iki mesh modunda tarayıcı olmadan çalıştırır.
+
 ## V0.5.3.4 Beta
 
 - Edge Sizing tables show Number of Divisions and Bias Factor as text, so a Turkish-locale browser no longer turns 2.154 into 2,154 and values can be pasted into Ansys directly.

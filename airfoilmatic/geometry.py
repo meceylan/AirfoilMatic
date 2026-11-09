@@ -193,10 +193,32 @@ def naca(code, chord=1.0, n_points=201, blunt_te=False):
 # Custom coordinate files (Selig or Lednicer)
 # --------------------------------------------------------------------------
 
+def _decode(content):
+    """Bytes -> text. Handles the byte-order marks Windows editors and Excel write."""
+    if not isinstance(content, bytes):
+        return content.lstrip("\ufeff")
+    if content[:2] in (b"\xff\xfe", b"\xfe\xff"):
+        return content.decode("utf-16", errors="ignore")
+    return content.decode("utf-8-sig", errors="ignore")  # drops a UTF-8 BOM
+
+
+def _tokens(line):
+    """Split a coordinate line. Separators: whitespace, ';' or ','.
+
+    A comma inside a whitespace/semicolon-separated token is a decimal comma
+    ("0,500000  0,061200", as Excel writes in a Turkish or European locale).
+    """
+    parts = [p.rstrip(",") for p in line.replace(";", " ").split()]
+    parts = [p for p in parts if p]
+    if len(parts) >= 2:
+        parts = [p.replace(",", ".") if p.count(",") == 1 and "." not in p else p for p in parts]
+    return [q for p in parts for q in p.split(",") if q]
+
+
 def _numeric_rows(text):
     rows = []
     for line in text.splitlines():
-        parts = line.replace(",", " ").split()
+        parts = _tokens(line)
         if len(parts) < 2:
             continue
         try:
@@ -205,6 +227,34 @@ def _numeric_rows(text):
             continue
     arr = np.array(rows, dtype=float).reshape(-1, 2)
     return arr[np.all(np.isfinite(arr), axis=1)]  # drop NaN / inf rows
+
+
+def _is_outlier(row, rest):
+    """True when ``row`` lies far outside the box of the other rows, i.e. it cannot be
+    a point of the outline (a count line "61. 61." or a title such as "2412 15")."""
+    lo, hi = rest.min(axis=0), rest.max(axis=0)
+    pad = 0.5 * np.maximum(hi - lo, 1e-12)
+    return bool(np.any(row < lo - pad) or np.any(row > hi + pad))
+
+
+def _two_surfaces(rows):
+    """Split the point list of a file without a count line into its two surfaces."""
+    x = rows[:, 0]
+    last = len(rows) - 1
+    steps = np.abs(np.diff(x))
+    jump = int(np.argmax(steps))
+    if steps[jump] > 0.8 * np.ptp(x):
+        # Two separate blocks (LE -> TE twice): Lednicer order without the count line.
+        return rows[: jump + 1], rows[jump + 1:]
+    le = int(np.argmin(x))
+    if 0 < le < last:
+        # Selig: one loop TE -> LE -> TE.
+        return rows[: le + 1][::-1], rows[le:]
+    te = int(np.argmax(x))
+    if 0 < te < last:
+        # One loop that starts at the leading edge: LE -> TE -> LE.
+        return rows[: te + 1], rows[te:][::-1]
+    raise AirfoilError("Could not find the leading edge inside the point loop")
 
 
 def _clean_surface(x, y):
@@ -221,30 +271,27 @@ def parse_airfoil_file(content, chord=1.0, name="Custom"):
     Coordinates are normalised so the LE is at x=0 and the chord is 1, then
     scaled to ``chord``.
     """
-    if isinstance(content, bytes):
-        content = content.decode("utf-8", errors="ignore")
-    rows = _numeric_rows(content)
+    rows = _numeric_rows(_decode(content))
     if len(rows) < 3:
         raise AirfoilError("File does not contain enough coordinate rows")
 
-    # Lednicer: first numeric row holds the two point counts. Only accept it
-    # when both are integers and match the remaining rows; otherwise treat the
-    # row as part of a Selig header / data.
+    # A first row with two numbers above 1.5 may be the Lednicer point counts or a
+    # numeric title ("2412 15"), but in a file written in millimetres or percent it
+    # is simply the first point. It is only taken as counts / title when it cannot be
+    # a point: the counts match the number of rows, or it lies far outside the others.
     c0, c1 = rows[0]
-    is_counts = (c0 > 1.5 and c1 > 1.5 and abs(c0 - round(c0)) < 1e-9
-                 and abs(c1 - round(c1)) < 1e-9 and len(rows) - 1 >= round(c0) + round(c1))
+    special = c0 > 1.5 and c1 > 1.5
+    odd = special and _is_outlier(rows[0], rows[1:])
+    n_up, n_lo = int(round(c0)), int(round(c1))
+    is_counts = (special and abs(c0 - n_up) < 1e-9 and abs(c1 - n_lo) < 1e-9
+                 and len(rows) - 1 >= n_up + n_lo and (odd or len(rows) - 1 == n_up + n_lo))
     if is_counts:
-        n_up, n_lo = int(round(c0)), int(round(c1))
         pts = rows[1:]
         a, b = pts[:n_up], pts[n_up:n_up + n_lo]
     else:
-        if c0 > 1.5 and c1 > 1.5:
-            rows = rows[1:]  # numeric title line such as "2412 15"
-        # Selig: one loop TE -> LE -> TE. Split at the minimum-x point.
-        le = int(np.argmin(rows[:, 0]))
-        if le == 0 or le == len(rows) - 1:
-            raise AirfoilError("Could not find the leading edge inside the point loop")
-        a, b = rows[: le + 1][::-1], rows[le:]
+        if odd:
+            rows = rows[1:]  # numeric title line
+        a, b = _two_surfaces(rows)
 
     xa, ya = _clean_surface(a[:, 0], a[:, 1])
     xb, yb = _clean_surface(b[:, 0], b[:, 1])

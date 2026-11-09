@@ -438,3 +438,192 @@ def test_tables_html():
     cards = ui.row_cards_html([{"A": "g1", "B": 1, "C": 2}], ["A", "C"])
     assert "g1" in cards and ">C<" in cards and ">B<" not in cards
     assert ui.table_html([]) == "" and ui.row_cards_html([]) == ""
+
+
+# ------------------------------------------------------------------ second review: sizing
+
+def _edge(plan, group):
+    return [e for e in plan.edges if e.group == group][0]
+
+
+def test_small_end_label_points_at_the_smallest_element():
+    """The table tells the user where to put the small elements (bias direction).
+    When the TE element is larger than the split-line element (inflation mode keeps the
+    TE element >= 1.5x the last layer), the small end of the rear edge is the split line."""
+    s = split_at(naca4("0012"))
+    d = build_domain(s)
+    normal = plan_mesh(d, s, 2e6, ds_te=0.003, ds_split=0.01)
+    assert _edge(normal, "g_af_rear").small_end == "end_te"
+    assert _edge(normal, "g_af_front").small_end == "end_le"
+
+    flipped = plan_mesh(d, s, 2e6, ds_te=0.012, ds_split=0.01)   # e.g. Re 1e5, growth 1.15
+    rear = _edge(flipped, "g_af_rear")
+    assert rear.ds_min == pytest.approx(0.01, rel=0.02) and rear.ds_max == pytest.approx(0.012, rel=0.02)
+    assert rear.small_end == "end_split"
+    assert _edge(flipped, "g_top_mid").small_end == "end_split"
+
+    le_big = plan_mesh(d, s, 2e6, ds_le=0.02, ds_split=0.01)
+    assert _edge(le_big, "g_af_front").small_end == "end_split"
+
+
+def test_small_end_label_low_reynolds_inflation_defaults():
+    """App defaults (growth 1.15, coverage 1.5) at Re = 1e5: the last inflation layer is
+    ~8 mm, so the TE element (12 mm) is larger than the split element (10 mm)."""
+    from airfoilmatic.mesh import plan_inflation
+    s = split_at(naca4("0012"))
+    d = build_domain(s, r_inlet=15)
+    infl = plan_inflation(1e5, 1.0, growth=1.15, coverage=1.5)
+    ds_te = max(0.001, 0.003, 1.5 * infl.last_layer)
+    assert ds_te > 0.01
+    p = plan_mesh(d, s, 1e5, max_wake_cell=0.5, ds_te=ds_te, growth=1.15)
+    assert _edge(p, "g_af_rear").small_end == "end_split"
+    assert _edge(p, "g_wake").small_end == "end_te"
+
+
+def test_small_end_keys_are_translated():
+    s = split_at(naca4("0012"))
+    d = build_domain(s)
+    p = plan_mesh(d, s, 2e6, ds_te=0.012, ds_le=0.02, ds_split=0.01)
+    missing = [e.small_end for e in p.edges if e.small_end not in STRINGS]
+    assert not missing, missing
+
+
+def test_first_cell_longer_than_an_edge_is_rejected():
+    """Rectangle with a 1 m inlet distance, c = 1.9 m, Re = 1e3, y+ = 65: the first cell
+    (1.2 m) is longer than the front axis. The plan used to show Bias Factor = 1e+48."""
+    s = split_at(naca4("4412", chord=1.9))
+    d = build_domain(s, RECT, r_inlet=1.0, l_wake=20, l_top=15, l_bottom=15)
+    with pytest.raises(ValueError):
+        plan_mesh(d, s, 1e3, y_plus=65.0)
+    with pytest.raises(ValueError):
+        ratio_for(1.0, 1.2, 9)
+
+
+def test_capped_wake_does_not_depend_on_wake_growth():
+    """With the far-field cap (inflation mode) first cell, last cell and length fix the
+    progression, so the wake growth input cannot change it; the app hides the input."""
+    s = split_at(naca4("0012"))
+    d = build_domain(s, r_inlet=15)
+    plans = [plan_mesh(d, s, 2e6, max_wake_cell=0.5, ds_te=0.0065, wake_growth=g) for g in (1.05, 1.1, 1.3)]
+    assert len({(_edge(p, "g_wake").n, round(_edge(p, "g_wake").bias, 6)) for p in plans}) == 1
+
+
+# ------------------------------------------------------------------ second review: files
+
+def _loop(af):
+    """Selig order: TE -> upper -> LE -> lower -> TE."""
+    return np.concatenate([af.xu[::-1], af.xl[1:]]), np.concatenate([af.yu[::-1], af.yl[1:]])
+
+
+def _same_airfoil(af, ref, tol=1e-4):
+    assert af.te_gap == pytest.approx(ref.te_gap, abs=tol)
+    assert len(af.xu) == len(ref.xu) and len(af.xl) == len(ref.xl)
+    for x in (0.1, 0.5, 0.9):
+        assert np.interp(x, af.xu, af.yu) == pytest.approx(np.interp(x, ref.xu, ref.yu), abs=tol)
+        assert np.interp(x, af.xl, af.yl) == pytest.approx(np.interp(x, ref.xl, ref.yl), abs=tol)
+
+
+def test_parse_utf8_bom_keeps_first_point():
+    """A header-less file saved as 'UTF-8 with BOM' lost its first point (the upper TE),
+    which opened the trailing edge by 0.16% c."""
+    ref = close_small_te_gap(naca4("2412", n_points=41))
+    x, y = _loop(ref)
+    body = "\n".join(f"{a:.6f} {b:.6f}" for a, b in zip(x, y))
+    af = parse_airfoil_file(("﻿" + body).encode("utf-8"))
+    _same_airfoil(af, ref)
+
+
+def test_parse_utf16_file():
+    ref = close_small_te_gap(naca4("2412", n_points=41))
+    x, y = _loop(ref)
+    body = "TEST\n" + "\n".join(f"{a:.6f} {b:.6f}" for a, b in zip(x, y))
+    _same_airfoil(parse_airfoil_file(body.encode("utf-16")), ref)
+
+
+@pytest.mark.parametrize("scale,fmt", [(1000.0, "{:.3f} {:.3f}"), (1000.0, "{:.0f} {:.0f}"), (100.0, "{:.4f} {:.4f}")])
+def test_parse_physical_units_keeps_first_point(scale, fmt):
+    """Coordinates in mm (or percent) with the TE above y = 1.5: the first row looked like
+    a numeric title line and was dropped."""
+    ref = close_small_te_gap(naca4("2412", n_points=41))
+    x, y = _loop(ref)
+    body = "\n".join(fmt.format(a * scale, b * scale + 3.0) for a, b in zip(x, y))
+    af = parse_airfoil_file(body)
+    assert len(af.xu) == len(ref.xu)
+    assert af.te_gap == pytest.approx(0.0, abs=2e-3 if "0f" in fmt else 1e-5)
+    assert af.xu[-1] == pytest.approx(1.0)
+
+
+def test_parse_lednicer_in_mm_still_detected():
+    ref = close_small_te_gap(naca4("2412", n_points=41))
+    lines = ["TEST", f"{len(ref.xu)} {len(ref.xl)}"]
+    lines += [f"{a * 1000:.3f} {b * 1000:.3f}" for a, b in zip(ref.xu, ref.yu)]
+    lines += [f"{a * 1000:.3f} {b * 1000:.3f}" for a, b in zip(ref.xl, ref.yl)]
+    _same_airfoil(parse_airfoil_file("\n".join(lines)), ref)
+
+
+@pytest.mark.parametrize("sep", ["\t", ";", "  "])
+def test_parse_decimal_comma(sep):
+    """Excel in a Turkish/European locale writes 0,500000 instead of 0.500000."""
+    ref = close_small_te_gap(naca4("2412", n_points=41))
+    x, y = _loop(ref)
+    body = "\n".join(f"{a:.6f}{sep}{b:.6f}".replace(".", ",") for a, b in zip(x, y))
+    _same_airfoil(parse_airfoil_file(body), ref)
+
+
+@pytest.mark.parametrize("sep", [";", ",", ", ", " ; "])
+def test_parse_other_separators(sep):
+    ref = close_small_te_gap(naca4("2412", n_points=41))
+    x, y = _loop(ref)
+    body = "\n".join(f"{a:.6f}{sep}{b:.6f}" for a, b in zip(x, y))
+    _same_airfoil(parse_airfoil_file(body), ref)
+
+
+@pytest.mark.parametrize("order", ["blocks", "loop"])
+def test_parse_files_that_start_at_the_leading_edge(order):
+    """LE -> TE upper then LE -> TE lower (Lednicer without the count line), or one loop
+    LE -> upper -> TE -> lower -> LE."""
+    ref = close_small_te_gap(naca4("2412", n_points=41))
+    if order == "blocks":
+        x, y = np.concatenate([ref.xu, ref.xl]), np.concatenate([ref.yu, ref.yl])
+    else:
+        x, y = np.concatenate([ref.xu, ref.xl[::-1][1:]]), np.concatenate([ref.yu, ref.yl[::-1][1:]])
+    body = "\n".join(f"{a:.6f} {b:.6f}" for a, b in zip(x, y))
+    _same_airfoil(parse_airfoil_file(body), ref)
+
+
+# ------------------------------------------------------------------ second review: topology
+
+def _proper_crossings(domain):
+    """Number of places where two different curves cross each other (touching at a
+    shared end point, or an end point lying on a straight boundary, does not count)."""
+    segs, owner = [], []
+    for i, c in enumerate(domain.curves):
+        p = np.column_stack([c.x, c.y])
+        segs.append(np.hstack([p[:-1], p[1:]]))
+        owner += [i] * (len(p) - 1)
+    s, o = np.vstack(segs), np.array(owner)
+    a, b, c, e = s[:, None, :2], s[:, None, 2:], s[None, :, :2], s[None, :, 2:]
+
+    def cross(u, v):
+        return u[..., 0] * v[..., 1] - u[..., 1] * v[..., 0]
+
+    eps = 1e-12
+    hit = ((cross(b - a, c - a) * cross(b - a, e - a) < -eps)
+           & (cross(e - c, a - c) * cross(e - c, b - c) < -eps) & (o[:, None] != o[None, :]))
+    return int(hit.sum()) // 2
+
+
+@pytest.mark.parametrize("kind", [C_GRID, RECT])
+@pytest.mark.parametrize("code", ["0012", "4412", "9112", "2140", "23012", "0040"])
+def test_no_curve_crosses_another(kind, code):
+    """Strongly cambered sections bulge to x < 0 above the leading edge; the front axis,
+    the split lines and the boundaries must still meet the airfoil only at their ends."""
+    d = build_domain(split_at(close_small_te_gap(naca(code))), kind, r_inlet=15, l_wake=20, l_top=15, l_bottom=12)
+    assert _proper_crossings(d) == 0
+
+
+def test_crossing_detector_finds_a_crossing():
+    d = build_domain(split_at(naca4("0012")), C_GRID, r_inlet=15)
+    wake = d.get("wake_axis")
+    wake.y = wake.y + np.linspace(0.0, 30.0, len(wake.y))   # push the wake axis through the top boundary
+    assert _proper_crossings(d) > 0
