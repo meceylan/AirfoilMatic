@@ -1,4 +1,4 @@
-# AirfoilMatic V0.5.3.4 Beta — 2B CFD Domain Generator
+# AirfoilMatic V0.5.4 Beta — 2B CFD Domain Generator
 
 **Türkçe** | [English](README.en.md)
 
@@ -8,7 +8,7 @@ AirfoilMatic, bir kanat profili (NACA 4/5 haneli ya da özel `.dat` dosyası) et
 
 ## Özellikler
 * NACA 4 ve 5 haneli (standart, refleks olmayan) profiller, tam kosinüs nokta dağılımı
-* Özel kanat dosyası (Selig ve Lednicer formatları), küt firar kenarının otomatik kapatılması
+* Özel kanat dosyası (Selig ve Lednicer formatları; ondalık virgül, `;` ayırıcı, mm ya da yüzde birimleri ve hücum kenarından başlayan dosyalar da okunur), küt firar kenarının otomatik kapatılması
 * C-Grid ve Dikdörtgen (rüzgar tüneli) domain, 6 adet dört kenarlı blok
 * Altı bölme çizgisinden hangilerinin dışa aktarılacağını seçme (mapped mesh için altısı da gerekir; quad-dominant + inflation ile altısı ve ön eksen + iz ekseni denendi), çalışmayan tek çizgi seçimi için uyarı
 * Ansys DesignModeler TXT dışa aktarma
@@ -24,7 +24,7 @@ cd AirfoilMatic
 pip install -r requirements.txt
 streamlit run app.py
 ```
-Testleri çalıştırmak için: `pip install pytest` ve ardından `pytest`.
+Testleri çalıştırmak için: `pip install pytest` ve ardından `pytest`. `tests/test_app.py` uygulamanın kendisini (Streamlit AppTest ile) tarayıcı olmadan çalıştırır.
 
 ## Ansys iş akışı
 1. **İçe aktarma:** DesignModeler'da önce `Units > Meter` seçin, sonra `Concept > 3D Curve` ile indirdiğiniz `.txt` dosyasını seçip `Generate` deyin.

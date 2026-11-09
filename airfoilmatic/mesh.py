@@ -99,6 +99,9 @@ def ratio_for(length, ds, n):
     """Growth ratio so that n cells starting at ``ds`` exactly fill ``length``."""
     if n <= 1:
         return 1.0
+    if ds >= length:
+        # n >= 2 cells cannot start with a cell as long as the whole edge.
+        raise ValueError("Edge is shorter than the requested cell size")
     if abs(n * ds - length) < 1e-12 * length:
         return 1.0
     f = lambda r: geometric_length(ds, r, n) - length
@@ -149,7 +152,7 @@ class EdgeSizing:
     edges: list           # translation keys of the physical edges
     length: float         # length of one edge [m]
     n: int                # Number of Divisions
-    ratio: float          # geometric growth ratio (>1 grows away from small end)
+    ratio: float          # geometric growth ratio, first cell -> last cell
     small_end: str        # translation key: where the smallest cell is
 
     @property
@@ -196,6 +199,17 @@ class MeshPlan:
         return max(e.growth for e in self.edges)
 
 
+def _sizing(group, edges, length, n, ratio, first_end, last_end):
+    """Edge whose first cell sits at ``first_end``.
+
+    The table tells the user at which end the small elements go (the bias direction in
+    Ansys). Normally that is the first cell, but with a ratio below 1 the cells shrink
+    along the edge and the smallest one is at ``last_end``: e.g. the airfoil rear edge
+    when the trailing-edge element is larger than the element at the split line.
+    """
+    return EdgeSizing(group, edges, length, n, ratio, last_end if ratio < 1.0 - 1e-9 else first_end)
+
+
 def plan_mesh(domain, af, re, refine=1.0, max_wake_cell=None, **kwargs):
     """Build the Edge Sizing plan for a domain.
 
@@ -230,10 +244,10 @@ def plan_mesh(domain, af, re, refine=1.0, max_wake_cell=None, **kwargs):
 
     n_front, r_front = two_end_spacing(L_front, ds_le, ds_split)
     n_rear, r_rear = two_end_spacing(L_rear, ds_te, ds_split)  # small end at TE
-    edges.append(EdgeSizing("g_af_front", ["af_upper_front", "af_lower_front"],
-                            L_front, n_front, r_front, "end_le"))
-    edges.append(EdgeSizing("g_af_rear", ["af_upper_rear", "af_lower_rear"],
-                            L_rear, n_rear, r_rear, "end_te"))
+    edges.append(_sizing("g_af_front", ["af_upper_front", "af_lower_front"],
+                         L_front, n_front, r_front, "end_le", "end_split"))
+    edges.append(_sizing("g_af_rear", ["af_upper_rear", "af_lower_rear"],
+                         L_rear, n_rear, r_rear, "end_te", "end_split"))
 
     # ---- outer edges opposite the airfoil -----------------------------------
     x_le, y_le = af.le
@@ -260,8 +274,8 @@ def plan_mesh(domain, af, re, refine=1.0, max_wake_cell=None, **kwargs):
 
     # Same divisions and bias as the airfoil rear so mesh lines stay vertical.
     L_mid = d.x_te - d.x_split
-    edges.append(EdgeSizing("g_top_mid", ["top_mid", "bottom_mid"],
-                            L_mid, n_rear, r_rear, "end_te"))
+    edges.append(_sizing("g_top_mid", ["top_mid", "bottom_mid"],
+                         L_mid, n_rear, r_rear, "end_te", "end_split"))
 
     # ---- wake -----------------------------------------------------------------
     L_wake = d.x_exit - d.x_te
@@ -273,8 +287,8 @@ def plan_mesh(domain, af, re, refine=1.0, max_wake_cell=None, **kwargs):
         cap = max_wake_cell / k
         if ds_te * r_wake ** (n_wake - 1) > cap and cap > ds_te:
             n_wake, r_wake = two_end_spacing(L_wake, ds_te, cap)
-    edges.append(EdgeSizing("g_wake", ["wake_axis", "top_wake", "bottom_wake"],
-                            L_wake, n_wake, r_wake, "end_te"))
+    edges.append(_sizing("g_wake", ["wake_axis", "top_wake", "bottom_wake"],
+                         L_wake, n_wake, r_wake, "end_te", "end_outlet"))
 
     # ---- wall-normal ------------------------------------------------------------
     normal_edges = [
@@ -291,8 +305,8 @@ def plan_mesh(domain, af, re, refine=1.0, max_wake_cell=None, **kwargs):
 
     for key, cv, end in normal_edges:
         L = polyline_length(cv.x, cv.y)
-        edges.append(EdgeSizing("g_normal", [key], L, n_normal,
-                                ratio_for(L, dy1, n_normal), end))
+        edges.append(_sizing("g_normal", [key], L, n_normal,
+                             ratio_for(L, dy1, n_normal), end, "end_outer"))
 
     # Blunt TE: closure edge is split in two by the wake axis; each half adds
     # its divisions to the outlet side of the wake blocks.
@@ -305,7 +319,7 @@ def plan_mesh(domain, af, re, refine=1.0, max_wake_cell=None, **kwargs):
 
     n_out = n_normal + n_closure // 2
     for key, L in (("outlet_up", d.y_top - wake_y), ("outlet_low", d.y_bottom + wake_y)):
-        edges.append(EdgeSizing("g_outlet", [key], L, n_out, ratio_for(L, dy1, n_out), "end_axis"))
+        edges.append(_sizing("g_outlet", [key], L, n_out, ratio_for(L, dy1, n_out), "end_axis", "end_outer"))
 
     cells = 2 * n_normal * (n_front + n_rear) + 2 * n_out * n_wake
 

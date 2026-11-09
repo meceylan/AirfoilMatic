@@ -276,6 +276,10 @@ STRINGS = {
         "tr": 'Kanat kenarlarındaki Edge Sizing tablosunu belirler: hücum kenarında, bölme çizgisinde (0.3c) ve firar kenarında istenen eleman boyu, veterin kesri olarak (0.001 = 1 m veterde 1 mm) ve iz ekseninde elemanların büyüme oranı. Duvardan dışarı doğru büyüme (y⁺, ilk katman) bunlardan bağımsızdır. Varsayılanlar çoğu analiz için uygundur.',
         "en": 'Sets the Edge Sizing table on the airfoil edges: the element size wanted at the leading edge, at the split line (0.3c) and at the trailing edge, as a fraction of the chord (0.001 = 1 mm on a 1 m chord), and the growth ratio along the wake axis. Wall-normal growth (y⁺, first layer) does not depend on these. The defaults suit most analyses.',
     },
+    'advanced_help_infl': {
+        "tr": "Kanat kenarlarındaki Edge Sizing tablosunu belirler: hücum kenarında, bölme çizgisinde (0.3c) ve firar kenarında istenen eleman boyu, veterin kesri olarak (0.001 = 1 m veterde 1 mm). Firar kenarı elemanı son inflation katmanının 1.5 katından ve 0.003c'den küçük olamaz; daha küçük bir değer girilirse bu alt sınır kullanılır. İz ekseninde elemanlar firar kenarındaki boydan başlayıp çıkışa doğru büyür ve genel Element Size'ı (0.5c) aşmaz; son eleman bu boyda sabitlendiği için ayrıca bir büyüme oranı girilmez. Varsayılanlar çoğu analiz için uygundur.",
+        "en": 'Sets the Edge Sizing table on the airfoil edges: the element size wanted at the leading edge, at the split line (0.3c) and at the trailing edge, as a fraction of the chord (0.001 = 1 mm on a 1 m chord). The trailing-edge element cannot be smaller than 1.5 times the last inflation layer and 0.003c; a smaller input is raised to that limit. Along the wake axis the elements start at the trailing-edge size, grow towards the outlet and never exceed the global Element Size (0.5c); because the last element is fixed at that size, there is no separate growth ratio. The defaults suit most analyses.',
+    },
     'boundaries': {
         "tr": 'Dış sınırlar',
         "en": 'Outer boundaries',
@@ -452,6 +456,18 @@ STRINGS = {
         "tr": 'İz ekseni tarafı',
         "en": 'Wake-axis side',
     },
+    'end_split': {
+        "tr": 'Bölme çizgisi tarafı',
+        "en": 'Split-line side',
+    },
+    'end_outlet': {
+        "tr": 'Çıkış tarafı',
+        "en": 'Outlet side',
+    },
+    'end_outer': {
+        "tr": 'Dış sınır tarafı',
+        "en": 'Outer-boundary side',
+    },
     'howto_title': {
         "tr": "Ansys Meshing'de Nasıl Uygulanır?",
         "en": 'How to Apply in Ansys Meshing',
@@ -580,13 +596,17 @@ STRINGS = {
         "tr": 'Reference Values → Velocity',
         "en": 'Reference Values → Velocity',
     },
+    'fl_visc': {
+        "tr": 'Materials → Fluid → Viscosity',
+        "en": 'Materials → Fluid → Viscosity',
+    },
     'fl_ref_rho': {
         "tr": 'Reference Values → Density',
         "en": 'Reference Values → Density',
     },
     'fluent_note': {
-        "tr": "Hücum açısı geometri döndürülmeden, giriş hızının yönüyle verilir. Inlet'te Velocity Specification = Components seçip X ve Y hızlarını girin (ya da Magnitude and Direction ile hız büyüklüğü + yön). Lift ve Drag raporlarının (Report Definitions → Force) vektörlerini de bu değerlere çevirin: (1, 0) / (0, 1) bırakılırsa Cd'ye kaldırmanın bir kısmı karışır. Reference Values'ta Velocity ve Density'nin girişle aynı olduğundan emin olun.",
-        "en": 'The angle of attack is set through the inlet velocity direction, without rotating the geometry. At the inlet choose Velocity Specification = Components and enter the X and Y velocities (or Magnitude and Direction with the speed and the direction). Set the Lift and Drag report vectors (Report Definitions → Force) to these values too: leaving them at (1, 0) / (0, 1) mixes part of the lift into Cd. Make sure Reference Values Velocity and Density match the inlet.',
+        "tr": "Hücum açısı geometri döndürülmeden, giriş hızının yönüyle verilir. Inlet'te Velocity Specification = Components seçip X ve Y hızlarını girin (ya da Magnitude and Direction ile hız büyüklüğü + yön). Lift ve Drag raporlarının (Report Definitions → Force) vektörlerini de bu değerlere çevirin: (1, 0) / (0, 1) bırakılırsa Cd'ye kaldırmanın bir kısmı karışır. Reference Values'ta Velocity ve Density'nin girişle aynı olduğundan emin olun. Reynolds sayısı tablodaki yoğunluk ve viskoziteyle hesaplanır; akışkanın (Materials) yoğunluğu ve viskozitesi bu değerlerden farklıysa Fluent'teki Reynolds sayısı mesh'in hesaplandığı değerden farklı olur.",
+        "en": 'The angle of attack is set through the inlet velocity direction, without rotating the geometry. At the inlet choose Velocity Specification = Components and enter the X and Y velocities (or Magnitude and Direction with the speed and the direction). Set the Lift and Drag report vectors (Report Definitions → Force) to these values too: leaving them at (1, 0) / (0, 1) mixes part of the lift into Cd. Make sure Reference Values Velocity and Density match the inlet. The Reynolds number is computed with the density and viscosity in the table; if the fluid (Materials) has a different density or viscosity, the Reynolds number in Fluent differs from the one the mesh was sized for.',
     },
     'quality_title': {
         "tr": 'Mesh Kalite Kontrolü (Skewness / Orthogonal Quality / Aspect Ratio)',
@@ -677,8 +697,8 @@ STRINGS = {
         "en": 'Airfoil and Wake-Axis Edge Sizing',
     },
     'infl_edges_note': {
-        "tr": "**Firar kenarı:** inflation'da firar kenarındaki eleman en az son inflation katmanının 1.5 katı ve en az 0.003c alınır. Sivri firar kenarında alt ve üst yüzeyin katmanları birleşir; Ansys 2024 R2 denemelerimizde TE elemanı son katmandan küçükken (NACA 0012, Re 2×10⁶: 3 mm'ye karşı 4.3 mm) inflation başarısız oldu, daha büyükken çalıştı. Daha ince TE çözünürlüğü için mapped mesh kullanın. **İz eksenini Inflation'ın Boundary'sine ekleyin** ve geometride **ön ekseni de** dışa aktarın: katmanlar firar kenarından ize düz devam eder. İz ekseni olmadan sivri firar kenarının ucunda dejenere hücreler oluştu; ön eksen olmadan da inflation başarısız oldu. Type = Number of Divisions, Bias Type = tek yönlü (`--- -- -` simgesi, çift yönlü değil), Bias Factor = tablodaki değer; Kanat kenarlarının hepsi dosyada hücum kenarından firar kenarına doğru yazılır, bu yüzden üst ve alt kenar aynı yönde davranır. Doğru dağılım: **kanat ön** kenarlarında elemanlar hücum kenarında küçük, 0.3c'ye doğru büyür; **kanat arka** kenarlarında 0.3c'de büyük, firar kenarına doğru küçülür; **iz ekseninde** firar kenarında küçük, çıkışa doğru büyür. Bir grup ters çıkarsa o kenarları aynı Edge Sizing'in **Reverse Bias** alanına ekleyin. Böylece 0.3c'de ön ve arka kenarın elemanları, TE'de de kanat ve iz ekseninin ilk elemanları aynı boyda olur. Inflation'ın ilk hücreleri çok ince olduğu için duvardaki eleman boyunun ani değişmesi doğrudan düşük orthogonal quality olarak görünür.",
-        "en": '**Trailing edge:** with inflation the TE element is at least 1.5 times the last inflation layer and at least 0.003c. The upper and lower inflation stacks meet at a sharp TE; in our Ansys 2024 R2 tests inflation failed whenever the TE element was smaller than the last layer (NACA 0012, Re 2×10⁶: 3 mm vs 4.3 mm) and worked when it was larger. Use the mapped mesh for finer TE resolution. **Add the wake axis to the Inflation Boundary** and also export the **front axis**: the layers then run straight from the TE into the wake. Without the wake axis, degenerate cells formed at the sharp TE tip; without the front axis, inflation failed. Type = Number of Divisions, single-direction Bias Type (the `--- -- -` icon, not the two-sided one), Bias Factor = table value; All airfoil edges are written from leading edge to trailing edge, so the upper and lower edges behave the same way. Correct distribution: on the **airfoil front** edges elements are small at the LE and grow towards 0.3c; on the **airfoil rear** edges they are large at 0.3c and shrink towards the TE; on the **wake axis** they are small at the TE and grow towards the outlet. If a group comes out reversed, add those edges to the **Reverse Bias** field of the same Edge Sizing. This way the front and rear elements match at 0.3c, and the airfoil and wake-axis elements match at the TE. Because the first inflation cells are very thin, any jump in surface element size shows up directly as low orthogonal quality.',
+        "tr": "**Firar kenarı:** inflation'da firar kenarındaki eleman en az son inflation katmanının 1.5 katı ve en az 0.003c alınır. Sivri firar kenarında alt ve üst yüzeyin katmanları birleşir; Ansys 2024 R2 denemelerimizde TE elemanı son katmandan küçükken (NACA 0012, Re 2×10⁶: 3 mm'ye karşı 4.3 mm) inflation başarısız oldu, daha büyükken çalıştı. Daha ince TE çözünürlüğü için mapped mesh kullanın. **İz eksenini Inflation'ın Boundary'sine ekleyin** ve geometride **ön ekseni de** dışa aktarın: katmanlar firar kenarından ize düz devam eder. İz ekseni olmadan sivri firar kenarının ucunda dejenere hücreler oluştu; ön eksen olmadan da inflation başarısız oldu. Type = Number of Divisions, Bias Type = tek yönlü (`--- -- -` simgesi, çift yönlü değil), Bias Factor = tablodaki değer; Kanat kenarlarının hepsi dosyada hücum kenarından firar kenarına doğru yazılır, bu yüzden üst ve alt kenar aynı yönde davranır. Küçük elemanın hangi uçta olacağı tablonun **Küçük eleman tarafı** sütununda yazar. Genelde **kanat ön** kenarlarında elemanlar hücum kenarında küçük, 0.3c'ye doğru büyür; **kanat arka** kenarlarında 0.3c'de büyük, firar kenarına doğru küçülür; **iz ekseninde** firar kenarında küçük, çıkışa doğru büyür. Firar kenarı elemanı bölme çizgisindeki elemandan büyük çıktığında (düşük Reynolds sayısı ya da kalın son katman) kanat arka kenarında yön tersine döner ve tablo “Bölme çizgisi tarafı” yazar. Bir grup tabloya göre ters çıkarsa o kenarları aynı Edge Sizing'in **Reverse Bias** alanına ekleyin. Böylece 0.3c'de ön ve arka kenarın elemanları, TE'de de kanat ve iz ekseninin ilk elemanları aynı boyda olur. Inflation'ın ilk hücreleri çok ince olduğu için duvardaki eleman boyunun ani değişmesi doğrudan düşük orthogonal quality olarak görünür.",
+        "en": '**Trailing edge:** with inflation the TE element is at least 1.5 times the last inflation layer and at least 0.003c. The upper and lower inflation stacks meet at a sharp TE; in our Ansys 2024 R2 tests inflation failed whenever the TE element was smaller than the last layer (NACA 0012, Re 2×10⁶: 3 mm vs 4.3 mm) and worked when it was larger. Use the mapped mesh for finer TE resolution. **Add the wake axis to the Inflation Boundary** and also export the **front axis**: the layers then run straight from the TE into the wake. Without the wake axis, degenerate cells formed at the sharp TE tip; without the front axis, inflation failed. Type = Number of Divisions, single-direction Bias Type (the `--- -- -` icon, not the two-sided one), Bias Factor = table value; All airfoil edges are written from leading edge to trailing edge, so the upper and lower edges behave the same way. The **Smaller-element side** column of the table says at which end the small elements go. Usually the **airfoil front** edges have small elements at the LE that grow towards 0.3c; on the **airfoil rear** edges they are large at 0.3c and shrink towards the TE; on the **wake axis** they are small at the TE and grow towards the outlet. When the TE element comes out larger than the element at the split line (low Reynolds number or a thick last layer), the direction on the airfoil rear edges is reversed and the table says “Split-line side”. If a group comes out reversed relative to the table, add those edges to the **Reverse Bias** field of the same Edge Sizing. This way the front and rear elements match at 0.3c, and the airfoil and wake-axis elements match at the TE. Because the first inflation cells are very thin, any jump in surface element size shows up directly as low orthogonal quality.',
     },
     'glob_size': {
         "tr": 'Genel Element Size (Mesh → Sizing)',

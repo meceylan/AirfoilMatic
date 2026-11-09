@@ -16,8 +16,7 @@ from airfoilmatic.geometry import (DEFAULT_SPLIT, AirfoilError, close_small_te_g
                                    parse_airfoil_file, split_at)
 from airfoilmatic.topology import C_GRID, RECT, SPLIT_LINES, build_domain, line_warnings, select_lines
 from airfoilmatic.export import to_ansys_txt
-from airfoilmatic.mesh import (DEFAULTS, MAX_GOOD_GROWTH, first_cell_height, plan_inflation,
-                               plan_mesh, reynolds)
+from airfoilmatic.mesh import DEFAULTS, MAX_GOOD_GROWTH, plan_inflation, plan_mesh, reynolds
 from airfoilmatic.fluent import AIR_DENSITY, AIR_VISCOSITY, freestream, speed_for_reynolds
 from airfoilmatic.quality import (FLUENT_MAX_SKEWNESS, FLUENT_MIN_ORTHO, RATING_LEVEL,
                                   expected_wall_aspect_ratio, rate_orthogonal, rate_skewness)
@@ -296,14 +295,18 @@ with tab_mesh:
                                      step=0.01, format="%.3f", key="g_map")
     # Chordwise sizes: full width under the three cards so the inputs are not squeezed.
     with st.expander(t("advanced")):
-        st.caption(t("advanced_help"))
-        a1, a2, a3, a4 = st.columns(4)
-        ds_le = a1.number_input(t("ds_le"), value=DEFAULTS["ds_le"], min_value=1e-5, format="%.4f", step=0.0005)
-        ds_split = a2.number_input(t("ds_split"), value=DEFAULTS["ds_split"], min_value=1e-4, format="%.4f",
-                                   step=0.001)
-        ds_te = a3.number_input(t("ds_te"), value=DEFAULTS["ds_te"], min_value=1e-5, format="%.4f", step=0.0005)
-        wake_growth = a4.number_input(t("wake_growth"), value=DEFAULTS["wake_growth"], min_value=1.01,
-                                      max_value=1.5, step=0.01, format="%.3f")
+        st.caption(t("advanced_help" if mesh_mode == MAPPED else "advanced_help_infl"))
+        cols = st.columns(4 if mesh_mode == MAPPED else 3)
+        ds_le = cols[0].number_input(t("ds_le"), value=DEFAULTS["ds_le"], min_value=1e-5, format="%.4f", step=0.0005)
+        ds_split = cols[1].number_input(t("ds_split"), value=DEFAULTS["ds_split"], min_value=1e-4, format="%.4f",
+                                        step=0.001)
+        ds_te = cols[2].number_input(t("ds_te"), value=DEFAULTS["ds_te"], min_value=1e-5, format="%.4f", step=0.0005)
+        # Inflation mode ends the wake axis at the far-field element size. First element, last
+        # element and edge length then fix the progression, so a growth input would change nothing.
+        wake_growth = DEFAULTS["wake_growth"]
+        if mesh_mode == MAPPED:
+            wake_growth = cols[3].number_input(t("wake_growth"), value=DEFAULTS["wake_growth"], min_value=1.01,
+                                               max_value=1.5, step=0.01, format="%.3f")
 
     if re < 5e5:
         st.info(t("low_re_note"))
@@ -403,6 +406,9 @@ with tab_mesh:
             st.markdown(t("howto"))
             st.caption(t("delta_note", lam=m_mm(plan.delta_lam)))
 
+    # First cell height of the plan above; None when the plan failed (e.g. Re below the valid range).
+    dy_ref = infl.first_layer if infl is not None else (plan.dy1 if plan is not None else None)
+
     # ---- mesh quality check
     with st.expander(t("quality_title")):
         st.caption(t("quality_help"))
@@ -435,7 +441,6 @@ with tab_mesh:
             st.markdown(ui.table_html(q_rows), unsafe_allow_html=True)
             msg = ("q_verdict_ok", "q_verdict_check", "q_verdict_bad", "q_verdict_fail")[worst]
             (st.success if worst == 0 else st.warning if worst < 3 else st.error)(t(msg))
-        dy_ref = infl.first_layer if infl is not None else (plan.dy1 if plan is not None else None)
         if dy_ref:
             st.markdown(t("q_ar_expected",
                           ar_le=expected_wall_aspect_ratio(dy_ref, ds_le * chord),
@@ -443,13 +448,13 @@ with tab_mesh:
         st.markdown(t("q_explain"))
 
     # ---- y+ correction
-    with st.expander(t("yplus_fix_title")):
-        st.caption(t("yplus_fix_help"))
-        used = st.number_input(t("yplus_used_dy"), value=float(f"{first_cell_height(re, y_plus, chord):.4e}"),
-                               min_value=1e-9, format="%.4e")
-        seen = st.number_input(t("yplus_seen"), value=None, min_value=1e-3, format="%.3f")
-        if seen:
-            st.success(t("yplus_fix_result", dy=m_mm(used * y_plus / seen), target=y_plus))
+    if dy_ref:
+        with st.expander(t("yplus_fix_title")):
+            st.caption(t("yplus_fix_help"))
+            used = st.number_input(t("yplus_used_dy"), value=float(f"{dy_ref:.4e}"), min_value=1e-9, format="%.4e")
+            seen = st.number_input(t("yplus_seen"), value=None, min_value=1e-3, format="%.3f")
+            if seen:
+                st.success(t("yplus_fix_result", dy=m_mm(used * y_plus / seen), target=y_plus))
 
     # ---- Fluent setup helper
     with st.expander(t("fluent_title")):
@@ -475,6 +480,7 @@ with tab_mesh:
                 {t("col_setting"): t("fl_lift"), t("col_value"): f"X = {fs.lift[0]:.6f},  Y = {fs.lift[1]:.6f}"},
                 {t("col_setting"): t("fl_ref_vel"), t("col_value"): f"{fs.speed:.6g} m/s"},
                 {t("col_setting"): t("fl_ref_rho"), t("col_value"): f"{rho_f:g} kg/m³"},
+                {t("col_setting"): t("fl_visc"), t("col_value"): f"{mu_f:g} Pa·s"},
                 {t("col_setting"): t("fl_ref_len"), t("col_value"): f"{chord:g} m"},
                 {t("col_setting"): t("fl_ref_area"), t("col_value"): f"{chord:g} m² (c × 1 m)"},
                 {t("col_setting"): t("fl_re_mach"), t("col_value"): f"Re = {fs.reynolds:.4e},  M = {fs.mach:.3f}"},
