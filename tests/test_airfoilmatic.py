@@ -87,9 +87,12 @@ def test_parse_files_roundtrip(fmt):
     ref = naca4("4412", n_points=81)
     text = _selig_text(ref) if fmt == "selig" else _lednicer_text(ref)
     af = parse_airfoil_file(text.encode(), chord=1.0)
-    assert np.interp(0.5, af.xu, af.yu) == pytest.approx(np.interp(0.5, ref.xu, ref.yu), abs=1e-4)
-    assert np.interp(0.5, af.xl, af.yl) == pytest.approx(np.interp(0.5, ref.xl, ref.yl), abs=1e-4)
-    assert af.xu[0] == af.xl[0]
+    # A file is placed with its leading edge (smallest x) at the origin. On this cambered
+    # section that point sits 0.2% c above the camber-line origin of the NACA formula.
+    y_le = ref.yu[np.argmin(ref.xu)]
+    assert np.interp(0.5, af.xu, af.yu) == pytest.approx(np.interp(0.5, ref.xu, ref.yu) - y_le, abs=1e-4)
+    assert np.interp(0.5, af.xl, af.yl) == pytest.approx(np.interp(0.5, ref.xl, ref.yl) - y_le, abs=1e-4)
+    assert (af.xu[0], af.yu[0]) == (af.xl[0], af.yl[0]) == (0.0, 0.0)
 
 
 def test_parse_blunt_te_keeps_surfaces_separate():
