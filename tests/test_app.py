@@ -88,3 +88,73 @@ def test_fluent_table_lists_the_viscosity_used_for_reynolds():
     at = at.run()
     assert not at.exception
     assert tr("fl_visc", "tr") in table_text(at) and "3.126e-05 Pa·s" in table_text(at)
+
+
+# ------------------------------------------------------------------ uploaded files
+
+import numpy as np
+
+from airfoilmatic.geometry import naca
+
+
+def selig(code="2412", n=61, transform=lambda x, y: (x, y), fmt="{:.6f} {:.6f}"):
+    a = naca(code, n_points=n)
+    x, y = transform(np.concatenate([a.xu[::-1], a.xl[1:]]), np.concatenate([a.yu[::-1], a.yl[1:]]))
+    return "\n".join(fmt.format(p, q) for p, q in zip(x, y)).encode()
+
+
+def upload(name, data, lang="tr"):
+    at = start(lang)
+    widget(at, "radio", tr("source", lang)).set_value("file")
+    at = at.run()
+    at.file_uploader[0].upload(name, data, "application/octet-stream")
+    return at.run()
+
+
+def notes(at):
+    return [m.value for m in list(at.info) + list(at.warning)]
+
+
+def test_upload_plain_file():
+    at = upload("naca2412.dat", selig())
+    assert not at.exception and not at.error
+    assert not widget(at, "checkbox", tr("mirror_x", "tr")).value
+    assert notes(at) == []
+
+
+def test_upload_reversed_file_is_mirrored_and_says_so():
+    at = upload("backwards.dat", selig(transform=lambda x, y: (1.0 - x, y)))
+    assert not at.exception and not at.error
+    box = widget(at, "checkbox", tr("mirror_x", "tr"))
+    assert box.value
+    assert tr("note_mirrored", "tr") in notes(at)
+    box.uncheck()                       # the user insists on the file's direction
+    at = at.run()
+    assert not at.exception
+    assert tr("note_reversed", "tr") in notes(at)
+
+
+def test_upload_coarse_file_warns():
+    at = upload("coarse.dat", selig(n=7))
+    assert not at.exception and not at.error
+    assert tr("note_few_points", "tr", n=7, need=12) in notes(at)
+
+
+def test_upload_tilted_file_reports_the_angle():
+    c, s = np.cos(np.radians(5.0)), np.sin(np.radians(5.0))
+    at = upload("tilted.dat", selig(transform=lambda x, y: (x * c + y * s, -x * s + y * c)))
+    assert not at.exception and not at.error
+    assert any("+5.0°" in n for n in notes(at))
+
+
+def test_upload_excel_csv_with_decimal_commas():
+    at = upload("Ölçü kanadı.csv", selig(fmt="{:.6f};{:.6f}").replace(b".", b","))
+    assert not at.exception and not at.error
+
+
+@pytest.mark.parametrize("data", [b"", b"NACA 0012\n", bytes(range(256)) * 8,
+                                  b"t,value\n" + b"\n".join(b"%d,%d" % (i, i * i) for i in range(50))])
+def test_upload_of_something_else_shows_one_error(data):
+    at = upload("other.dat", data)
+    assert not at.exception
+    assert len(at.error) == 1

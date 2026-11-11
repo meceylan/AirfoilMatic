@@ -1,6 +1,5 @@
 import csv
 import io
-import re
 
 import numpy as np
 # Import pandas fully before any Plotly figure is built. Plotly looks pandas up in
@@ -12,10 +11,10 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from airfoilmatic import __version__ as APP_VERSION, APP_STAGE
-from airfoilmatic.geometry import (DEFAULT_SPLIT, AirfoilError, close_small_te_gap, naca,
-                                   parse_airfoil_file, split_at)
+from airfoilmatic.geometry import (DEFAULT_SPLIT, AirfoilError, chord_line_angle, close_small_te_gap,
+                                   looks_reversed, naca, parse_airfoil_file, split_at)
 from airfoilmatic.topology import C_GRID, RECT, SPLIT_LINES, build_domain, line_warnings, select_lines
-from airfoilmatic.export import to_ansys_txt
+from airfoilmatic.export import safe_file_stem, to_ansys_txt
 from airfoilmatic.mesh import DEFAULTS, MAX_GOOD_GROWTH, plan_inflation, plan_mesh, reynolds
 from airfoilmatic.fluent import AIR_DENSITY, AIR_VISCOSITY, freestream, speed_for_reynolds
 from airfoilmatic.quality import (FLUENT_MAX_SKEWNESS, FLUENT_MIN_ORTHO, RATING_LEVEL,
@@ -54,9 +53,9 @@ if source == "naca":
     file_prefix = f"AirfoilMatic_NACA{naca_code}"
     custom_file = None
 else:
-    custom_file = st.sidebar.file_uploader(t("upload"), type=["dat", "txt"])
-    file_prefix = ("AirfoilMatic_" + re.sub(r"[^A-Za-z0-9_.-]+", "_", custom_file.name.rsplit('.', 1)[0]).strip("_")
-                   if custom_file else "AirfoilMatic_custom")
+    custom_file = st.sidebar.file_uploader(t("upload"), type=["dat", "txt", "csv"])
+    mirror_slot = st.sidebar.empty()   # "mirror in x" box, filled once the file has been read
+    file_prefix = "AirfoilMatic_" + (safe_file_stem(custom_file.name) if custom_file else "custom")
 
 domain_kind = st.sidebar.selectbox(t("domain_type"), [C_GRID, RECT],
                                    format_func=lambda k: t("dom_cgrid") if k == C_GRID else t("dom_rect"))
@@ -88,6 +87,8 @@ st.sidebar.markdown(ui.note_html(t("beta_warning", stage=APP_STAGE, version=APP_
 st.sidebar.markdown(ui.footer_html(L, t("dev_label")), unsafe_allow_html=True)
 
 # ---------------------------------------------------------------- geometry
+MIN_SURFACE_POINTS = 12   # below this DesignModeler's curve through the points is too coarse
+file_notes = []           # (kind, text) remarks about an uploaded file, shown on the geometry tab
 try:
     if source == "naca":
         if len(naca_code) not in (4, 5) or not naca_code.isdigit():
@@ -98,7 +99,25 @@ try:
         if custom_file is None:
             st.info(t("upload_info"))
             st.stop()
-        airfoil = parse_airfoil_file(custom_file.getvalue(), chord, name=custom_file.name)
+        data = custom_file.getvalue()
+        airfoil = parse_airfoil_file(data, chord, name=custom_file.name)
+        # A file drawn with its nose at the right would meet the flow tail first. The box is
+        # ticked when the outline looks reversed and can be changed by hand either way.
+        reversed_file = looks_reversed(airfoil)
+        mirrored = mirror_slot.checkbox(t("mirror_x"), value=reversed_file, help=t("mirror_x_help"),
+                                        key=f"mirror_{custom_file.name}_{len(data)}")
+        if mirrored:
+            airfoil = parse_airfoil_file(data, chord, name=custom_file.name, mirror=True)
+        if reversed_file and mirrored:
+            file_notes.append(("info", t("note_mirrored")))
+        elif looks_reversed(airfoil):
+            file_notes.append(("warning", t("note_reversed")))
+        n_min = min(len(airfoil.xu), len(airfoil.xl))
+        if n_min < MIN_SURFACE_POINTS:
+            file_notes.append(("warning", t("note_few_points", n=n_min, need=MIN_SURFACE_POINTS)))
+        tilt = chord_line_angle(airfoil)
+        if abs(tilt) >= 1.0:
+            file_notes.append(("info", t("note_tilt", angle=tilt)))
     airfoil = close_small_te_gap(airfoil)
     split_af = split_at(airfoil, DEFAULT_SPLIT)
 except AirfoilError as e:
@@ -207,6 +226,8 @@ with tab_geo:
         st.warning(t("warn_single_line", line=t(key)) if kind == "single_line" else t("warn_wake_no_front"))
     if domain.blunt_te:
         st.info(t("blunt_info", gap=split_af.te_gap))
+    for kind, text in file_notes:
+        (st.warning if kind == "warning" else st.info)(text)
 
     st.subheader(t("zoom_title"))
     fig_zoom = go.Figure()

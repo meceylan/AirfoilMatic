@@ -33,8 +33,8 @@ STRINGS = {
         "en": 'NACA (4- or 5-digit)',
     },
     'source_file': {
-        "tr": 'Özel Kanat (.dat / .txt)',
-        "en": 'Custom Airfoil (.dat / .txt)',
+        "tr": 'Özel Kanat (.dat / .txt / .csv)',
+        "en": 'Custom Airfoil (.dat / .txt / .csv)',
     },
     'naca_code': {
         "tr": 'NACA Kodu',
@@ -43,6 +43,30 @@ STRINGS = {
     'upload': {
         "tr": 'Kanat Dosyası Yükle (Selig / Lednicer)',
         "en": 'Upload Airfoil File (Selig / Lednicer)',
+    },
+    'mirror_x': {
+        "tr": 'Profili x yönünde çevir',
+        "en": 'Mirror the profile in x',
+    },
+    'mirror_x_help': {
+        "tr": 'Akış soldan gelir; hücum kenarı solda olmalı. Dosyada hücum kenarı sağdaysa bu kutu işaretlenir.',
+        "en": 'The flow comes from the left, so the leading edge must be at the left. The box is ticked when the file has its leading edge at the right.',
+    },
+    'note_mirrored': {
+        "tr": 'Dosyada hücum kenarı sağda görünüyordu; profil x yönünde çevrildi. Yanlışsa kenar çubuğundaki “Profili x yönünde çevir” kutusunu kaldırın.',
+        "en": 'The file seems to have its leading edge at the right, so the profile was mirrored in x. If that is wrong, untick “Mirror the profile in x” in the sidebar.',
+    },
+    'note_reversed': {
+        "tr": 'Profilin yuvarlak ucu sağda görünüyor: akış firar kenarına çarpar. Kenar çubuğundaki “Profili x yönünde çevir” kutusunu kontrol edin.',
+        "en": 'The round end of the profile seems to be at the right: the flow would meet the trailing edge first. Check “Mirror the profile in x” in the sidebar.',
+    },
+    'note_few_points': {
+        "tr": 'Dosyada yüzey başına yalnızca {n} nokta var. DesignModeler eğriyi bu noktalardan geçirir; {need} noktanın altında hücum kenarı köşeli çıkar. Daha sık noktalı bir dosya kullanın.',
+        "en": 'The file has only {n} points per surface. DesignModeler fits its curve through these points; below {need} points the leading edge comes out angular. Use a file with more points.',
+    },
+    'note_tilt': {
+        "tr": 'Dosyadaki profil eğik duruyor: hücum kenarı–firar kenarı doğrusu x ekseniyle {angle:+.1f}° yapıyor (artı = burun yukarı). Bu açı, Fluent yardımcısına gireceğiniz hücum açısına eklenir.',
+        "en": 'The profile in the file is tilted: the leading edge–trailing edge line makes {angle:+.1f}° with the x axis (positive = nose up). This angle adds to the angle of attack you enter in the Fluent helper.',
     },
     'upload_info': {
         "tr": 'Lütfen bir kanat dosyası yükleyin.',
@@ -784,6 +808,9 @@ ERRORS_TR = {
     'Could not find the leading edge inside the point loop': 'Nokta dizisinde hücum kenarı bulunamadı',
     'Each surface needs at least 3 distinct points': 'Her yüzeyde en az 3 farklı nokta olmalı',
     'Invalid chord in file': 'Dosyadaki veter uzunluğu geçersiz',
+    'Points are not in order along the surface (mixed-up rows or more than one element)': 'Noktalar yüzey boyunca sıralı değil (satırlar karışmış ya da dosyada birden fazla eleman var)',
+    'Airfoil has no thickness': 'Profilin kalınlığı yok (üst ve alt yüzey aynı)',
+    'Upper and lower surfaces cross each other': 'Üst ve alt yüzey birbirini kesiyor',
     'Split location must be between 0.05c and 0.9c': 'Bölme konumu 0.05c ile 0.9c arasında olmalı',
     'Skewness must be between 0 and 1': 'Skewness 0 ile 1 arasında olmalı',
     'Orthogonal quality must be between 0 and 1': 'Orthogonal quality 0 ile 1 arasında olmalı',

@@ -1,5 +1,31 @@
 # Changelog
 
+## V0.5.5 Beta
+
+Custom airfoil files were tested with 75 hard files written from a known profile; the outline the app reads is compared with the true one (`tests/test_hard_files.py`). 14 of them went wrong before this version.
+
+- **Zigzag nose.** Cambered sections whose nose wraps around x = 0 (as XFOIL writes NACA sections), stored as two LE → TE blocks, came out with a jagged leading edge: the points were sorted by x. The file order is kept now.
+- **Profile off-centre.** Only x was normalised, so a file with an origin far away (a CAD section at y = 800 mm) put the airfoil chords away from the middle of the domain. The leading edge is now moved to the origin.
+- **Wrong shape without a message:** a numeric parameter line such as `12.0 40.0 2.0` was taken as Lednicer point counts; a file with x, 0, z columns was read as a flat line; Lednicer counts that do not match the rows dropped a trailing-edge point.
+- **Good files that were rejected** are read now: touching Fortran columns (`0.99893-0.00016`), `D` exponents, a point-number column, a constant first or third column, UTF-16 without a byte-order mark, a small-number parameter line, `.csv` files.
+- **Broken files that were accepted** are rejected with a clear message: surfaces that cross, more than one element in a file, a profile without thickness.
+- **Profile drawn backwards** (leading edge at the right) is recognised and mirrored; a "Mirror the profile in x" box in the sidebar shows it and lets you change it.
+- New notes on the geometry tab: fewer than 12 points per surface, and a profile that is tilted in the file (the angle adds to the angle of attack).
+- Download names keep Turkish letters readable (`Ölçü kanadı.dat` → `AirfoilMatic_Olcu_kanadi_CGrid.txt`).
+
+## V0.5.5 Beta (Türkçe)
+
+Özel kanat dosyaları, bilinen bir profilden üretilmiş 75 zor dosyayla denendi; uygulamanın okuduğu şekil gerçeğiyle karşılaştırılıyor (`tests/test_hard_files.py`). Bu sürümden önce 14'ünde sorun vardı.
+
+- **Zikzaklı burun.** Burnu x = 0'ın önüne taşan kamburluklu profiller (XFOIL'in NACA profillerini yazdığı gibi), iki LE → TE bloğu olarak kaydedildiğinde hücum kenarı tırtıklı çıkıyordu: noktalar x'e göre sıralanıyordu. Artık dosyadaki sıra korunuyor.
+- **Merkezden kaçık profil.** Yalnızca x normalize ediliyordu; orijini uzakta olan bir dosya (y = 800 mm'deki bir CAD kesiti) kanadı domain'in ortasından veterlerce uzağa koyuyordu. Hücum kenarı artık orijine taşınıyor.
+- **Mesaj vermeden yanlış şekil:** `12.0 40.0 2.0` gibi sayısal bir parametre satırı Lednicer nokta sayısı sanılıyordu; x, 0, z sütunlu dosya düz çizgi olarak okunuyordu; satırlarla uyuşmayan Lednicer sayıları firar kenarı noktasını düşürüyordu.
+- **Reddedilen sağlam dosyalar** artık okunuyor: bitişik Fortran sütunları (`0.99893-0.00016`), `D` üslü sayılar, nokta numarası sütunu, sabit ilk ya da üçüncü sütun, BOM'suz UTF-16, küçük sayılı parametre satırı, `.csv` dosyaları.
+- **Kabul edilen bozuk dosyalar** artık açık bir mesajla reddediliyor: birbirini kesen yüzeyler, dosyada birden fazla eleman, kalınlığı olmayan profil.
+- **Ters çizilmiş profil** (hücum kenarı sağda) tanınıp çevriliyor; kenar çubuğundaki "Profili x yönünde çevir" kutusu bunu gösteriyor ve değiştirmenize izin veriyor.
+- Geometri sekmesinde yeni notlar: yüzey başına 12'den az nokta ve dosyada eğik duran profil (bu açı hücum açısına eklenir).
+- İndirilen dosya adlarında Türkçe harfler okunur kalıyor (`Ölçü kanadı.dat` → `AirfoilMatic_Olcu_kanadi_CGrid.txt`).
+
 ## V0.5.4 Beta
 
 Fixes from a line-by-line review of the geometry, topology and sizing code. Every item has a test that failed before the fix.

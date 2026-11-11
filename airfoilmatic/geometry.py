@@ -5,6 +5,7 @@ surfaces ordered from leading edge (LE) to trailing edge (TE), already scaled
 to the requested chord. ``split_at`` cuts both surfaces at a given x so the
 domain topology can attach vertical split lines there.
 """
+import re
 from dataclasses import dataclass
 
 import numpy as np
@@ -193,12 +194,22 @@ def naca(code, chord=1.0, n_points=201, blunt_te=False):
 # Custom coordinate files (Selig or Lednicer)
 # --------------------------------------------------------------------------
 
+_NUMBER = re.compile(r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eEdD][-+]?\d+)?")
+_ONLY_NUMBERS = re.compile(r"^[\s\d.+\-eEdD]+$")
+
+
 def _decode(content):
     """Bytes -> text. Handles the byte-order marks Windows editors and Excel write."""
     if not isinstance(content, bytes):
-        return content.lstrip("\ufeff")
+        return content.lstrip("﻿")
     if content[:2] in (b"\xff\xfe", b"\xfe\xff"):
         return content.decode("utf-16", errors="ignore")
+    if len(content) >= 4:
+        # UTF-16 without a byte-order mark: every other byte of plain text is zero.
+        if content[1::2].count(0) > len(content) // 4:
+            return content.decode("utf-16-le", errors="ignore")
+        if content[0::2].count(0) > len(content) // 4:
+            return content.decode("utf-16-be", errors="ignore")
     return content.decode("utf-8-sig", errors="ignore")  # drops a UTF-8 BOM
 
 
@@ -215,17 +226,48 @@ def _tokens(line):
     return [q for p in parts for q in p.split(",") if q]
 
 
-def _numeric_rows(text):
-    rows = []
-    for line in text.splitlines():
-        parts = _tokens(line)
-        if len(parts) < 2:
-            continue
+def _float(token):
+    return float(token.replace("D", "E").replace("d", "e"))  # Fortran double-precision exponent
+
+
+def _line_numbers(line):
+    """The numbers a line starts with ([] for a text line)."""
+    values = []
+    for token in _tokens(line):
         try:
-            rows.append((float(parts[0]), float(parts[1])))
+            values.append(_float(token))
         except ValueError:
-            continue
-    arr = np.array(rows, dtype=float).reshape(-1, 2)
+            break  # the rest is a comment
+    if len(values) < 2 and _ONLY_NUMBERS.match(line):
+        # Fortran fixed-width output: columns touch when a value is negative ("0.99893-0.00016").
+        values = [_float(m) for m in _NUMBER.findall(line)]
+    return values
+
+
+def _xy_columns(table):
+    """Which two of three numeric columns hold the outline."""
+    if len(table) >= 3:
+        first = table[:, 0]
+        if abs(first[0] - round(first[0])) < 1e-9 and np.all(np.abs(np.diff(first) - 1.0) < 1e-9):
+            return [1, 2]  # running point number
+        span = np.ptp(table, axis=0)
+        flat = span <= 1e-9 * max(float(span.max()), 1e-300)
+        if flat.sum() == 1:
+            return [i for i in range(3) if not flat[i]]  # constant column: z = 0, or a span position
+    return [0, 1]
+
+
+def _numeric_rows(text):
+    """Coordinate rows of the file as an (n, 2) array."""
+    table = [v for v in (_line_numbers(line) for line in text.splitlines()) if len(v) >= 2]
+    if not table:
+        return np.empty((0, 2))
+    if sum(len(v) >= 3 for v in table) > len(table) / 2:
+        # Three columns (x y z, x 0 z, "number x y"): shorter rows are title / count lines.
+        full = np.array([v[:3] for v in table if len(v) >= 3], dtype=float)
+        full = full[np.all(np.isfinite(full), axis=1)]
+        return full[:, _xy_columns(full)]
+    arr = np.array([v[:2] for v in table], dtype=float)
     return arr[np.all(np.isfinite(arr), axis=1)]  # drop NaN / inf rows
 
 
@@ -257,69 +299,129 @@ def _two_surfaces(rows):
     raise AirfoilError("Could not find the leading edge inside the point loop")
 
 
-def _clean_surface(x, y):
-    """Order LE -> TE by x and drop duplicate x values."""
-    order = np.argsort(x, kind="stable")
-    x, y = x[order], y[order]
-    x, idx = np.unique(x, return_index=True)
-    return x, y[idx]
+def _check_order(points, span):
+    """A surface must run along x. Going back by more than 5% of the chord means the rows
+    are mixed up or the file holds more than one element (slat, flap, a second airfoil)."""
+    x = points[:, 0]
+    if float(np.max(np.maximum.accumulate(x) - x)) > 0.05 * span:
+        raise AirfoilError("Points are not in order along the surface (mixed-up rows or more than one element)")
 
 
-def parse_airfoil_file(content, chord=1.0, name="Custom"):
+def _le_to_te(block):
+    return block if block[0, 0] <= block[-1, 0] else block[::-1]
+
+
+def _increasing(points):
+    """Keep the points that advance in x. Repeated points, the base points of a closed
+    blunt trailing edge and digitising jitter go; a second point straight above or below
+    the first one (a file without a nose point) stays."""
+    keep = [0]
+    for i in range(1, len(points)):
+        ahead = points[i, 0] > points[keep[-1], 0]
+        open_nose = len(keep) == 1 and points[i, 0] == points[0, 0] and points[i, 1] != points[0, 1]
+        if ahead or open_nose:
+            keep.append(i)
+    return points[keep]
+
+
+def _split_at_nose(a, b, span):
+    """Two point blocks -> two surfaces that start at the common leading-edge point.
+
+    The blocks are joined into one loop (TE -> nose -> TE) in the order of the file and
+    the loop is cut at its smallest x. Sorting the points by x instead would scramble a
+    nose that wraps around x = 0, as cambered NACA sections from XFOIL do. A file without
+    a nose point gets a straight segment between its two first points.
+    """
+    loop = np.vstack([_le_to_te(a)[::-1], _le_to_te(b)])
+    moved = np.any(np.abs(np.diff(loop, axis=0)) > 1e-12 * span, axis=1)
+    loop = loop[np.concatenate([[True], moved])]  # consecutive duplicates
+    le = int(np.argmin(loop[:, 0]))
+    if le == 0 or le == len(loop) - 1:
+        raise AirfoilError("Could not find the leading edge inside the point loop")
+    surfaces = []
+    for part in (loop[: le + 1][::-1], loop[le:]):
+        _check_order(part, span)
+        surfaces.append(_increasing(part))
+    return surfaces
+
+
+def parse_airfoil_file(content, chord=1.0, name="Custom", mirror=False):
     """Parse a Selig or Lednicer coordinate file into an ``Airfoil``.
 
-    Coordinates are normalised so the LE is at x=0 and the chord is 1, then
-    scaled to ``chord``.
+    The outline is moved so the leading edge (the point with the smallest x) is at the
+    origin and scaled so its x extent equals ``chord``. Units, origin and point order of
+    the file do not matter. ``mirror`` flips the file in x first, for an outline whose
+    leading edge is at the right.
     """
     rows = _numeric_rows(_decode(content))
     if len(rows) < 3:
         raise AirfoilError("File does not contain enough coordinate rows")
 
-    # A first row with two numbers above 1.5 may be the Lednicer point counts or a
-    # numeric title ("2412 15"), but in a file written in millimetres or percent it
-    # is simply the first point. It is only taken as counts / title when it cannot be
-    # a point: the counts match the number of rows, or it lies far outside the others.
+    # Lednicer: the first numeric row holds the two point counts. It is only accepted when
+    # the counts match the rows exactly; in a file written in millimetres or percent a first
+    # row of two large numbers is simply the first point.
     c0, c1 = rows[0]
-    special = c0 > 1.5 and c1 > 1.5
-    odd = special and _is_outlier(rows[0], rows[1:])
     n_up, n_lo = int(round(c0)), int(round(c1))
-    is_counts = (special and abs(c0 - n_up) < 1e-9 and abs(c1 - n_lo) < 1e-9
-                 and len(rows) - 1 >= n_up + n_lo and (odd or len(rows) - 1 == n_up + n_lo))
-    if is_counts:
-        pts = rows[1:]
-        a, b = pts[:n_up], pts[n_up:n_up + n_lo]
+    counts = (c0 > 1.5 and c1 > 1.5 and abs(c0 - n_up) < 1e-9 and abs(c1 - n_lo) < 1e-9
+              and len(rows) - 1 == n_up + n_lo)
+    if counts:
+        rows = rows[1:]
     else:
-        if odd:
-            rows = rows[1:]  # numeric title line
-        a, b = _two_surfaces(rows)
-
-    xa, ya = _clean_surface(a[:, 0], a[:, 1])
-    xb, yb = _clean_surface(b[:, 0], b[:, 1])
-    if len(xa) < 3 or len(xb) < 3:
+        # Leading rows that cannot be points of the outline: a numeric title ("2412 15"),
+        # a parameter line, counts that do not match, a date.
+        for _ in range(5):
+            if len(rows) > 3 and _is_outlier(rows[0], rows[1:]):
+                rows = rows[1:]
+            else:
+                break
+    if mirror:
+        rows = rows * np.array([-1.0, 1.0])
+    span = float(np.ptp(rows[:, 0]))
+    if span <= 0:
+        raise AirfoilError("Invalid chord in file")
+    a, b = (rows[:n_up], rows[n_up:]) if counts else _two_surfaces(rows)
+    if len(a) < 2 or len(b) < 2:
+        raise AirfoilError("Each surface needs at least 3 distinct points")
+    sa, sb = _split_at_nose(a, b, span)
+    if len(sa) < 3 or len(sb) < 3:
         raise AirfoilError("Each surface needs at least 3 distinct points")
 
     # Upper surface = the one that is higher at mid-chord.
-    xm = 0.5 * (min(xa[-1], xb[-1]) + max(xa[0], xb[0]))
-    if np.interp(xm, xa, ya) >= np.interp(xm, xb, yb):
-        xu, yu, xl, yl = xa, ya, xb, yb
-    else:
-        xu, yu, xl, yl = xb, yb, xa, ya
+    xm = 0.5 * (sa[0, 0] + min(sa[-1, 0], sb[-1, 0]))
+    upper_first = np.interp(xm, sa[:, 0], sa[:, 1]) >= np.interp(xm, sb[:, 0], sb[:, 1])
+    up, lo = (sa, sb) if upper_first else (sb, sa)
+    xu, yu, xl, yl = up[:, 0], up[:, 1], lo[:, 0], lo[:, 1]
 
-    # Share a single LE point.
-    x0 = min(xu[0], xl[0])
-    if xu[0] <= xl[0]:
-        xl, yl = np.insert(xl, 0, xu[0]), np.insert(yl, 0, yu[0])
-        xl, yl = _clean_surface(xl, yl)
-    else:
-        xu, yu = np.insert(xu, 0, xl[0]), np.insert(yu, 0, yl[0])
-        xu, yu = _clean_surface(xu, yu)
+    # The two surfaces must enclose something and must not cross.
+    xs = np.linspace(max(xu[0], xl[0]), min(xu[-1], xl[-1]), 203)[1:-1]
+    thickness = np.interp(xs, xu, yu) - np.interp(xs, xl, yl)
+    if thickness.max() < 1e-4 * span:
+        raise AirfoilError("Airfoil has no thickness")
+    if thickness.min() < -2e-4 * span:
+        raise AirfoilError("Upper and lower surfaces cross each other")
 
-    x1 = max(xu[-1], xl[-1])
-    span = x1 - x0
-    if span <= 0:
-        raise AirfoilError("Invalid chord in file")
-    s = chord / span
-    return Airfoil((xu - x0) * s, yu * s, (xl - x0) * s, yl * s, chord, name)
+    x0, y0 = xu[0], yu[0]
+    s = chord / (max(xu[-1], xl[-1]) - x0)
+    return Airfoil((xu - x0) * s, (yu - y0) * s, (xl - x0) * s, (yl - y0) * s, chord, name)
+
+
+def looks_reversed(af):
+    """True when the round nose seems to be at the right end of the file's outline.
+
+    A leading edge is round and a trailing edge thin, so the section is much thicker 2%
+    behind the nose than 2% ahead of the tail. (A flat-back section with a thick base
+    still passes: its nose is not that much thinner than its base.)
+    """
+    def thickness(x):
+        return float(np.interp(x, af.xu, af.yu) - np.interp(x, af.xl, af.yl))
+    return thickness(0.02 * af.chord) < 0.25 * thickness(0.98 * af.chord)
+
+
+def chord_line_angle(af):
+    """Angle between the LE -> TE line and the x axis in degrees, positive nose-up."""
+    x_te = 0.5 * (af.xu[-1] + af.xl[-1]) - af.xu[0]
+    y_te = 0.5 * (af.yu[-1] + af.yl[-1]) - af.yu[0]
+    return float(np.degrees(np.arctan2(-y_te, x_te)))
 
 
 def close_small_te_gap(af, rel_tol=1e-4):

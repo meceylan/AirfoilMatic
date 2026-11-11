@@ -3,7 +3,21 @@
 Each line is ``group point x y z``; every curve gets its own group number so
 DesignModeler creates one edge per curve.
 """
+import re
+import unicodedata
+
 import numpy as np
+
+_TURKISH = str.maketrans("çğıöşüÇĞİÖŞÜ", "cgiosuCGIOSU")
+
+
+def safe_file_stem(name, fallback="custom"):
+    """File name without extension, reduced to ASCII letters, digits, '_', '-' and '.'
+    ("Ölçü kanadı (v2).dat" -> "Olcu_kanadi_v2"), so downloads get a usable name."""
+    stem = name.rsplit(".", 1)[0] if "." in name else name
+    stem = unicodedata.normalize("NFKD", stem.translate(_TURKISH)).encode("ascii", "ignore").decode()
+    stem = re.sub(r"[^A-Za-z0-9_.-]+", "_", stem).strip("_.-")
+    return stem or fallback
 
 
 def remove_consecutive_duplicates(x, y, tol=1e-9):
