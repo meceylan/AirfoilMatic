@@ -1,4 +1,4 @@
-# AirfoilMatic V0.6.3 Beta — 2B CFD Domain Generator
+# AirfoilMatic V0.7.0 Beta — 2B CFD Domain Generator
 
 **Türkçe** | [English](README.en.md)
 
@@ -10,12 +10,13 @@ AirfoilMatic, bir kanat profili (NACA 4/5 haneli, UIUC veritabanından seçilmi�
 * NACA 4 ve 5 haneli (standart, refleks olmayan) profiller, NACA denklemlerinden 201 nokta ve tam kosinüs dağılımıyla
 * **Profil arama ve rastgele profil:** UIUC Airfoil Coordinates Database'den seçilmiş 200 profil (NACA 6 ve 16 serisi, NASA SC(2)/NLF/LS, Eppler, Selig, Wortmann, Hepperle, Drela, RAE, Delft DU ve diğerleri). Ad yazınca bulunur (`63-215`, `e387`, `clark y`); 🎲 düğmesi kalınlık, kamburluk ve aileye göre filtrelenmiş rastgele bir profil getirir, geri/ileri ile önceki profillere dönülür. Uygulama profil uydurmaz: listede olmayan bir ad için "veritabanında yok" der
 * Özel kanat dosyası (`.dat`, `.txt`, `.csv`; Selig ve Lednicer formatları), küt firar kenarının otomatik kapatılması. Birim, orijin ve nokta sırası fark etmez: profil hücum kenarı orijine gelecek şekilde taşınır ve veter uzunluğuna ölçeklenir. Ondalık virgül, `;` ayırıcı, bitişik Fortran sütunları, nokta numarası ya da sabit üçüncü sütun da okunur. Ters yönde çizilmiş profil çevrilir; eğik duran, çok az noktalı ya da bozuk dosyalar için uyarı verilir
-* C-Grid ve Dikdörtgen (rüzgar tüneli) domain, 6 adet dört kenarlı blok
+* **Olduğu gibi kullan modu:** yüklenen dosyadaki kapalı çizgi sıralaması bozulmadan kullanılır; VG, flap ya da kırık profil gibi x yönünde geri dönen şekiller korunur (yalnızca Inflation iş akışı: ön eksen + iz ekseni)
+* C-Grid ve Dikdörtgen (rüzgar tüneli) domain, 6 adet dört kenarlı blok; domain boyutları veter cinsinden girilir
 * Altı bölme çizgisinden hangilerinin dışa aktarılacağını seçme (mapped mesh için altısı da gerekir; quad-dominant + inflation ile altısı ve ön eksen + iz ekseni denendi), çalışmayan tek çizgi seçimi için uyarı
 * Ansys DesignModeler TXT dışa aktarma
 * **Mesh / y⁺ asistanı:** hedef y⁺ için ilk hücre yüksekliği ve sınır tabaka tahmini; iki çıktı seçeneği: Ansys **Inflation** ayarları (ilk katman, büyüme oranı, maksimum katman sayısı) ya da mapped mesh için **Edge Sizing** tablosu (Number of Divisions + Bias Factor) ve tahmini hücre sayısı
 * Ansys bantlarına ve Fluent sınırlarına göre **mesh kalite kontrolü** (skewness, orthogonal quality, aspect ratio)
-* İlk Fluent sonucundan **y⁺ düzeltme** ve serbest akış hızı ve hücum açısından inlet X/Y hız bileşenlerini, Lift/Drag vektörlerini ve referans değerleri hesaplayan, Reynolds ve Mach'ı kontrol eden **Fluent ayar yardımcısı**
+* İlk Fluent sonucundan **y⁺ düzeltme** ve serbest akış hızı ve hücum açısından inlet X/Y hız bileşenlerini, Lift/Drag vektörlerini ve referans değerleri hesaplayan, Reynolds ve Mach'ı (sıcaklığa göre ses hızıyla) kontrol eden **Fluent ayar yardımcısı**; inlet'ten kanada **türbülans sönümü** (SST) ve polar için **hücum açısı taraması** (CSV)
 * Türkçe / İngilizce arayüz
 
 ## Yerel kurulum

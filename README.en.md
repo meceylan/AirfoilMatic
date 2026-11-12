@@ -1,4 +1,4 @@
-# AirfoilMatic V0.6.3 Beta — 2D CFD Domain Generator
+# AirfoilMatic V0.7.0 Beta — 2D CFD Domain Generator
 
 [Türkçe](README.md) | **English**
 
@@ -10,12 +10,13 @@ AirfoilMatic builds the geometry of a 2D CFD flow domain around an airfoil (NACA
 * NACA 4-digit and 5-digit (standard, non-reflexed) airfoils, drawn from the NACA equations with 201 points and full-cosine spacing
 * **Section search and random section:** 200 sections selected from the UIUC Airfoil Coordinates Database (NACA 6 and 16 series, NASA SC(2)/NLF/LS, Eppler, Selig, Wortmann, Hepperle, Drela, RAE, Delft DU and more). Type a name (`63-215`, `e387`, `clark y`); the 🎲 button picks a random section filtered by thickness, camber and family, and back/forward return to earlier ones. The app does not invent sections: a name that is not listed is reported as not in the database
 * Custom airfoil files (`.dat`, `.txt`, `.csv`; Selig and Lednicer formats), automatic blunt trailing-edge closing. Units, origin and point order do not matter: the profile is moved so its leading edge is at the origin and scaled to the chord. Decimal commas, `;` separators, touching Fortran columns, a point-number column or a constant third column are read too. A profile drawn backwards is mirrored; tilted, very coarse or broken files get a message
-* C-grid and rectangular (wind tunnel) domains, split into 6 four-sided blocks
+* **Use-as-drawn mode:** the closed outline of an uploaded file is used in its own point order, so shapes that go back in x (a vortex generator, a flap, a kinked section) are kept (inflation workflow only: front axis + wake axis)
+* C-grid and rectangular (wind tunnel) domains, split into 6 four-sided blocks; domain sizes are entered in chords
 * Choose which of the six split lines to export (all six are needed for mapped meshing; all six and front axis + wake axis were tested with quad-dominant + inflation), with a warning for a single line, which cannot work
 * Ansys DesignModeler TXT export
 * **Mesh / y⁺ assistant:** first-cell height for a target y⁺ and boundary-layer estimate, with two outputs: Ansys **Inflation** settings (first layer, growth rate, maximum layers) or a mapped-mesh **Edge Sizing** table (Number of Divisions + Bias Factor) with the expected cell count
 * **Mesh quality check** (skewness, orthogonal quality, aspect ratio) against Ansys bands and Fluent limits
-* **y⁺ correction** from a first Fluent result, and a **Fluent setup helper** that turns a free-stream speed and angle of attack into the inlet X/Y velocity components, the Lift/Drag vectors and the reference values, and checks Reynolds and Mach
+* **y⁺ correction** from a first Fluent result, and a **Fluent setup helper** that turns a free-stream speed and angle of attack into the inlet X/Y velocity components, the Lift/Drag vectors and the reference values, and checks Reynolds and Mach (speed of sound from the temperature); **free-stream turbulence decay** (SST) from the inlet to the airfoil and an **angle-of-attack sweep** (CSV) for a polar
 * Turkish / English interface
 
 ## Local installation

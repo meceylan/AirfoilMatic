@@ -211,6 +211,27 @@ def _sizing(group, edges, length, n, ratio, first_end, last_end):
     return EdgeSizing(group, edges, length, n, ratio, last_end if ratio < 1.0 - 1e-9 else first_end)
 
 
+def _wake_sizing(d, ds_te, wake_growth, max_wake_cell, k):
+    """Wake-axis edges (TE -> outlet): first element ``ds_te`` [m], growing at ``wake_growth``."""
+    L_wake = d.x_exit - d.x_te
+    n_wake = n_for_growth(L_wake, ds_te, wake_growth)
+    r_wake = ratio_for(L_wake, ds_te, n_wake)
+    if max_wake_cell is not None:
+        # Cap the last wake element (e.g. at the far-field element size) so the
+        # wake axis does not end with elements much larger than its surroundings.
+        cap = max_wake_cell / k
+        if ds_te * r_wake ** (n_wake - 1) > cap and cap > ds_te:
+            n_wake, r_wake = two_end_spacing(L_wake, ds_te, cap)
+    return _sizing("g_wake", ["wake_axis", "top_wake", "bottom_wake"],
+                   L_wake, n_wake, r_wake, "end_te", "end_outlet")
+
+
+def plan_wake_axis(domain, ds_te=DEFAULTS["ds_te"], wake_growth=DEFAULTS["wake_growth"], max_wake_cell=None):
+    """Edge Sizing of the wake axis alone, as ``plan_mesh`` gives it (``ds_te`` / chord).
+    Used for an outline drawn as is, whose airfoil edges have no plan."""
+    return _wake_sizing(domain, ds_te * domain.chord, wake_growth, max_wake_cell, 1.0)
+
+
 def plan_mesh(domain, af, re, refine=1.0, max_wake_cell=None, **kwargs):
     """Build the Edge Sizing plan for a domain.
 
@@ -279,17 +300,9 @@ def plan_mesh(domain, af, re, refine=1.0, max_wake_cell=None, **kwargs):
                          L_mid, n_rear, r_rear, "end_te", "end_split"))
 
     # ---- wake -----------------------------------------------------------------
-    L_wake = d.x_exit - d.x_te
-    n_wake = n_for_growth(L_wake, ds_te, wake_growth)
-    r_wake = ratio_for(L_wake, ds_te, n_wake)
-    if max_wake_cell is not None:
-        # Cap the last wake element (e.g. at the far-field element size) so the
-        # wake axis does not end with elements much larger than its surroundings.
-        cap = max_wake_cell / k
-        if ds_te * r_wake ** (n_wake - 1) > cap and cap > ds_te:
-            n_wake, r_wake = two_end_spacing(L_wake, ds_te, cap)
-    edges.append(_sizing("g_wake", ["wake_axis", "top_wake", "bottom_wake"],
-                         L_wake, n_wake, r_wake, "end_te", "end_outlet"))
+    wake = _wake_sizing(d, ds_te, wake_growth, max_wake_cell, k)
+    n_wake = wake.n
+    edges.append(wake)
 
     # ---- wall-normal ------------------------------------------------------------
     normal_edges = [

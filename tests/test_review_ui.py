@@ -45,7 +45,7 @@ def test_language_switch_keeps_the_uploaded_file(download_names):
     assert not at.exception and not at.error
     assert widget(at, "radio", tr("source", "en")).value == "file"
     assert tr("upload_info", "en") not in [i.value for i in at.info]
-    assert download_names[-1] == "AirfoilMatic_naca2412_CGrid.txt"
+    assert [n for n in download_names if n.endswith(".txt")][-1] == "AirfoilMatic_naca2412_CGrid.txt"
 
 
 def test_back_after_an_unknown_search_returns_to_the_last_section():
@@ -74,7 +74,7 @@ def test_download_name_keeps_the_whole_section_title(download_names):
     for q in ("hq1012", "hq108"):
         at = search_for(start(), q)
         assert not at.exception and not at.error
-        names.append(download_names[-1])
+        names.append([n for n in download_names if n.endswith(".txt")][-1])
     assert names == ["AirfoilMatic_HQ1.0_12_CGrid.txt", "AirfoilMatic_HQ1.0_8_CGrid.txt"]
 
 

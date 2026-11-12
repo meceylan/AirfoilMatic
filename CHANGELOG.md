@@ -1,5 +1,23 @@
 # Changelog
 
+## V0.7.0 Beta
+
+- **Domain sizes in chords.** Inlet radius / distance, wake length and the rectangle's top and bottom distances are entered as multiples of the chord (defaults 15c and 20c, as before for a 1 m chord); the sidebar shows them in metres. Before, the defaults were metres, so a 10 m chord got a domain only 1.5c across and a 5 cm chord one of 300c.
+- **Use the outline as drawn.** A new box for uploaded files keeps the closed outline in its own point order and cuts it only at the leading edge (smallest x) and the trailing edge (largest x), so a vortex generator, a flap or a kinked section survives; the normal reader sorts the surfaces along x and loses such shapes. The domain then has the front axis and the wake axis only (the validated inflation workflow); mapped meshing is not offered, and the wall edges are sized by hand (the app gives the LE/TE sizes and the wake axis). Self-crossing outlines are refused. Not tried in Ansys yet.
+- **Free-stream turbulence decay** in the Fluent helper: the turbulence intensity that reaches the leading edge for an inlet Tu and viscosity ratio, the highest value that can reach it, and the inlet Tu needed for a wanted value at the airfoil (closed-form SST decay, Spalart & Rumsey 2007). With the domain defaults, 1% at the inlet leaves about 0.43% at the airfoil with ratio 100 and 0.14% with ratio 10. The numbers match the table used in the NACA 0012 validation.
+- **Temperature input** for the speed of sound and Mach (15 °C gives the old 340.29 m/s).
+- **Angle-of-attack sweep:** inlet velocity components and lift/drag vectors for a range of angles, with a CSV download, for running a polar.
+- At 0° the lift vector no longer prints "-0.000000".
+
+## V0.7.0 Beta (Türkçe)
+
+- **Domain boyutları veter cinsinden.** Giriş yarıçapı / uzaklığı, iz uzunluğu ve dikdörtgenin üst ve alt uzaklıkları veterin katı olarak giriliyor (varsayılan 15c ve 20c; 1 m veterde eskisiyle aynı); kenar çubuğu metre karşılığını gösteriyor. Önceden varsayılanlar metreydi, 10 m veterde domain yalnızca 1.5c, 5 cm veterde 300c oluyordu.
+- **Çizgiyi olduğu gibi kullan.** Yüklenen dosyalar için yeni bir kutu, kapalı çizgiyi kendi nokta sırasıyla tutup yalnızca hücum kenarında (en küçük x) ve firar kenarında (en büyük x) kesiyor; böylece vortex generator, flap ya da kırık profil korunuyor (normal okuyucu yüzeyleri x'e göre dizip bu şekilleri kaybediyor). Domain'de yalnızca ön eksen ve iz ekseni var (doğrulanmış Inflation iş akışı); mapped mesh sunulmuyor, duvar kenarlarının eleman boyu elle veriliyor (uygulama LE/TE boylarını ve iz eksenini veriyor). Kendini kesen çizgiler reddediliyor. Henüz Ansys'te denenmedi.
+- Fluent yardımcısında **serbest akış türbülansının sönümü**: verilen inlet Tu ve viskozite oranıyla hücum kenarına ulaşan türbülans yoğunluğu, ulaşabilecek en yüksek değer ve kanatta istenen değer için gereken inlet Tu (SST'nin kapalı çözümü, Spalart & Rumsey 2007). Varsayılan domain'de inlet'te %1, oran 100 ile kanatta yaklaşık %0.43, oran 10 ile %0.14 kalıyor. Sayılar NACA 0012 doğrulamasında kullanılan tabloyla aynı.
+- Ses hızı ve Mach için **sıcaklık girişi** (15 °C eski 340.29 m/s'yi veriyor).
+- **Hücum açısı taraması:** bir açı aralığı için inlet hız bileşenleri ve lift/drag vektörleri, CSV indirme ile; polar çıkarmak için.
+- 0°'de lift vektörü artık "-0.000000" yazmıyor.
+
 ## V0.6.3 Beta
 
 Fixes from a four-part review (geometry and file reading, mesh math, page behaviour, topology and export). Each fix has a test that failed before it.

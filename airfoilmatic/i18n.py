@@ -161,24 +161,32 @@ STRINGS = {
         "en": 'Chord Length (c) [m]',
     },
     'r_inlet': {
-        "tr": 'Giriş Yarıçapı (R) [m]',
-        "en": 'Inlet Radius (R) [m]',
+        "tr": 'Giriş Yarıçapı (R) [× veter]',
+        "en": 'Inlet Radius (R) [× chord]',
     },
     'l_inlet': {
-        "tr": 'Giriş Uzaklığı [m]',
-        "en": 'Inlet Distance [m]',
+        "tr": 'Giriş Uzaklığı [× veter]',
+        "en": 'Inlet Distance [× chord]',
     },
     'l_wake': {
-        "tr": "Arka İz Uzunluğu (TE'den itibaren) [m]",
-        "en": 'Wake Length (from TE) [m]',
+        "tr": "Arka İz Uzunluğu (TE'den itibaren) [× veter]",
+        "en": 'Wake Length (from TE) [× chord]',
+    },
+    'domain_in_m': {
+        "tr": 'Metre olarak: R = {r:g} m, iz = {w:g} m',
+        "en": 'In metres: R = {r:g} m, wake = {w:g} m',
+    },
+    'domain_in_m_rect': {
+        "tr": 'Metre olarak: giriş {r:g} m, iz {w:g} m, üst {top:g} m, alt {bot:g} m',
+        "en": 'In metres: inlet {r:g} m, wake {w:g} m, top {top:g} m, bottom {bot:g} m',
     },
     'l_top': {
-        "tr": 'Üst Sınır Uzaklığı [m]',
-        "en": 'Top Boundary Distance [m]',
+        "tr": 'Üst Sınır Uzaklığı [× veter]',
+        "en": 'Top Boundary Distance [× chord]',
     },
     'l_bottom': {
-        "tr": 'Alt Sınır Uzaklığı [m]',
-        "en": 'Bottom Boundary Distance [m]',
+        "tr": 'Alt Sınır Uzaklığı [× veter]',
+        "en": 'Bottom Boundary Distance [× chord]',
     },
     'download': {
         "tr": 'Ansys TXT İndir',
@@ -853,15 +861,116 @@ STRINGS = {
         "tr": "Bu hız Re = {re_fl:.4e} veriyor; Mesh / y⁺ sekmesindeki Re = {re_mesh:.4e}. İlk hücre yüksekliği o Re'ye göre hesaplandığı için ikisini eşitleyin.",
         "en": 'This speed gives Re = {re_fl:.4e}; the Mesh / y⁺ tab uses Re = {re_mesh:.4e}. The first-cell height is based on that Re, so make them match.',
     },
+    'fl_temp': {
+        "tr": 'Sıcaklık [°C]',
+        "en": 'Temperature [°C]',
+    },
+    'fl_temp_help': {
+        "tr": 'Yalnızca ses hızı ve Mach için (ideal gaz hava, γ = 1.4). Yoğunluk ve viskozite ayrıca girilir.',
+        "en": 'Only for the speed of sound and Mach (ideal-gas air, γ = 1.4). Density and viscosity are entered separately.',
+    },
+    'fl_sound': {
+        "tr": 'Ses hızı',
+        "en": 'Speed of sound',
+    },
+    'tu_title': {
+        "tr": 'Serbest akış türbülansının sönümü (SST / Transition SST)',
+        "en": 'Free-stream turbulence decay (SST / Transition SST)',
+    },
+    'tu_inlet': {
+        "tr": 'Inlet Tu [%]',
+        "en": 'Inlet Tu [%]',
+    },
+    'tu_vr': {
+        "tr": 'Turbulent Viscosity Ratio',
+        "en": 'Turbulent Viscosity Ratio',
+    },
+    'tu_goal': {
+        "tr": 'Kanatta istenen Tu [%] (isteğe bağlı)',
+        "en": 'Wanted Tu at the airfoil [%] (optional)',
+    },
+    'tu_dist': {
+        "tr": 'Inlet → hücum kenarı mesafesi',
+        "en": 'Inlet → leading edge distance',
+    },
+    'tu_at_le': {
+        "tr": 'Hücum kenarına ulaşan Tu',
+        "en": 'Tu reaching the leading edge',
+    },
+    'tu_max': {
+        "tr": 'Bu viskozite oranıyla ulaşabilecek en yüksek Tu',
+        "en": 'Highest Tu that can reach it with this viscosity ratio',
+    },
+    'tu_need': {
+        "tr": 'Kanatta %{goal:g} için inlet Tu',
+        "en": 'Inlet Tu for {goal:g}% at the airfoil',
+    },
+    'tu_unreachable': {
+        "tr": 'Bu viskozite oranıyla ulaşılamaz; oranı artırın',
+        "en": 'Not reachable with this viscosity ratio; raise the ratio',
+    },
+    'tu_note': {
+        "tr": "Akış kayma gerilmesi olmayan serbest akışta k ve ω sönümünün kapalı çözümüyle (Spalart & Rumsey, AIAA J. 2007) hesaplanır: inlet'te girdiğiniz Tu, kanada gelene kadar azalır ve Transition SST'de geçişi kanattaki değer belirler. Deneyle karşılaştırırken kanattaki Tu'yu rüzgâr tünelininkine eşitleyin. Daha yüksek inlet Tu daha hızlı söner; kanatta daha yüksek bir Tu için viskozite oranını artırın.",
+        "en": 'Computed from the closed-form decay of k and ω in a shear-free free stream (Spalart & Rumsey, AIAA J. 2007): the Tu set at the inlet drops before it reaches the airfoil, and in Transition SST transition follows the value at the airfoil. When comparing with an experiment, match the Tu at the airfoil to the wind tunnel. A higher inlet Tu decays faster; for more Tu at the airfoil raise the viscosity ratio.',
+    },
+    'sweep_title': {
+        "tr": 'Hücum açısı taraması (polar için)',
+        "en": 'Angle-of-attack sweep (for a polar)',
+    },
+    'sweep_from': {
+        "tr": 'İlk açı [°]',
+        "en": 'First angle [°]',
+    },
+    'sweep_to': {
+        "tr": 'Son açı [°]',
+        "en": 'Last angle [°]',
+    },
+    'sweep_step': {
+        "tr": 'Adım [°]',
+        "en": 'Step [°]',
+    },
+    'sweep_csv': {
+        "tr": 'Taramayı CSV olarak indir',
+        "en": 'Download the sweep as CSV',
+    },
     'fl_mach_warn': {
         "tr": "Mach = {m:.2f} > 0.3: sıkıştırılabilirlik etkileri önemlidir; Fluent'te yoğunluğu ideal gaz olarak tanımlayın.",
         "en": 'Mach = {m:.2f} > 0.3: compressibility matters; use ideal-gas density in Fluent.',
     },
+    # ---- outline used as drawn (vortex generator, flap, kinked section)
+    'as_is': {
+        "tr": 'Dosyadaki çizgiyi olduğu gibi kullan (VG, flap, kırık profil)',
+        "en": 'Use the outline as drawn (VG, flap, kinked section)',
+    },
+    'as_is_help': {
+        "tr": "Normalde dosya x boyunca ilerleyen üst ve alt yüzeye ayrılır; geri giden noktalar atılır. Vorteks jeneratörü (dik ya da öne yatık duvarlı çıkıntı), flap ya da kırık profil için bu kutuyu işaretleyin: noktalar dosyadaki sırasıyla tek kapalı çizgi olarak kalır ve yalnızca hücum kenarında (en küçük x) ve firar kenarında (en büyük x) ikiye kesilir. Yalnızca inflation iş akışı kullanılabilir (ön eksen + iz ekseni, dikey bölme çizgisi yok).",
+        "en": "Normally the file is split into an upper and a lower surface that advance in x, and points that go back are dropped. Tick this box for a vortex generator (a fin with vertical or forward-leaning walls), a flap or a kinked section: the points stay one closed outline in file order and are only cut in two at the leading edge (smallest x) and the trailing edge (largest x). Only the inflation workflow is available (front axis + wake axis, no vertical split lines).",
+    },
+    'asis_geom_info': {
+        "tr": 'Çizgi dosyadaki gibi kullanılıyor: kanat duvarı iki kenardır (üst ve alt yol, hücum kenarından firar kenarına) ve yalnızca ön eksen ile iz ekseni çizilir. Kenar çubuğundaki bölme çizgisi seçimi bu modda kullanılmaz.',
+        "en": 'The outline is used as drawn: the airfoil wall is two edges (upper and lower path, leading edge to trailing edge) and only the front axis and the wake axis are drawn. The split-line selection in the sidebar does not apply in this mode.',
+    },
+    'asis_no_mapped': {
+        "tr": 'Dosyadaki çizgi olduğu gibi kullanıldığında mapped mesh yoktur: bloklar için dikey bölme çizgileri gerekir.',
+        "en": 'Mapped meshing is not available for an outline used as drawn: its blocks need the vertical split lines.',
+    },
+    'asis_edges_note': {
+        "tr": "Kanat kenarları (üst ve alt yol) bu modda tabloda yok: VG'nin duvarları ve köşeleri tek bir eleman dağılımına uymaz. Bu iki kenara Edge Sizing'i elle verin: hücum kenarında yaklaşık {ds_le}, firar kenarında {ds_te}; VG'nin ya da kırığın üzerinde ise eleman boyu en kısa duvarından birkaç kat küçük olsun (örneğin duvarı en az 5–10 elemana bölün).",
+        "en": "The airfoil edges (upper and lower path) are not in the table in this mode: the walls and corners of a VG do not fit one element distribution. Give these two edges an Edge Sizing by hand: about {ds_le} at the leading edge and {ds_te} at the trailing edge, and on the VG or kink an element size several times smaller than its shortest wall (e.g. at least 5–10 elements per wall).",
+    },
+    'af_upper': {"tr": 'Kanat üst yolu', "en": 'Airfoil upper path'},
+    'af_lower': {"tr": 'Kanat alt yolu', "en": 'Airfoil lower path'},
 }
 
 
 # Turkish versions of the (English) error messages raised by the core modules.
 ERRORS_TR = {
+    'Temperature must be above absolute zero': 'Sıcaklık mutlak sıfırın üstünde olmalı',
+    'Distance and viscosity ratio must be positive': 'Mesafe ve viskozite oranı pozitif olmalı',
+    'Target turbulence intensity must be positive': 'İstenen türbülans yoğunluğu pozitif olmalı',
+    'Angle step must be positive': 'Açı adımı pozitif olmalı',
+    'Last angle must not be below the first one': 'Son açı ilk açıdan küçük olamaz',
+    'Too many angles (more than 361)': 'Çok fazla açı (361’den fazla)',
     'Speed, chord, density and viscosity must be positive': 'Hız, veter, yoğunluk ve viskozite pozitif olmalı',
     'Reynolds number must be at least 1000': 'Reynolds sayısı en az 1000 olmalı',
     'Edge is shorter than the requested cell size': 'Kenar, istenen hücre boyundan kısa; hücre boylarını küçültün',
@@ -886,6 +995,10 @@ ERRORS_TR = {
     'Inlet radius must be larger than the chord': 'Giriş yarıçapı veter uzunluğundan büyük olmalı',
     'Top/bottom boundaries must be at least 0.5c away from the airfoil': 'Üst/alt sınırlar kanattan en az 0.5c uzakta olmalı',
     'Inlet must be at least 0.5c upstream of the leading edge': 'Giriş, hücum kenarının en az 0.5c önünde olmalı',
+    'The outline needs at least 6 distinct points': 'Çizgide en az 6 farklı nokta olmalı',
+    'The outline crosses itself': 'Çizgi kendini kesiyor (dosyadaki nokta sırasını kontrol edin)',
+    'The outline crosses the front axis (the horizontal line ahead of the leading edge)': 'Çizgi ön ekseni (hücum kenarının önündeki yatay çizgiyi) kesiyor',
+    'The outline crosses the wake axis (the horizontal line behind the trailing edge)': 'Çizgi iz eksenini (firar kenarının arkasındaki yatay çizgiyi) kesiyor',
     'math range error': 'Sayısal taşma: ayarlar uç değerlerde; büyüme oranını veya hücre boylarını değiştirin',
 }
 

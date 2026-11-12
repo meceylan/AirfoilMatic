@@ -189,3 +189,20 @@ def line_warnings(keep):
         # front axis, worked with it (min orthogonal quality 0.62).
         warnings.append(("wake_without_front", "wake_axis"))
     return warnings
+
+
+# Outline used as drawn (geometry.parse_outline_as_is): only these two axes are drawn.
+AS_IS_LINES = ("front_axis", "wake_axis")
+
+
+def build_domain_as_is(af: SplitAirfoil, kind=C_GRID, **kwargs):
+    """Domain for an outline used as drawn (``geometry.as_is_split``): the same outer
+    boundaries and axes as ``build_domain``, but the wall is two edges, the upper and the
+    lower path (both LE -> TE), and there are no vertical split lines. Only the inflation
+    workflow uses it; a vortex-generator fin would cut a vertical line."""
+    from dataclasses import replace
+    d = build_domain(af, kind, **kwargs)
+    wall = [Curve("af_upper", "airfoil", *af.upper_front), Curve("af_lower", "airfoil", *af.lower_front)]
+    rest = [c for c in d.curves
+            if c.kind == "boundary" or c.key in AS_IS_LINES or c.key == "te_closure"]
+    return replace(d, curves=wall + rest)

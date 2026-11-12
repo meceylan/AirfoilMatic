@@ -76,7 +76,8 @@ def test_low_reynolds_inflation_table_names_the_split_line_as_small_end():
     widget(at, "number_input", tr("re", "tr")).set_value(1.0e5)
     at = at.run()
     assert not at.exception and not at.error
-    small_ends = [row[tr("col_small", "tr")] for df in at.dataframe for row in df.value.to_dict("records")]
+    small_ends = [row[tr("col_small", "tr")] for df in at.dataframe for row in df.value.to_dict("records")
+                  if tr("col_small", "tr") in row]
     assert small_ends == [tr("end_le", "tr"), tr("end_split", "tr"), tr("end_te", "tr")]
 
 

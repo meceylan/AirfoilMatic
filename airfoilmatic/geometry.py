@@ -423,27 +423,7 @@ def parse_airfoil_file(content, chord=1.0, name="Custom", mirror=False):
     the file do not matter. ``mirror`` flips the file in x first, for an outline whose
     leading edge is at the right.
     """
-    rows = _numeric_rows(_decode(content))
-    if len(rows) < 3:
-        raise AirfoilError("File does not contain enough coordinate rows")
-
-    # Lednicer: the first numeric row holds the two point counts. It is only accepted when
-    # the counts match the rows exactly; in a file written in millimetres or percent a first
-    # row of two large numbers is simply the first point.
-    c0, c1 = rows[0]
-    n_up, n_lo = int(round(c0)), int(round(c1))
-    counts = (c0 > 1.5 and c1 > 1.5 and abs(c0 - n_up) < 1e-9 and abs(c1 - n_lo) < 1e-9
-              and len(rows) - 1 == n_up + n_lo)
-    if counts:
-        rows = rows[1:]
-    else:
-        # Leading rows that cannot be points of the outline: a numeric title ("2412 15"),
-        # a parameter line, counts that do not match, a date.
-        for _ in range(5):
-            if len(rows) > 3 and _is_outlier(rows[0], rows[1:]):
-                rows = rows[1:]
-            else:
-                break
+    rows, counts, n_up = _file_rows(content)
     if mirror:
         rows = rows * np.array([-1.0, 1.0])
     span = float(np.ptp(rows[:, 0]))
@@ -472,6 +452,36 @@ def parse_airfoil_file(content, chord=1.0, name="Custom", mirror=False):
     x0, y0 = xu[0], yu[0]
     s = chord / (max(xu[-1], xl[-1]) - x0)
     return Airfoil((xu - x0) * s, (yu - y0) * s, (xl - x0) * s, (yl - y0) * s, chord, name, overlap)
+
+
+def _file_rows(content):
+    """Coordinate rows of a file without its title, count and parameter lines.
+
+    Returns ``(rows, counts, n_up)``: ``counts`` is True for a Lednicer file whose count
+    line matched, and then ``n_up`` rows belong to the first block.
+    """
+    rows = _numeric_rows(_decode(content))
+    if len(rows) < 3:
+        raise AirfoilError("File does not contain enough coordinate rows")
+
+    # Lednicer: the first numeric row holds the two point counts. It is only accepted when
+    # the counts match the rows exactly; in a file written in millimetres or percent a first
+    # row of two large numbers is simply the first point.
+    c0, c1 = rows[0]
+    n_up, n_lo = int(round(c0)), int(round(c1))
+    counts = (c0 > 1.5 and c1 > 1.5 and abs(c0 - n_up) < 1e-9 and abs(c1 - n_lo) < 1e-9
+              and len(rows) - 1 == n_up + n_lo)
+    if counts:
+        rows = rows[1:]
+    else:
+        # Leading rows that cannot be points of the outline: a numeric title ("2412 15"),
+        # a parameter line, counts that do not match, a date.
+        for _ in range(5):
+            if len(rows) > 3 and _is_outlier(rows[0], rows[1:]):
+                rows = rows[1:]
+            else:
+                break
+    return rows, counts, n_up
 
 
 def looks_reversed(af):
@@ -530,3 +540,169 @@ def split_at(af, x_split_frac=DEFAULT_SPLIT):
     uf, ur = _split_surface(af.xu, af.yu, xs)
     lf, lr = _split_surface(af.xl, af.yl, xs)
     return SplitAirfoil(uf, ur, lf, lr, xs, af.chord, af.name)
+
+
+# --------------------------------------------------------------------------
+# Outline used as drawn (vortex generator, flap, kinked section)
+# --------------------------------------------------------------------------
+#
+# The normal reader splits a file into two surfaces that advance in x. A surface with a
+# vortex-generator fin (vertical or forward-leaning walls) or a kink does not, so in this
+# mode the points are kept as ONE closed loop in file order and only cut in two at the
+# leading edge (smallest x) and the trailing edge (largest x). Nothing is sorted, dropped
+# or repaired, apart from repeated points and the inner points of a flat base.
+
+AS_IS_MIN_POINTS = 6
+_FLAT = 1e-7   # points within this x distance (/ x extent) of the extreme x share the LE / TE
+
+
+def _as_is_loop(rows, counts, n_up, span):
+    """The file's points as one loop in file order, consecutive duplicates removed."""
+    if counts:
+        a, b = rows[:n_up], rows[n_up:]
+    else:
+        steps = np.abs(np.diff(rows[:, 0]))
+        jump = int(np.argmax(steps))
+        # Two blocks LE -> TE (Lednicer without the count line): the same test as _two_surfaces.
+        a, b = (rows[: jump + 1], rows[jump + 1:]) if steps[jump] > 0.8 * span else (rows, None)
+    if b is not None:
+        if len(a) < 2 or len(b) < 2:
+            raise AirfoilError("Each surface needs at least 3 distinct points")
+        rows = np.vstack([_le_to_te(a)[::-1], _le_to_te(b)])   # TE -> nose -> TE, as _split_at_nose
+    moved = np.any(np.abs(np.diff(rows, axis=0)) > 1e-12 * span, axis=1)
+    return rows[np.concatenate([[True], moved])]
+
+
+def _crosses_itself(loop, span):
+    """True when two non-neighbouring edges of the closed polygon cross (touching does not count)."""
+    n = len(loop)
+    a, b = loop, np.roll(loop, -1, axis=0)
+    eps = (1e-12 * span**2) ** 2
+
+    def cross(u, v):
+        return u[..., 0] * v[..., 1] - u[..., 1] * v[..., 0]
+
+    for i in range(n - 2):
+        j = np.arange(i + 2, n if i else n - 1)
+        if len(j) == 0:
+            continue
+        c, e = a[j], b[j]
+        di = b[i] - a[i]
+        side_ce = cross(di, c - a[i]) * cross(di, e - a[i])
+        side_ab = cross(e - c, a[i] - c) * cross(e - c, b[i] - c)
+        if np.any((side_ce < -eps) & (side_ab < -eps)):
+            return True
+    return False
+
+
+def _ray_hits(paths, x0, y0, direction, tol):
+    """True when a wall path meets the horizontal ray from (x0, y0) towards ``direction`` (+-1)."""
+    for p in paths:
+        a, b = p[:-1], p[1:]
+        da, db = a[:, 1] - y0, b[:, 1] - y0
+        on = (da == 0) & (db == 0)                    # a piece of wall lying on the axis line
+        meet = (da * db <= 0) & ~on
+        with np.errstate(divide="ignore", invalid="ignore"):
+            xi = a[:, 0] + np.where(meet, da / (da - db), 0.0) * (b[:, 0] - a[:, 0])
+        if np.any(meet & (direction * (xi - x0) > tol)):
+            return True
+        if np.any(on & ((direction * (a[:, 0] - x0) > tol) | (direction * (b[:, 0] - x0) > tol))):
+            return True
+    return False
+
+
+def parse_outline_as_is(content, chord=1.0, name="Custom", mirror=False):
+    """Read a coordinate file as one closed outline, keeping every point where it was drawn.
+
+    The file is read like ``parse_airfoil_file`` (same decoder, title / count / outlier
+    handling, ``mirror`` and normalisation: LE at the origin, x extent = ``chord``). Then:
+
+    * The points form one loop in file order (Selig style; two Lednicer blocks are joined at
+      the nose). If the first and last point differ, the loop is closed between them: a gap
+      below 1e-4 of the chord is snapped to one point; a larger gap behind mid-chord is the
+      blunt trailing-edge closure.
+    * Leading edge = the point with the smallest x (if several share it, the one nearest the
+      middle of them in y). Trailing edge = the point with the largest x. If several
+      neighbouring points share the largest x (a flat base drawn as part of the loop), the
+      two outermost become the ends of the TE closure and the base points between them go:
+      the closure is drawn as one straight edge, as for any blunt trailing edge.
+    * The loop is cut at LE and TE into the upper and lower path, both LE -> TE in file
+      order and never sorted by x. They are returned as ``Airfoil.xu/yu`` and ``xl/yl``.
+
+    Rejected: fewer than 6 points, a loop that crosses itself, and an outline that crosses
+    the horizontal axis lines of the domain (ahead of the LE at its height, behind the TE at
+    the height of the TE / closure middle), which the inflation workflow draws.
+    """
+    rows, counts, n_up = _file_rows(content)
+    if mirror:
+        rows = rows * np.array([-1.0, 1.0])
+    span = float(np.ptp(rows[:, 0]))
+    if span <= 0:
+        raise AirfoilError("Invalid chord in file")
+    loop = _as_is_loop(rows, counts, n_up, span)
+
+    open_te = False
+    gap = float(np.hypot(*(loop[-1] - loop[0])))
+    if len(loop) > 1 and gap <= 1e-12 * span:
+        loop = loop[:-1]                                   # file repeats its first point
+    elif gap < 1e-4 * span:
+        loop = np.vstack([0.5 * (loop[0] + loop[-1]), loop[1:-1]])   # as close_small_te_gap
+    else:
+        # An open end is the TE closure only behind mid-chord; elsewhere it is a wall edge.
+        open_te = min(loop[0, 0], loop[-1, 0]) > loop[:, 0].min() + 0.5 * span
+    n = len(loop)
+    if n < AS_IS_MIN_POINTS:
+        raise AirfoilError("The outline needs at least 6 distinct points")
+    x, y = loop[:, 0], loop[:, 1]
+    x_min, x_max = float(x.min()), float(x.max())
+    span = x_max - x_min
+
+    if _crosses_itself(loop, span):
+        raise AirfoilError("The outline crosses itself")
+    area = 0.5 * float(np.sum(x * np.roll(y, -1) - np.roll(x, -1) * y))
+    if abs(area) < 1e-5 * span**2:
+        raise AirfoilError("Airfoil has no thickness")
+
+    near_le = np.nonzero(x <= x_min + _FLAT * span)[0]
+    le = int(near_le[np.argmin(np.abs(y[near_le] - y[near_le].mean()))])
+    if open_te:
+        te_first, te_last = n - 1, 0          # the closure edge runs from the last point to the first
+    else:
+        flat = x >= x_max - _FLAT * span
+        te_first = te_last = int(np.argmax(x))
+        while flat[(te_first - 1) % n] and (te_first - 1) % n != te_last:
+            te_first = (te_first - 1) % n
+        while flat[(te_last + 1) % n] and (te_last + 1) % n != te_first:
+            te_last = (te_last + 1) % n
+
+    def walk(stop, step):
+        idx = [le]
+        while idx[-1] != stop:
+            idx.append((idx[-1] + step) % n)
+        return loop[idx]
+
+    forward, backward = walk(te_first, 1), walk(te_last, -1)
+    if len(forward) < 2 or len(backward) < 2:
+        raise AirfoilError("Could not find the leading edge inside the point loop")
+    # Counter-clockwise loop (Selig: TE -> upper -> LE -> lower): forward from the LE is the lower side.
+    upper, lower = (backward, forward) if area > 0 else (forward, backward)
+
+    x0, y0 = loop[le]
+    s = chord / span
+    upper = (upper - [x0, y0]) * s
+    lower = (lower - [x0, y0]) * s
+    tol = 1e-9 * chord
+    if _ray_hits((upper, lower), 0.0, 0.0, -1.0, tol):
+        raise AirfoilError("The outline crosses the front axis (the horizontal line ahead of the leading edge)")
+    xm, ym = 0.5 * (upper[-1] + lower[-1])
+    if _ray_hits((upper, lower), xm, ym, 1.0, tol):
+        raise AirfoilError("The outline crosses the wake axis (the horizontal line behind the trailing edge)")
+    return Airfoil(upper[:, 0], upper[:, 1], lower[:, 0], lower[:, 1], chord, name)
+
+
+def as_is_split(af, x_split_frac=DEFAULT_SPLIT):
+    """``SplitAirfoil`` for an outline used as drawn: there is no split; the front and the rear
+    piece of each side are both the whole wall path, so LE, TE and TE gap come out right.
+    ``x_split`` only places the centre of the C-grid inlet arc, as in the normal mode."""
+    up, lo = (af.xu, af.yu), (af.xl, af.yl)
+    return SplitAirfoil(up, up, lo, lo, x_split_frac * af.chord, af.chord, af.name)

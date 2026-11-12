@@ -13,11 +13,14 @@ import streamlit as st
 from airfoilmatic import __version__ as APP_VERSION, APP_STAGE
 from airfoilmatic.geometry import (DEFAULT_SPLIT, AirfoilError, chord_line_angle, close_small_te_gap,
                                    looks_reversed, parse_airfoil_file, split_at)
+from airfoilmatic.geometry import as_is_split, parse_outline_as_is
 from airfoilmatic.topology import C_GRID, RECT, SPLIT_LINES, build_domain, line_warnings, select_lines
+from airfoilmatic.topology import AS_IS_LINES, build_domain_as_is
 from airfoilmatic.export import safe_file_stem, to_ansys_txt
 from airfoilmatic import library as lib
-from airfoilmatic.mesh import DEFAULTS, MAX_GOOD_GROWTH, plan_inflation, plan_mesh, reynolds
-from airfoilmatic.fluent import AIR_DENSITY, AIR_VISCOSITY, freestream, speed_for_reynolds
+from airfoilmatic.mesh import DEFAULTS, MAX_GOOD_GROWTH, plan_inflation, plan_mesh, plan_wake_axis, reynolds
+from airfoilmatic.fluent import (AIR_DENSITY, AIR_VISCOSITY, alpha_sweep, decayed_tu, freestream, inlet_tu_for,
+                                 max_reachable_tu, speed_for_reynolds, speed_of_sound)
 from airfoilmatic.quality import (FLUENT_MAX_SKEWNESS, FLUENT_MIN_ORTHO, RATING_LEVEL,
                                   expected_wall_aspect_ratio, rate_orthogonal, rate_skewness)
 from airfoilmatic.i18n import LANGS, tr, tr_error
@@ -80,6 +83,7 @@ def _step(d):
 
 section = None
 custom_file = None
+as_is = False   # uploaded outline used as drawn (VG, flap, kinked section): inflation workflow only
 if source == "search":
     st.session_state.setdefault("af_query", "4412")
     st.session_state.setdefault("af_history", [])
@@ -123,6 +127,7 @@ if source == "search":
 else:
     custom_file = st.sidebar.file_uploader(t("upload"), type=["dat", "txt", "csv"], key="upload")
     mirror_slot = st.sidebar.empty()   # "mirror in x" box, filled once the file has been read
+    as_is = st.sidebar.checkbox(t("as_is"), value=False, help=t("as_is_help"), key="as_is")
     file_prefix = "AirfoilMatic_" + (safe_file_stem(custom_file.name) if custom_file else "custom")
 
 domain_kind = st.sidebar.selectbox(t("domain_type"), [C_GRID, RECT],
@@ -130,15 +135,20 @@ domain_kind = st.sidebar.selectbox(t("domain_type"), [C_GRID, RECT],
 chord = st.sidebar.number_input(t("chord"), value=1.0, step=0.1, min_value=0.01, key="chord")
 file_prefix += "_CGrid" if domain_kind == C_GRID else "_Rect"
 
+# Domain sizes are entered as multiples of the chord, so a long or a tiny chord keeps the same
+# relative domain (in metres the defaults made a 10 m chord's domain only 1.5c across).
 if domain_kind == C_GRID:
-    r_inlet = st.sidebar.number_input(t("r_inlet"), value=15.0, step=1.0, min_value=1.0, key="r_inlet")
-    l_wake = st.sidebar.number_input(t("l_wake"), value=20.0, step=1.0, min_value=1.0, key="l_wake")
-    l_top = l_bottom = r_inlet
+    r_inlet_c = st.sidebar.number_input(t("r_inlet"), value=15.0, step=1.0, min_value=2.0, key="r_inlet_c")
+    l_wake_c = st.sidebar.number_input(t("l_wake"), value=20.0, step=1.0, min_value=1.0, key="l_wake_c")
+    l_top_c = l_bottom_c = r_inlet_c
 else:
-    r_inlet = st.sidebar.number_input(t("l_inlet"), value=15.0, step=1.0, min_value=1.0, key="l_inlet")
-    l_wake = st.sidebar.number_input(t("l_wake"), value=20.0, step=1.0, min_value=1.0, key="l_wake")
-    l_top = st.sidebar.number_input(t("l_top"), value=15.0, step=1.0, min_value=1.0, key="l_top")
-    l_bottom = st.sidebar.number_input(t("l_bottom"), value=15.0, step=1.0, min_value=1.0, key="l_bottom")
+    r_inlet_c = st.sidebar.number_input(t("l_inlet"), value=15.0, step=1.0, min_value=1.0, key="l_inlet_c")
+    l_wake_c = st.sidebar.number_input(t("l_wake"), value=20.0, step=1.0, min_value=1.0, key="l_wake_c")
+    l_top_c = st.sidebar.number_input(t("l_top"), value=15.0, step=1.0, min_value=1.0, key="l_top_c")
+    l_bottom_c = st.sidebar.number_input(t("l_bottom"), value=15.0, step=1.0, min_value=1.0, key="l_bottom_c")
+r_inlet, l_wake, l_top, l_bottom = (v * chord for v in (r_inlet_c, l_wake_c, l_top_c, l_bottom_c))
+st.sidebar.caption(t("domain_in_m", r=r_inlet, w=l_wake) if domain_kind == C_GRID
+                   else t("domain_in_m_rect", r=r_inlet, w=l_wake, top=l_top, bot=l_bottom))
 
 # Six checkboxes are rarely changed, so they sit in a collapsed expander that shows how many are on.
 # The label must not change between reruns, otherwise Streamlit treats it as a new
@@ -172,14 +182,15 @@ try:
             st.info(t("upload_info"))
             st.stop()
         data = custom_file.getvalue()
-        airfoil = parse_airfoil_file(data, chord, name=custom_file.name)
+        read_file = parse_outline_as_is if as_is else parse_airfoil_file
+        airfoil = read_file(data, chord, name=custom_file.name)
         # A file drawn with its nose at the right would meet the flow tail first. The box is
         # ticked when the outline looks reversed and can be changed by hand either way.
         reversed_file = looks_reversed(airfoil)
         mirrored = mirror_slot.checkbox(t("mirror_x"), value=reversed_file, help=t("mirror_x_help"),
                                         key=f"mirror_{custom_file.file_id}")   # a new upload is checked afresh
         if mirrored:
-            airfoil = parse_airfoil_file(data, chord, name=custom_file.name, mirror=True)
+            airfoil = read_file(data, chord, name=custom_file.name, mirror=True)
         if reversed_file and mirrored:
             file_notes.append(("info", t("note_mirrored")))
         elif looks_reversed(airfoil):
@@ -193,17 +204,19 @@ try:
         if abs(tilt) >= 1.0:
             file_notes.append(("info", t("note_tilt", angle=tilt)))
     airfoil = close_small_te_gap(airfoil)
-    split_af = split_at(airfoil, DEFAULT_SPLIT)
+    split_af = as_is_split(airfoil, DEFAULT_SPLIT) if as_is else split_at(airfoil, DEFAULT_SPLIT)
 except AirfoilError as e:
     st.error(t("err_geometry", msg=te(e)))
     st.stop()
 
 try:
-    domain = build_domain(split_af, domain_kind, r_inlet=r_inlet, l_wake=l_wake,
-                          l_top=l_top, l_bottom=l_bottom)
+    domain = (build_domain_as_is if as_is else build_domain)(split_af, domain_kind, r_inlet=r_inlet, l_wake=l_wake,
+                                                            l_top=l_top, l_bottom=l_bottom)
 except ValueError as e:
     st.error(t("err_domain", msg=te(e)))
     st.stop()
+if as_is:   # the outline as drawn has only the two axes; the split-line boxes do not apply
+    kept_lines, all_lines = list(AS_IS_LINES), False
 
 # `domain` keeps every split line (used for sizing plans); `out_domain` is what is
 # drawn and exported for the chosen workflow.
@@ -295,7 +308,10 @@ tab_geo, tab_mesh = st.tabs([t("tab_geometry"), t("tab_mesh")])
 # ================================================================ geometry tab
 with tab_geo:
     n_faces = max(1, len(kept_lines))
-    st.caption(t("geom_info", split=DEFAULT_SPLIT) if all_lines else (t("geom_info_one") if n_faces == 1 else t("geom_info_partial", n=n_faces)))
+    if as_is:
+        st.caption(t("asis_geom_info"))
+    else:
+        st.caption(t("geom_info", split=DEFAULT_SPLIT) if all_lines else (t("geom_info_one") if n_faces == 1 else t("geom_info_partial", n=n_faces)))
     for kind, key in line_warnings(kept_lines):
         st.warning(t("warn_single_line", line=t(key)) if kind == "single_line" else t("warn_wake_no_front"))
     if section is not None:
@@ -383,9 +399,13 @@ with tab_mesh:
             st.caption(f"Re = {short(re)}")
     with c2.container(key="card_method"):
         st.markdown(ui.step_html(2, t("step_method")), unsafe_allow_html=True)
+        if as_is:
+            st.session_state.mesh_mode = INFLATION   # mapped blocks need the vertical split lines
         mesh_mode = st.radio(t("mesh_method"), [INFLATION, MAPPED],
                              format_func=lambda k: t("method_inflation") if k == INFLATION else t("method_mapped"),
-                             key="mesh_mode")
+                             key="mesh_mode", disabled=as_is)
+        if as_is:
+            st.caption(t("asis_no_mapped"))
         y_plus = st.number_input(t("y_plus"), value=DEFAULTS["y_plus"], min_value=0.05, step=0.5, key="y_plus")
     with c3.container(key="card_growth"):
         st.markdown(ui.step_html(3, t("step_growth")), unsafe_allow_html=True)
@@ -464,18 +484,30 @@ with tab_mesh:
 
         # Edge Sizing for the airfoil and wake-axis edges (same geometric plan as mapped mode)
         st.subheader(t("infl_edges_title") if "wake_axis" in kept_lines else t("infl_edges_title_af"))
-        try:
-            edge_plan = plan_mesh(domain, split_af, re, max_wake_cell=FAR_FIELD_SIZE * chord,
-                                  **dict(sizing, ds_te=ds_te_infl))
-            keep = ("g_af_front", "g_af_rear") + (("g_wake",) if "wake_axis" in kept_lines else ())
-            e_rows = [r for e, r in zip(edge_plan.edges, plan_rows(edge_plan)) if e.group in keep]
-            for r, e in zip(e_rows, [e for e in edge_plan.edges if e.group in keep]):
-                if e.group == "g_wake":
-                    r[t("col_edges")] = t("wake_axis")
-            wide_table(e_rows, "infl_edges", [t(k) for k in ("col_group", "col_n", "col_bias", "col_small",
-                                                             "col_dsmin", "col_dsmax", "col_edges")])
-        except (ValueError, OverflowError) as e:
-            st.error(te(e))
+        if as_is:
+            # The drawn wall has no single chordwise spacing (fin walls, kinks): size it by hand.
+            st.info(t("asis_edges_note", ds_le=m_mm(ds_le * chord), ds_te=m_mm(ds_te_infl * chord)))
+            try:
+                wake = plan_wake_axis(domain, ds_te=ds_te_infl, wake_growth=wake_growth,
+                                      max_wake_cell=FAR_FIELD_SIZE * chord)
+                wide_table([{t("col_group"): t(wake.group), t("col_n"): str(wake.n), t("col_bias"): f"{wake.bias:.6g}",
+                             t("col_small"): t(wake.small_end), t("col_dsmin"): m_mm(wake.ds_min),
+                             t("col_dsmax"): m_mm(wake.ds_max), t("col_edges"): t("wake_axis")}], "infl_edges")
+            except (ValueError, OverflowError) as e:
+                st.error(te(e))
+        else:
+            try:
+                edge_plan = plan_mesh(domain, split_af, re, max_wake_cell=FAR_FIELD_SIZE * chord,
+                                      **dict(sizing, ds_te=ds_te_infl))
+                keep = ("g_af_front", "g_af_rear") + (("g_wake",) if "wake_axis" in kept_lines else ())
+                e_rows = [r for e, r in zip(edge_plan.edges, plan_rows(edge_plan)) if e.group in keep]
+                for r, e in zip(e_rows, [e for e in edge_plan.edges if e.group in keep]):
+                    if e.group == "g_wake":
+                        r[t("col_edges")] = t("wake_axis")
+                wide_table(e_rows, "infl_edges", [t(k) for k in ("col_group", "col_n", "col_bias", "col_small",
+                                                                 "col_dsmin", "col_dsmax", "col_edges")])
+            except (ValueError, OverflowError) as e:
+                st.error(te(e))
         if infl.growth > MAX_GOOD_GROWTH:
             st.warning(t("warn_growth", g=infl.growth, lim=MAX_GOOD_GROWTH))
         with st.expander(t("howto_title")):
@@ -568,13 +600,16 @@ with tab_mesh:
         rho_f = rho if rho is not None else AIR_DENSITY
         mu_f = mu if mu is not None else AIR_VISCOSITY
         u_default = u_inf if u_inf is not None else speed_for_reynolds(re, chord, rho_f, mu_f)
-        fc = st.columns(2)
+        fc = st.columns(3)
         aoa = fc[0].number_input(t("aoa"), value=4.25, step=0.25, format="%.2f", key="aoa")
+        temp_c = fc[2].number_input(t("fl_temp"), value=15.0, step=5.0, min_value=-100.0, max_value=500.0,
+                                    format="%.1f", key="fl_temp", help=t("fl_temp_help"))
+        a_sound = speed_of_sound(temp_c)
         u0 = float(f"{u_default:.4g}")   # Re = 1000 on a long chord needs less than 1 mm/s
         u_fl = fc[1].number_input(t("fl_speed"), value=u0, min_value=min(0.001, u0),
                                   format="%.3f", help=t("fl_speed_help"))
         try:
-            fs = freestream(aoa, u_fl, chord, rho_f, mu_f)
+            fs = freestream(aoa, u_fl, chord, rho_f, mu_f, speed_of_sound=a_sound)
         except ValueError as e:
             st.error(te(e))
             fs = None
@@ -592,6 +627,7 @@ with tab_mesh:
                 {t("col_setting"): t("fl_ref_len"), t("col_value"): f"{chord:g} m"},
                 {t("col_setting"): t("fl_ref_area"), t("col_value"): f"{chord:g} m² (c × 1 m)"},
                 {t("col_setting"): t("fl_re_mach"), t("col_value"): f"Re = {fs.reynolds:.4e},  M = {fs.mach:.3f}"},
+                {t("col_setting"): t("fl_sound"), t("col_value"): f"{a_sound:.2f} m/s ({temp_c:g} °C)"},
             ]
             st.markdown(ui.table_html(rows_f), unsafe_allow_html=True)
             if abs(fs.reynolds - re) > 0.01 * re:
@@ -599,3 +635,50 @@ with tab_mesh:
             if fs.mach > 0.3:
                 st.warning(t("fl_mach_warn", m=fs.mach))
         st.caption(t("fluent_note"))
+
+        if fs is not None:
+            # ---- free-stream turbulence decay between the inlet and the leading edge
+            st.markdown(f"**{t('tu_title')}**")
+            tc = st.columns(3)
+            tu_in = tc[0].number_input(t("tu_inlet"), value=1.0, min_value=0.001, max_value=50.0, step=0.1,
+                                       format="%.3f", key="tu_inlet")
+            vr = tc[1].number_input(t("tu_vr"), value=100.0, min_value=0.1, max_value=1.0e5, step=1.0,
+                                    format="%.4g", key="tu_vr")
+            tu_goal = tc[2].number_input(t("tu_goal"), value=None, min_value=0.001, max_value=50.0, step=0.01,
+                                         format="%.3f", key="tu_goal", placeholder="0.10")
+            dist = abs(domain.x_inlet)                       # inlet to the leading edge at x = 0
+            re_x = rho_f * fs.speed * dist / mu_f
+            tu_le = decayed_tu(tu_in / 100, re_x, vr)
+            rows_t = [
+                {t("col_setting"): t("tu_dist"), t("col_value"): f"{dist:.4g} m ({dist / chord:.3g} c)"},
+                {t("col_setting"): t("tu_at_le"), t("col_value"): f"{100 * tu_le:.3g} %"},
+                {t("col_setting"): t("tu_max"),
+                 t("col_value"): f"{100 * max_reachable_tu(re_x, vr):.3g} %"},
+            ]
+            if tu_goal:
+                need = inlet_tu_for(tu_goal / 100, re_x, vr)
+                rows_t.append({t("col_setting"): t("tu_need", goal=tu_goal),
+                               t("col_value"): f"{100 * need:.3g} %" if need is not None else t("tu_unreachable")})
+            st.markdown(ui.table_html(rows_t), unsafe_allow_html=True)
+            st.caption(t("tu_note"))
+
+            # ---- angle-of-attack sweep: one row per angle, for a polar
+            st.markdown(f"**{t('sweep_title')}**")
+            sc = st.columns(3)
+            a0 = sc[0].number_input(t("sweep_from"), value=-4.0, step=1.0, format="%.2f", key="sweep_from")
+            a1 = sc[1].number_input(t("sweep_to"), value=16.0, step=1.0, format="%.2f", key="sweep_to")
+            da = sc[2].number_input(t("sweep_step"), value=2.0, min_value=0.05, step=0.5, format="%.2f",
+                                    key="sweep_step")
+            try:
+                sweep = alpha_sweep(a0, a1, da, fs.speed)
+            except ValueError as e:
+                st.error(te(e))
+                sweep = []
+            if sweep:
+                rows_s = [{"α [°]": f"{r['aoa']:g}", "X-Velocity [m/s]": f"{r['ux']:.6g}",
+                           "Y-Velocity [m/s]": f"{r['uy']:.6g}",
+                           "Drag X": f"{r['drag'][0]:.6f}", "Drag Y": f"{r['drag'][1]:.6f}",
+                           "Lift X": f"{r['lift'][0]:.6f}", "Lift Y": f"{r['lift'][1]:.6f}"} for r in sweep]
+                wide_table(rows_s, "sweep")
+                st.download_button(t("sweep_csv"), data=rows_to_csv(rows_s),
+                                   file_name=f"{file_prefix}_aoa_sweep.csv", mime="text/csv", key="sweep_csv")
