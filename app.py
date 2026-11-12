@@ -12,9 +12,10 @@ import streamlit as st
 
 from airfoilmatic import __version__ as APP_VERSION, APP_STAGE
 from airfoilmatic.geometry import (DEFAULT_SPLIT, AirfoilError, chord_line_angle, close_small_te_gap,
-                                   looks_reversed, naca, parse_airfoil_file, split_at)
+                                   looks_reversed, parse_airfoil_file, split_at)
 from airfoilmatic.topology import C_GRID, RECT, SPLIT_LINES, build_domain, line_warnings, select_lines
 from airfoilmatic.export import safe_file_stem, to_ansys_txt
+from airfoilmatic import library as lib
 from airfoilmatic.mesh import DEFAULTS, MAX_GOOD_GROWTH, plan_inflation, plan_mesh, reynolds
 from airfoilmatic.fluent import AIR_DENSITY, AIR_VISCOSITY, freestream, speed_for_reynolds
 from airfoilmatic.quality import (FLUENT_MAX_SKEWNESS, FLUENT_MIN_ORTHO, RATING_LEVEL,
@@ -45,13 +46,76 @@ st.markdown(ui.css(), unsafe_allow_html=True)
 st.markdown(ui.header_html(APP_VERSION, APP_STAGE, t("subtitle")), unsafe_allow_html=True)
 
 # ---------------------------------------------------------------- sidebar inputs
-source = st.sidebar.radio(t("source"), ["naca", "file"],
-                          format_func=lambda k: t("source_naca") if k == "naca" else t("source_file"))
+source = st.sidebar.radio(t("source"), ["search", "file"],
+                          format_func=lambda k: t("source_search") if k == "search" else t("source_file"))
 
-if source == "naca":
-    naca_code = st.sidebar.text_input(t("naca_code"), value="4412", max_chars=5).strip()
-    file_prefix = f"AirfoilMatic_NACA{naca_code}"
-    custom_file = None
+
+MAX_T_PERCENT = 40   # the thickest section in the selection is 38.8% c
+
+
+def _filters():
+    lo, hi = st.session_state.get("f_thick", (0, MAX_T_PERCENT))
+    return dict(t_range=(lo / 100.0, hi / 100.0), camber=st.session_state.get("f_camber", lib.CAMBER_ANY),
+                family_keys=st.session_state.get("f_family") or None)
+
+
+def _go(section_id):
+    """Put a section in the search box; the page then adds it to the back/forward history."""
+    st.session_state.af_query = section_id
+
+
+def _dice():
+    pick = lib.random_section(np.random.default_rng(), avoid=st.session_state.get("af_current"), **_filters())
+    st.session_state.dice_empty = pick is None
+    if pick is not None:
+        _go(pick.id)
+
+
+def _step(d):
+    st.session_state.af_hist_i += d
+    st.session_state.af_query = st.session_state.af_history[st.session_state.af_hist_i]
+
+
+section = None
+custom_file = None
+if source == "search":
+    st.session_state.setdefault("af_query", "4412")
+    st.session_state.setdefault("af_history", [])
+    st.session_state.setdefault("af_hist_i", -1)
+    query = st.sidebar.text_input(t("search_label"), key="af_query", help=t("search_help"),
+                                  placeholder=t("search_placeholder"))
+    button_row = st.sidebar.container()   # filled below, once this run's section is in the history
+    found = lib.search(query)
+    if found:
+        # The key follows the query, so a new search starts at its best match.
+        section = st.sidebar.selectbox(t("results", n=len(found)), found, key=f"pick_{query}",
+                                       format_func=lambda s: s.title if s.source == lib.NACA_FORMULA
+                                       else f"{s.title} · {s.family_name}")
+        st.session_state.af_current = section.id
+        hist, i = st.session_state.af_history, st.session_state.af_hist_i
+        if not hist or hist[i] != section.id:   # a new section (typed, picked or rolled): remember it
+            st.session_state.af_history = hist[: i + 1] + [section.id]
+            st.session_state.af_hist_i = len(st.session_state.af_history) - 1
+        file_prefix = "AirfoilMatic_" + safe_file_stem(section.title.replace(" ", ""))
+    else:
+        file_prefix = "AirfoilMatic_custom"
+    b1, b2, b3 = button_row.columns(3)
+    b1.button("🎲", on_click=_dice, help=t("dice_help"), use_container_width=True, key="dice")
+    b2.button("⬅", on_click=_step, args=(-1,), help=t("hist_back"), use_container_width=True, key="hist_back",
+              disabled=st.session_state.af_hist_i <= 0)
+    b3.button("➡", on_click=_step, args=(1,), help=t("hist_fwd"), use_container_width=True, key="hist_fwd",
+              disabled=st.session_state.af_hist_i >= len(st.session_state.af_history) - 1)
+    with st.sidebar.expander(t("random_filters")):
+        st.slider(t("f_thickness"), 0, MAX_T_PERCENT, (0, MAX_T_PERCENT), key="f_thick")
+        st.radio(t("f_camber"), [lib.CAMBER_ANY, lib.CAMBER_SYMMETRIC, lib.CAMBER_CAMBERED], key="f_camber",
+                 horizontal=True, format_func=lambda k: t({lib.CAMBER_ANY: "cam_any", lib.CAMBER_SYMMETRIC: "cam_sym",
+                                                           lib.CAMBER_CAMBERED: "cam_cambered"}[k]))
+        fam = dict(lib.families())
+        st.multiselect(t("f_family"), list(fam), format_func=fam.get, key="f_family",
+                       placeholder=t("f_family_ph"))
+        st.caption(t("pool_size", n=len(lib.pool(**_filters()))))
+    if st.session_state.get("dice_empty"):
+        st.sidebar.warning(t("dice_empty"))
 else:
     custom_file = st.sidebar.file_uploader(t("upload"), type=["dat", "txt", "csv"])
     mirror_slot = st.sidebar.empty()   # "mirror in x" box, filled once the file has been read
@@ -91,11 +155,14 @@ MIN_NOTE_OVERLAP = 1e-5   # smaller overlaps are repaired without a remark
 MIN_SURFACE_POINTS = 12   # below this DesignModeler's curve through the points is too coarse
 file_notes = []           # (kind, text) remarks about an uploaded file, shown on the geometry tab
 try:
-    if source == "naca":
-        if len(naca_code) not in (4, 5) or not naca_code.isdigit():
-            st.error(t("err_naca"))
+    if source == "search":
+        if section is None:
+            if query.strip():
+                st.error(t("not_found", q=query.strip()))
+            else:
+                st.info(t("search_empty"))
             st.stop()
-        airfoil = naca(naca_code, chord)
+        airfoil = section.airfoil(chord)
     else:
         if custom_file is None:
             st.info(t("upload_info"))
@@ -227,6 +294,13 @@ with tab_geo:
     st.caption(t("geom_info", split=DEFAULT_SPLIT) if all_lines else (t("geom_info_one") if n_faces == 1 else t("geom_info_partial", n=n_faces)))
     for kind, key in line_warnings(kept_lines):
         st.warning(t("warn_single_line", line=t(key)) if kind == "single_line" else t("warn_wake_no_front"))
+    if section is not None:
+        if section.source == lib.NACA_FORMULA:
+            st.caption(t("info_naca", title=section.title, t=100 * section.t, xt=section.xt))
+        else:
+            st.caption(t("info_uiuc", title=section.title, family=section.family_name, id=section.id,
+                         t=100 * section.t, xt=section.xt, camber=100 * section.camber, xc=section.xc,
+                         points=section.points))
     if domain.blunt_te:
         st.info(t("blunt_info", gap=split_af.te_gap))
     for kind, text in file_notes:

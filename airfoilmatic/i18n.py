@@ -28,17 +28,97 @@ STRINGS = {
         "tr": 'Kanat Veri Kaynağı',
         "en": 'Airfoil Source',
     },
-    'source_naca': {
-        "tr": 'NACA (4 veya 5 haneli)',
-        "en": 'NACA (4- or 5-digit)',
+    'source_search': {
+        "tr": 'Profil ara (NACA + UIUC veritabanı)',
+        "en": 'Search sections (NACA + UIUC database)',
+    },
+    'search_label': {
+        "tr": 'Profil adı',
+        "en": 'Section name',
+    },
+    'search_help': {
+        "tr": '4 ya da 5 haneli NACA kodları NACA denklemlerinden çizilir (201 nokta, keskin firar kenarı). Diğer profiller UIUC veritabanından seçilmiş 200 profilden gelir. Boşluk, tire ve parantez önemli değil: "63-215", "n63215" ve "NACA 63-215" aynı profili bulur.',
+        "en": '4- and 5-digit NACA codes are drawn from the NACA equations (201 points, sharp trailing edge). Every other section comes from 200 sections selected from the UIUC database. Spaces, dashes and brackets do not matter: "63-215", "n63215" and "NACA 63-215" find the same section.',
+    },
+    'search_placeholder': {
+        "tr": 'ör. 4412, e387, clark y, 63-215',
+        "en": 'e.g. 4412, e387, clark y, 63-215',
+    },
+    'results': {
+        "tr": 'Bulunan profiller ({n})',
+        "en": 'Sections found ({n})',
+    },
+    'not_found': {
+        "tr": '"{q}" veritabanında yok. Geçerli bir 4/5 haneli NACA kodu ya da seçkideki bir profil adı yazın; listede olmayan bir profili dosya olarak yükleyebilirsiniz.',
+        "en": '"{q}" is not in the database. Type a valid 4/5-digit NACA code or the name of a section in the selection; a section that is not listed can be uploaded as a file.',
+    },
+    'search_empty': {
+        "tr": 'Bir profil adı yazın ya da 🎲 ile rastgele seçin.',
+        "en": 'Type a section name or pick one at random with 🎲.',
+    },
+    'dice_help': {
+        "tr": 'Rastgele profil (aşağıdaki filtrelere uyan, UIUC seçkisinden)',
+        "en": 'Random section (from the UIUC selection, matching the filters below)',
+    },
+    'hist_back': {
+        "tr": 'Önceki profil',
+        "en": 'Previous section',
+    },
+    'hist_fwd': {
+        "tr": 'Sonraki profil',
+        "en": 'Next section',
+    },
+    'random_filters': {
+        "tr": 'Rastgele seçim filtreleri',
+        "en": 'Random pick filters',
+    },
+    'f_thickness': {
+        "tr": 'Maksimum kalınlık (% veter)',
+        "en": 'Maximum thickness (% chord)',
+    },
+    'f_camber': {
+        "tr": 'Kamburluk',
+        "en": 'Camber',
+    },
+    'cam_any': {
+        "tr": 'Hepsi',
+        "en": 'Any',
+    },
+    'cam_sym': {
+        "tr": 'Simetrik',
+        "en": 'Symmetric',
+    },
+    'cam_cambered': {
+        "tr": 'Kamburlu',
+        "en": 'Cambered',
+    },
+    'f_family': {
+        "tr": 'Aile (boş = hepsi)',
+        "en": 'Family (empty = all)',
+    },
+    'f_family_ph': {
+        "tr": 'Aile seçin',
+        "en": 'Choose families',
+    },
+    'pool_size': {
+        "tr": 'Filtrelere uyan profil: {n}',
+        "en": 'Sections matching the filters: {n}',
+    },
+    'dice_empty': {
+        "tr": 'Filtrelere uyan profil yok; filtreleri genişletin.',
+        "en": 'No section matches the filters; widen them.',
+    },
+    'info_naca': {
+        "tr": '**{title}**: NACA denklemlerinden çizildi. Maks. kalınlık %{t:.1f}c, x = {xt:.2f}c.',
+        "en": '**{title}**: drawn from the NACA equations. Max. thickness {t:.1f}% c at x = {xt:.2f}c.',
+    },
+    'info_uiuc': {
+        "tr": '**{title}** ({family}, dosya `{id}.dat`): UIUC Airfoil Coordinates Database. Maks. kalınlık %{t:.1f}c (x = {xt:.2f}c), maks. kamburluk %{camber:.1f}c (x = {xc:.2f}c), {points} nokta.',
+        "en": '**{title}** ({family}, file `{id}.dat`): UIUC Airfoil Coordinates Database. Max. thickness {t:.1f}% c (x = {xt:.2f}c), max. camber {camber:.1f}% c (x = {xc:.2f}c), {points} points.',
     },
     'source_file': {
         "tr": 'Özel Kanat (.dat / .txt / .csv)',
         "en": 'Custom Airfoil (.dat / .txt / .csv)',
-    },
-    'naca_code': {
-        "tr": 'NACA Kodu',
-        "en": 'NACA Code',
     },
     'upload': {
         "tr": 'Kanat Dosyası Yükle (Selig / Lednicer)',
@@ -115,10 +195,6 @@ STRINGS = {
     'download': {
         "tr": 'Ansys TXT İndir',
         "en": 'Download Ansys TXT',
-    },
-    'err_naca': {
-        "tr": 'Lütfen geçerli 4 veya 5 haneli bir NACA kodu girin.',
-        "en": 'Please enter a valid 4- or 5-digit NACA code.',
     },
     'err_geometry': {
         "tr": 'Kanat geometrisi oluşturulamadı: {msg}',

@@ -1,13 +1,14 @@
-# AirfoilMatic V0.5.6 Beta — 2B CFD Domain Generator
+# AirfoilMatic V0.6.0 Beta — 2B CFD Domain Generator
 
 **Türkçe** | [English](README.en.md)
 
 **[AirfoilMatic'i Tarayıcıda Çalıştır](https://airfoilmatic-gkxdkjpsclawjnbhmzng89.streamlit.app/)**
 
-AirfoilMatic, bir kanat profili (NACA 4/5 haneli ya da özel `.dat` dosyası) etrafında 2B CFD akış alanı geometrisi oluşturur ve Ansys DesignModeler `3D Curve` metin formatında dışa aktarır. Akış alanı baştan altı adet dört kenarlı bloğa bölündüğü için Ansys Meshing yapısal (mapped) mesh üretebilir. Uygulama ayrıca bu bloklara uygun mesh ayarlarını (Inflation, Edge Sizing) ve Fluent kurulum değerlerini de verir.
+AirfoilMatic, bir kanat profili (NACA 4/5 haneli, UIUC veritabanından seçilmiş 200 profilden biri ya da özel `.dat` dosyası) etrafında 2B CFD akış alanı geometrisi oluşturur ve Ansys DesignModeler `3D Curve` metin formatında dışa aktarır. Akış alanı baştan altı adet dört kenarlı bloğa bölündüğü için Ansys Meshing yapısal (mapped) mesh üretebilir. Uygulama ayrıca bu bloklara uygun mesh ayarlarını (Inflation, Edge Sizing) ve Fluent kurulum değerlerini de verir.
 
 ## Özellikler
-* NACA 4 ve 5 haneli (standart, refleks olmayan) profiller, tam kosinüs nokta dağılımı
+* NACA 4 ve 5 haneli (standart, refleks olmayan) profiller, NACA denklemlerinden 201 nokta ve tam kosinüs dağılımıyla
+* **Profil arama ve rastgele profil:** UIUC Airfoil Coordinates Database'den seçilmiş 200 profil (NACA 6 ve 16 serisi, NASA SC(2)/NLF/LS, Eppler, Selig, Wortmann, Hepperle, Drela, RAE, Delft DU ve diğerleri). Ad yazınca bulunur (`63-215`, `e387`, `clark y`); 🎲 düğmesi kalınlık, kamburluk ve aileye göre filtrelenmiş rastgele bir profil getirir, geri/ileri ile önceki profillere dönülür. Uygulama profil uydurmaz: listede olmayan bir ad için "veritabanında yok" der
 * Özel kanat dosyası (`.dat`, `.txt`, `.csv`; Selig ve Lednicer formatları), küt firar kenarının otomatik kapatılması. Birim, orijin ve nokta sırası fark etmez: profil hücum kenarı orijine gelecek şekilde taşınır ve veter uzunluğuna ölçeklenir. Ondalık virgül, `;` ayırıcı, bitişik Fortran sütunları, nokta numarası ya da sabit üçüncü sütun da okunur. Ters yönde çizilmiş profil çevrilir; eğik duran, çok az noktalı ya da bozuk dosyalar için uyarı verilir
 * C-Grid ve Dikdörtgen (rüzgar tüneli) domain, 6 adet dört kenarlı blok
 * Altı bölme çizgisinden hangilerinin dışa aktarılacağını seçme (mapped mesh için altısı da gerekir; quad-dominant + inflation ile altısı ve ön eksen + iz ekseni denendi), çalışmayan tek çizgi seçimi için uyarı
@@ -24,7 +25,7 @@ cd AirfoilMatic
 pip install -r requirements.txt
 streamlit run app.py
 ```
-Testleri çalıştırmak için: `pip install pytest` ve ardından `pytest`. `tests/test_app.py` uygulamanın kendisini (Streamlit AppTest ile) tarayıcı olmadan çalıştırır; `tests/test_hard_files.py` bilinen bir profilden üretilmiş 75 zor dosyayı okutup çıkan şekli gerçeğiyle karşılaştırır; `tests/test_database_findings.py` UIUC veritabanının tamamından çıkan hataları (iç içe giren yüzeyler) sınar.
+Testleri çalıştırmak için: `pip install pytest` ve ardından `pytest`. `tests/test_app.py` uygulamanın kendisini (Streamlit AppTest ile) tarayıcı olmadan çalıştırır; `tests/test_hard_files.py` bilinen bir profilden üretilmiş 75 zor dosyayı okutup çıkan şekli gerçeğiyle karşılaştırır; `tests/test_database_findings.py` UIUC veritabanının tamamından çıkan hataları (iç içe giren yüzeyler) sınar; `tests/test_library.py` seçkideki her profilden temiz bir domain kurulduğunu ve aramayı sınar.
 
 ## Ansys iş akışı
 1. **İçe aktarma:** DesignModeler'da önce `Units > Meter` seçin, sonra `Concept > 3D Curve` ile indirdiğiniz `.txt` dosyasını seçip `Generate` deyin.
@@ -73,3 +74,5 @@ Hata ve önerileriniz için [Issues](https://github.com/meceylan/AirfoilMatic/is
 
 ## Lisans
 MIT Lisansı. Arayüz yazı tipi Source Serif 4, SIL Open Font License 1.1 ile dağıtılır (`static/fonts/OFL-SourceSerif4.txt`).
+
+Profil seçkisindeki koordinatlar Prof. Michael S. Selig'in yürüttüğü [UIUC Airfoil Coordinates Database](https://m-selig.ae.illinois.edu/ads/coord_database.html)'den alınmıştır ve uygulamanın MIT lisansına dahil değildir. Seçki `tools/build_airfoil_library.py` ile veritabanından yeniden üretilebilir.

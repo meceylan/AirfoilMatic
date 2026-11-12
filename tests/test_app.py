@@ -40,7 +40,7 @@ def table_text(at):
 @pytest.mark.parametrize("mode", ["inflation", "mapped"])
 def test_app_runs_in_every_mode(lang, domain, mode):
     at = start(lang)
-    at.selectbox[0].set_value(domain)
+    widget(at, "selectbox", tr("domain_type", lang)).set_value(domain)
     at = at.run()
     widget(at, "radio", tr("mesh_method", lang)).set_value(mode)
     at = at.run()
@@ -175,3 +175,67 @@ def test_upload_with_overlapping_surfaces_is_repaired_and_says_so():
     assert any("birbirinin içine" in n for n in notes(at))
     at = upload("cusp.dat", data, lang="en")
     assert any("overlap" in n for n in notes(at))
+
+
+# ------------------------------------------------------------------ section search and dice
+
+def captions(at):
+    return "\n".join(c.value for c in at.caption)
+
+
+def search_for(at, text):
+    at.text_input(key="af_query").set_value(text)
+    return at.run()
+
+
+@pytest.mark.parametrize("lang", ["tr", "en"])
+def test_default_section_is_naca_4412_from_the_equations(lang):
+    at = start(lang)
+    assert not at.exception and not at.error
+    assert widget(at, "selectbox", tr("results", lang, n=1)).value.id == "naca4412"
+    assert "NACA 4412" in captions(at) and "UIUC" not in captions(at)
+
+
+def test_database_section_is_found_and_its_source_shown():
+    at = search_for(start(), "e387")
+    assert not at.exception and not at.error
+    assert "`e387.dat`" in captions(at) and "UIUC" in captions(at)
+
+
+@pytest.mark.parametrize("text", ["xyz", "9999"])
+def test_unknown_section_says_it_is_not_in_the_database(text):
+    at = search_for(start(), text)
+    assert not at.exception
+    assert len(at.error) == 1 and f'"{text}"' in at.error[0].value
+
+
+def test_dice_follows_the_filters_and_history_goes_back_and_forth():
+    at = start()
+    at.multiselect(key="f_family").set_value(["wortmann"])
+    at = at.run()
+    picks = []
+    for _ in range(3):
+        at.button(key="dice").click()
+        at = at.run()
+        assert not at.exception and not at.error
+        s = at.selectbox[0].value
+        assert s.family == "wortmann"
+        picks.append(s.id)
+    assert picks[0] != picks[1] != picks[2]   # never the same section twice in a row
+    at.button(key="hist_back").click()
+    at = at.run()
+    assert at.selectbox[0].value.id == picks[1]
+    at.button(key="hist_fwd").click()
+    at = at.run()
+    assert at.selectbox[0].value.id == picks[2]
+
+
+def test_dice_with_no_matching_section_warns_and_keeps_the_section():
+    at = start()
+    at.slider(key="f_thick").set_value((0, 2))
+    at = at.run()
+    at.button(key="dice").click()
+    at = at.run()
+    assert not at.exception and not at.error
+    assert any(tr("dice_empty", "tr") == w.value for w in at.warning)
+    assert at.selectbox[0].value.id == "naca4412"
