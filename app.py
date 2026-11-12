@@ -100,10 +100,10 @@ if source == "search":
     else:
         file_prefix = "AirfoilMatic_custom"
     b1, b2, b3 = button_row.columns(3)
-    b1.button("🎲", on_click=_dice, help=t("dice_help"), use_container_width=True, key="dice")
-    b2.button("⬅", on_click=_step, args=(-1,), help=t("hist_back"), use_container_width=True, key="hist_back",
+    b1.button("🎲", on_click=_dice, use_container_width=True, key="dice")
+    b2.button("⬅", on_click=_step, args=(-1,), use_container_width=True, key="hist_back",
               disabled=st.session_state.af_hist_i <= 0)
-    b3.button("➡", on_click=_step, args=(1,), help=t("hist_fwd"), use_container_width=True, key="hist_fwd",
+    b3.button("➡", on_click=_step, args=(1,), use_container_width=True, key="hist_fwd",
               disabled=st.session_state.af_hist_i >= len(st.session_state.af_history) - 1)
     with st.sidebar.expander(t("random_filters")):
         st.slider(t("f_thickness"), 0, MAX_T_PERCENT, (0, MAX_T_PERCENT), key="f_thick")

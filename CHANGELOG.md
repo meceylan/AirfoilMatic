@@ -1,5 +1,13 @@
 # Changelog
 
+## V0.6.1 Beta
+
+- The 🎲 ⬅ ➡ buttons no longer show a hover tooltip; it floated over the page.
+
+## V0.6.1 Beta (Türkçe)
+
+- 🎲 ⬅ ➡ düğmelerinin üzerine gelince çıkan açıklama kaldırıldı; sayfanın üstünde havada kalıyordu.
+
 ## V0.6.0 Beta
 
 - **Section search.** The NACA box is now a search box for every section the app knows. A 4- or 5-digit NACA code is drawn from the NACA equations as before (201 points, sharp trailing edge; this is the NACA 0012 used in the validation). Every other section comes from a selection of 200 sections from the UIUC Airfoil Coordinates Database: NACA 6 and 16 series, NASA SC(2), NLF and LS, Eppler, Selig, Wortmann FX, Hepperle MH, Drela AG/HT, Althaus, Quabeck, Girsberger, RAE, Delft DU, Clark Y, Göttingen and others. Spaces, dashes and brackets do not matter (`63-215`, `n63215` and `NACA 63-215` find the same section). The app does not invent a section: a name that is neither a NACA code nor in the selection is reported as not in the database.

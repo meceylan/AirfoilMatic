@@ -56,18 +56,6 @@ STRINGS = {
         "tr": 'Bir profil adı yazın ya da 🎲 ile rastgele seçin.',
         "en": 'Type a section name or pick one at random with 🎲.',
     },
-    'dice_help': {
-        "tr": 'Rastgele profil (aşağıdaki filtrelere uyan, UIUC seçkisinden)',
-        "en": 'Random section (from the UIUC selection, matching the filters below)',
-    },
-    'hist_back': {
-        "tr": 'Önceki profil',
-        "en": 'Previous section',
-    },
-    'hist_fwd': {
-        "tr": 'Sonraki profil',
-        "en": 'Next section',
-    },
     'random_filters': {
         "tr": 'Rastgele seçim filtreleri',
         "en": 'Random pick filters',
