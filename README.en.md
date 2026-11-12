@@ -2,7 +2,7 @@
 
 [Türkçe](README.md) | **English**
 
-**[Run AirfoilMatic in your browser](https://airfoilmatic-gkxdkjpsclawjnbhmzng89.streamlit.app/)**
+**[Run AirfoilMatic in your browser](https://airfoilmatic.streamlit.app/)**
 
 AirfoilMatic builds the geometry of a 2D CFD flow domain around an airfoil (NACA 4/5-digit, one of 200 sections selected from the UIUC database, or a custom `.dat` file) and exports it in the Ansys DesignModeler `3D Curve` text format. The domain is already split into six four-sided blocks, so Ansys Meshing can produce a structured (mapped) mesh. It also gives you matching mesh settings (Inflation, Edge Sizing) and Fluent setup values.
 

@@ -2,7 +2,7 @@
 
 **Türkçe** | [English](README.en.md)
 
-**[AirfoilMatic'i Tarayıcıda Çalıştır](https://airfoilmatic-gkxdkjpsclawjnbhmzng89.streamlit.app/)**
+**[AirfoilMatic'i Tarayıcıda Çalıştır](https://airfoilmatic.streamlit.app/)**
 
 AirfoilMatic, bir kanat profili (NACA 4/5 haneli, UIUC veritabanından seçilmiş 200 profilden biri ya da özel `.dat` dosyası) etrafında 2B CFD akış alanı geometrisi oluşturur ve Ansys DesignModeler `3D Curve` metin formatında dışa aktarır. Akış alanı baştan altı adet dört kenarlı bloğa bölündüğü için Ansys Meshing yapısal (mapped) mesh üretebilir. Uygulama ayrıca bu bloklara uygun mesh ayarlarını (Inflation, Edge Sizing) ve Fluent kurulum değerlerini de verir.
 
