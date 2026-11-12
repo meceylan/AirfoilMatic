@@ -148,7 +148,11 @@ def build_domain(af: SplitAirfoil, kind=C_GRID, r_inlet=10.0, l_wake=20.0,
         Curve("wake_axis", "split", *_line((x_te_mid, y_te_mid), (x_exit, y_te_mid))),
     ]
     if blunt:
-        d.curves.append(Curve("te_closure", "split", *_line((xtu, ytu), (xtl, ytl))))
+        # Odd point count with the exact wake-axis start as middle vertex: after rounding in the
+        # TXT the wake axis still starts on the closure (not inside a slanted TE base).
+        xc, yc = _line((xtu, ytu), (xtl, ytl), LINE_POINTS + 1)
+        xc[LINE_POINTS // 2], yc[LINE_POINTS // 2] = x_te_mid, y_te_mid
+        d.curves.append(Curve("te_closure", "split", xc, yc))
     return d
 
 

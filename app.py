@@ -46,7 +46,9 @@ st.markdown(ui.css(), unsafe_allow_html=True)
 st.markdown(ui.header_html(APP_VERSION, APP_STAGE, t("subtitle")), unsafe_allow_html=True)
 
 # ---------------------------------------------------------------- sidebar inputs
-source = st.sidebar.radio(t("source"), ["search", "file"],
+# Widgets whose label is translated carry a key: without one, Streamlit treats the
+# relabelled widget as a new one after a language switch and resets it to its default.
+source = st.sidebar.radio(t("source"), ["search", "file"], key="source",
                           format_func=lambda k: t("source_search") if k == "search" else t("source_file"))
 
 
@@ -96,13 +98,15 @@ if source == "search":
         if not hist or hist[i] != section.id:   # a new section (typed, picked or rolled): remember it
             st.session_state.af_history = hist[: i + 1] + [section.id]
             st.session_state.af_hist_i = len(st.session_state.af_history) - 1
-        file_prefix = "AirfoilMatic_" + safe_file_stem(section.title.replace(" ", ""))
+        # ".txt" so that safe_file_stem cuts only that: titles are not file names ("HQ 1.0/12", "E169 (14.4%)")
+        file_prefix = "AirfoilMatic_" + safe_file_stem(section.title.replace(" ", "") + ".txt")
     else:
         file_prefix = "AirfoilMatic_custom"
     b1, b2, b3 = button_row.columns(3)
     b1.button("🎲", on_click=_dice, use_container_width=True, key="dice")
-    b2.button("←", on_click=_step, args=(-1,), use_container_width=True, key="hist_back",
-              disabled=st.session_state.af_hist_i <= 0)
+    back = -1 if section is not None else 0   # no section shown (unknown query): ← returns to the last one
+    b2.button("←", on_click=_step, args=(back,), use_container_width=True, key="hist_back",
+              disabled=st.session_state.af_hist_i + back < 0)
     b3.button("→", on_click=_step, args=(1,), use_container_width=True, key="hist_fwd",
               disabled=st.session_state.af_hist_i >= len(st.session_state.af_history) - 1)
     with st.sidebar.expander(t("random_filters")):
@@ -117,24 +121,24 @@ if source == "search":
     if st.session_state.get("dice_empty"):
         st.sidebar.warning(t("dice_empty"))
 else:
-    custom_file = st.sidebar.file_uploader(t("upload"), type=["dat", "txt", "csv"])
+    custom_file = st.sidebar.file_uploader(t("upload"), type=["dat", "txt", "csv"], key="upload")
     mirror_slot = st.sidebar.empty()   # "mirror in x" box, filled once the file has been read
     file_prefix = "AirfoilMatic_" + (safe_file_stem(custom_file.name) if custom_file else "custom")
 
 domain_kind = st.sidebar.selectbox(t("domain_type"), [C_GRID, RECT],
-                                   format_func=lambda k: t("dom_cgrid") if k == C_GRID else t("dom_rect"))
-chord = st.sidebar.number_input(t("chord"), value=1.0, step=0.1, min_value=0.01)
+                                   format_func=lambda k: t("dom_cgrid") if k == C_GRID else t("dom_rect"), key="domain_kind")
+chord = st.sidebar.number_input(t("chord"), value=1.0, step=0.1, min_value=0.01, key="chord")
 file_prefix += "_CGrid" if domain_kind == C_GRID else "_Rect"
 
 if domain_kind == C_GRID:
-    r_inlet = st.sidebar.number_input(t("r_inlet"), value=15.0, step=1.0, min_value=1.0)
-    l_wake = st.sidebar.number_input(t("l_wake"), value=20.0, step=1.0, min_value=1.0)
+    r_inlet = st.sidebar.number_input(t("r_inlet"), value=15.0, step=1.0, min_value=1.0, key="r_inlet")
+    l_wake = st.sidebar.number_input(t("l_wake"), value=20.0, step=1.0, min_value=1.0, key="l_wake")
     l_top = l_bottom = r_inlet
 else:
-    r_inlet = st.sidebar.number_input(t("l_inlet"), value=15.0, step=1.0, min_value=1.0)
-    l_wake = st.sidebar.number_input(t("l_wake"), value=20.0, step=1.0, min_value=1.0)
-    l_top = st.sidebar.number_input(t("l_top"), value=15.0, step=1.0, min_value=1.0)
-    l_bottom = st.sidebar.number_input(t("l_bottom"), value=15.0, step=1.0, min_value=1.0)
+    r_inlet = st.sidebar.number_input(t("l_inlet"), value=15.0, step=1.0, min_value=1.0, key="l_inlet")
+    l_wake = st.sidebar.number_input(t("l_wake"), value=20.0, step=1.0, min_value=1.0, key="l_wake")
+    l_top = st.sidebar.number_input(t("l_top"), value=15.0, step=1.0, min_value=1.0, key="l_top")
+    l_bottom = st.sidebar.number_input(t("l_bottom"), value=15.0, step=1.0, min_value=1.0, key="l_bottom")
 
 # Six checkboxes are rarely changed, so they sit in a collapsed expander that shows how many are on.
 # The label must not change between reruns, otherwise Streamlit treats it as a new
@@ -173,7 +177,7 @@ try:
         # ticked when the outline looks reversed and can be changed by hand either way.
         reversed_file = looks_reversed(airfoil)
         mirrored = mirror_slot.checkbox(t("mirror_x"), value=reversed_file, help=t("mirror_x_help"),
-                                        key=f"mirror_{custom_file.name}_{len(data)}")
+                                        key=f"mirror_{custom_file.file_id}")   # a new upload is checked afresh
         if mirrored:
             airfoil = parse_airfoil_file(data, chord, name=custom_file.name, mirror=True)
         if reversed_file and mirrored:
@@ -366,28 +370,30 @@ with tab_mesh:
     c1, c2, c3 = st.columns(3)
     with c1.container(key="card_flow"):
         st.markdown(ui.step_html(1, t("step_flow")), unsafe_allow_html=True)
-        flow_mode = st.radio(t("flow_input"), ["re", "vel"], horizontal=True,
+        flow_mode = st.radio(t("flow_input"), ["re", "vel"], horizontal=True, key="flow_mode",
                              format_func=lambda k: t("flow_re") if k == "re" else t("flow_vel"))
         u_inf = rho = mu = None
         if flow_mode == "re":
-            re = st.number_input(t("re"), value=2.0e6, min_value=1.0e3, step=1.0e5, format="%.4e")
+            re = st.number_input(t("re"), value=2.0e6, min_value=1.0e3, step=1.0e5, format="%.4e", key="re")
         else:
-            u_inf = st.number_input(t("velocity"), value=30.0, min_value=0.01)
-            rho = st.number_input(t("density"), value=1.225, min_value=1e-6, format="%.4f")
-            mu = st.number_input(t("viscosity"), value=1.7894e-5, min_value=1e-9, format="%.4e")
+            u_inf = st.number_input(t("velocity"), value=30.0, min_value=0.01, key="velocity")
+            rho = st.number_input(t("density"), value=1.225, min_value=1e-6, format="%.4f", key="density")
+            mu = st.number_input(t("viscosity"), value=1.7894e-5, min_value=1e-9, format="%.4e", key="viscosity")
             re = reynolds(u_inf, rho, mu, chord)
             st.caption(f"Re = {short(re)}")
     with c2.container(key="card_method"):
         st.markdown(ui.step_html(2, t("step_method")), unsafe_allow_html=True)
         mesh_mode = st.radio(t("mesh_method"), [INFLATION, MAPPED],
-                             format_func=lambda k: t("method_inflation") if k == INFLATION else t("method_mapped"))
-        y_plus = st.number_input(t("y_plus"), value=DEFAULTS["y_plus"], min_value=0.05, step=0.5)
+                             format_func=lambda k: t("method_inflation") if k == INFLATION else t("method_mapped"),
+                             key="mesh_mode")
+        y_plus = st.number_input(t("y_plus"), value=DEFAULTS["y_plus"], min_value=0.05, step=0.5, key="y_plus")
     with c3.container(key="card_growth"):
         st.markdown(ui.step_html(3, t("step_growth")), unsafe_allow_html=True)
         if mesh_mode == INFLATION:
             growth = st.number_input(t("growth"), value=1.15, min_value=1.01, max_value=1.5,
                                      step=0.01, format="%.3f", key="g_infl")
-            coverage = st.number_input(t("coverage"), value=1.5, min_value=0.5, max_value=5.0, step=0.25)
+            coverage = st.number_input(t("coverage"), value=1.5, min_value=0.5, max_value=5.0, step=0.25,
+                                       key="coverage")
         else:
             growth = st.number_input(t("growth"), value=DEFAULTS["growth"], min_value=1.01, max_value=1.5,
                                      step=0.01, format="%.3f", key="g_map")
@@ -395,16 +401,18 @@ with tab_mesh:
     with st.expander(t("advanced")):
         st.caption(t("advanced_help" if mesh_mode == MAPPED else "advanced_help_infl"))
         cols = st.columns(4 if mesh_mode == MAPPED else 3)
-        ds_le = cols[0].number_input(t("ds_le"), value=DEFAULTS["ds_le"], min_value=1e-5, format="%.4f", step=0.0005)
+        ds_le = cols[0].number_input(t("ds_le"), value=DEFAULTS["ds_le"], min_value=1e-5, format="%.4f", step=0.0005,
+                                     key="ds_le")
         ds_split = cols[1].number_input(t("ds_split"), value=DEFAULTS["ds_split"], min_value=1e-4, format="%.4f",
-                                        step=0.001)
-        ds_te = cols[2].number_input(t("ds_te"), value=DEFAULTS["ds_te"], min_value=1e-5, format="%.4f", step=0.0005)
+                                        step=0.001, key="ds_split")
+        ds_te = cols[2].number_input(t("ds_te"), value=DEFAULTS["ds_te"], min_value=1e-5, format="%.4f", step=0.0005,
+                                     key="ds_te")
         # Inflation mode ends the wake axis at the far-field element size. First element, last
         # element and edge length then fix the progression, so a growth input would change nothing.
         wake_growth = DEFAULTS["wake_growth"]
         if mesh_mode == MAPPED:
             wake_growth = cols[3].number_input(t("wake_growth"), value=DEFAULTS["wake_growth"], min_value=1.01,
-                                               max_value=1.5, step=0.01, format="%.3f")
+                                               max_value=1.5, step=0.01, format="%.3f", key="wake_growth")
 
     if re < 5e5:
         st.info(t("low_re_note"))
@@ -442,7 +450,7 @@ with tab_mesh:
             {t("col_setting"): "Inflation Option", t("col_value"): "First Layer Thickness"},
             {t("col_setting"): "First Layer Height", t("col_value"): m_mm(infl.first_layer)},
             {t("col_setting"): "Maximum Layers", t("col_value"): f"{infl.layers}"},
-            {t("col_setting"): "Growth Rate", t("col_value"): f"{infl.growth:.3g}"},
+            {t("col_setting"): "Growth Rate", t("col_value"): f"{infl.growth:.6g}"},
             {t("col_setting"): t("infl_total"), t("col_value"): f"{m_mm(infl.total)}  (≈ {infl.total / infl.delta_turb:.2g} δ)"},
             {t("col_setting"): t("infl_last"), t("col_value"): m_mm(infl.last_layer)},
             {t("col_setting"): t("glob_size"), t("col_value"): m_mm(FAR_FIELD_SIZE * chord)},
@@ -512,13 +520,13 @@ with tab_mesh:
         st.caption(t("quality_help"))
         qc = st.columns(4)
         sk_max = qc[0].number_input(t("q_sk_max"), value=None, min_value=0.0, max_value=1.0, format="%.4f",
-                                    placeholder="0.76")
+                                    placeholder="0.76", key="q_sk_max")
         sk_avg = qc[1].number_input(t("q_sk_avg"), value=None, min_value=0.0, max_value=1.0, format="%.4f",
-                                    placeholder="0.016")
+                                    placeholder="0.016", key="q_sk_avg")
         oq_min = qc[2].number_input(t("q_oq_min"), value=None, min_value=0.0, max_value=1.0, format="%.4f",
-                                    placeholder="0.027")
+                                    placeholder="0.027", key="q_oq_min")
         oq_avg = qc[3].number_input(t("q_oq_avg"), value=None, min_value=0.0, max_value=1.0, format="%.4f",
-                                    placeholder="0.995")
+                                    placeholder="0.995", key="q_oq_avg")
         q_rows = []
         worst = 0
         for label, val, rater, limit_ok in (
@@ -549,8 +557,9 @@ with tab_mesh:
     if dy_ref:
         with st.expander(t("yplus_fix_title")):
             st.caption(t("yplus_fix_help"))
-            used = st.number_input(t("yplus_used_dy"), value=float(f"{dy_ref:.4e}"), min_value=1e-9, format="%.4e")
-            seen = st.number_input(t("yplus_seen"), value=None, min_value=1e-3, format="%.3f")
+            dy0 = float(f"{dy_ref:.4e}")   # very high Re or a tiny chord can go below the usual 1e-9 m floor
+            used = st.number_input(t("yplus_used_dy"), value=dy0, min_value=min(1e-9, dy0), format="%.4e")
+            seen = st.number_input(t("yplus_seen"), value=None, min_value=1e-3, format="%.3f", key="yplus_seen")
             if seen:
                 st.success(t("yplus_fix_result", dy=m_mm(used * y_plus / seen), target=y_plus))
 
@@ -560,8 +569,9 @@ with tab_mesh:
         mu_f = mu if mu is not None else AIR_VISCOSITY
         u_default = u_inf if u_inf is not None else speed_for_reynolds(re, chord, rho_f, mu_f)
         fc = st.columns(2)
-        aoa = fc[0].number_input(t("aoa"), value=4.25, step=0.25, format="%.2f")
-        u_fl = fc[1].number_input(t("fl_speed"), value=float(f"{u_default:.4g}"), min_value=0.001,
+        aoa = fc[0].number_input(t("aoa"), value=4.25, step=0.25, format="%.2f", key="aoa")
+        u0 = float(f"{u_default:.4g}")   # Re = 1000 on a long chord needs less than 1 mm/s
+        u_fl = fc[1].number_input(t("fl_speed"), value=u0, min_value=min(0.001, u0),
                                   format="%.3f", help=t("fl_speed_help"))
         try:
             fs = freestream(aoa, u_fl, chord, rho_f, mu_f)

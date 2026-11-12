@@ -90,9 +90,10 @@ def n_for_growth(length, ds, r):
     """Divisions needed to cover ``length`` from first cell ``ds`` at ratio r."""
     if length <= ds:
         return 1
+    # The 1e-9 keeps round-off (n + 1e-15) from adding a division when n cells fit exactly.
     if r <= 1.0 + 1e-9:
-        return max(1, math.ceil(length / ds))
-    return max(1, math.ceil(math.log(1.0 + length * (r - 1.0) / ds) / math.log(r)))
+        return max(1, math.ceil(length / ds - 1e-9))
+    return max(1, math.ceil(math.log(1.0 + length * (r - 1.0) / ds) / math.log(r) - 1e-9))
 
 
 def ratio_for(length, ds, n):

@@ -1,5 +1,37 @@
 # Changelog
 
+## V0.6.3 Beta
+
+Fixes from a four-part review (geometry and file reading, mesh math, page behaviour, topology and export). Each fix has a test that failed before it.
+
+- **Switching the language reset the inputs.** Chord, domain, Reynolds number, mesh settings and the uploaded file went back to their defaults after a TR ↔ EN switch. They are kept now.
+- **Two input boxes could stop the page** with an error: the y⁺ correction box at very high Reynolds numbers or tiny chords, and the Fluent speed box for a long chord at very low Reynolds numbers.
+- **Inflation Growth Rate was rounded** to 3 digits (1.105 shown as 1.1) while the layer count used the full value. It is shown as entered now.
+- **Search:** `n0012`, `N2412` (the UIUC way of writing NACA names) found the wrong section or nothing; now they give the NACA section. A 6-series name such as `64-012` was drawn as a 5-digit NACA section (cambered, a different airfoil); now it is only looked up in the selection.
+- **← after a search with no result** skipped a section; it now returns to the last section shown.
+- **Download names:** titles with a dot were cut short, so "HQ 1.0/12" and "HQ 1.0/8" downloaded under the same name. Every section now gets its own name.
+- **Mirror box** kept its tick when a corrected file with the same name and size was uploaded again.
+- **Overlap repair at the nose:** when the overlapping stretch reached the leading edge, the repair moved the two surfaces apart there too and the outline was left open at the nose.
+- **Slanted blunt trailing edge:** the wake axis could start a fraction of a micrometre inside the airfoil after rounding in the TXT. It now starts on a point of the closure line.
+- **TXT export:** two points that print alike are written once.
+- Number of divisions: a length that n cells fill exactly no longer gets n + 1 (round-off). No change in any plan the app gives with its own inputs.
+
+## V0.6.3 Beta (Türkçe)
+
+Dört bölümlü bir incelemeden (geometri ve dosya okuma, mesh hesapları, sayfa davranışı, topoloji ve dışa aktarma) çıkan düzeltmeler. Her düzeltmenin, düzeltmeden önce başarısız olan bir testi var.
+
+- **Dil değiştirmek girdileri sıfırlıyordu.** TR ↔ EN geçişinden sonra veter, domain, Reynolds sayısı, mesh ayarları ve yüklenen dosya varsayılana dönüyordu. Artık korunuyor.
+- **İki giriş kutusu sayfayı hatayla durdurabiliyordu:** çok yüksek Reynolds sayısında ya da çok küçük veterde y⁺ düzeltme kutusu, uzun veter ve çok düşük Reynolds sayısında Fluent hız kutusu.
+- **Inflation Growth Rate 3 haneye yuvarlanıyordu** (1.105 yerine 1.1), katman sayısı ise tam değerle hesaplanıyordu. Artık girildiği gibi gösteriliyor.
+- **Arama:** `n0012`, `N2412` (NACA adlarının UIUC yazımı) yanlış profili ya da hiçbir şey bulmuyordu; artık NACA profilini veriyor. `64-012` gibi bir 6 serisi adı 5 haneli NACA profili olarak çiziliyordu (kamburlu, başka bir profil); artık yalnızca seçkide aranıyor.
+- **Sonuç bulunmayan bir aramadan sonra ←** bir profil atlıyordu; artık en son gösterilen profile dönüyor.
+- **İndirme adları:** nokta içeren başlıklar kesiliyordu, "HQ 1.0/12" ile "HQ 1.0/8" aynı adla iniyordu. Artık her profilin kendi adı var.
+- **Çevir kutusu**, aynı ad ve boyutta düzeltilmiş bir dosya yeniden yüklenince işaretli kalıyordu.
+- **Burunda örtüşme onarımı:** örtüşen bölge hücum kenarına ulaşınca onarım iki yüzeyi orada da ayırıyor, profil burunda açık kalıyordu.
+- **Eğik küt firar kenarı:** TXT'deki yuvarlamadan sonra wake ekseni profilin mikrometrenin altında bir kesir kadar içinden başlayabiliyordu. Artık kapama çizgisinin bir noktasından başlıyor.
+- **TXT çıktısı:** aynı yazılan iki nokta bir kez yazılıyor.
+- Bölüntü sayısı: tam n hücrenin doldurduğu bir uzunluk yuvarlama hatasıyla n + 1 almıyor. Uygulamanın kendi girdileriyle verdiği planlarda bir değişiklik yok.
+
 ## V0.6.2 Beta
 
 - **Phone layout.** The 🎲 ← → buttons stay in one compact row on a phone (Streamlit stacked them into three full-width buttons).

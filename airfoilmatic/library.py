@@ -85,9 +85,11 @@ def _index():
 
 
 def naca_section(query):
-    """The NACA 4/5-digit section a query names ("4412", "NACA 23012", "naca-0012"), or None."""
+    """The NACA 4/5-digit section a query names ("4412", "NACA 23012", "naca-0012", "n0012"), or None."""
+    if re.search(r"\d\s*-\s*\d", query):
+        return None   # a dash between digits is a 6-series name ("64-012"), not a 5-digit code
     q = _norm(query)
-    m = re.fullmatch(r"(?:naca)?(\d{4,5})", q)
+    m = re.fullmatch(r"(?:naca|n)?(\d{4,5})", q)
     if not m:
         return None
     code = m.group(1)

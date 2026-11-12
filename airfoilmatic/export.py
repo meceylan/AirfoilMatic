@@ -42,9 +42,15 @@ def to_ansys_txt(domain, precision=None):
         c = max(getattr(domain, "chord", 1.0), 1e-9)
         precision = max(6, int(np.ceil(-np.log10(c * 1e-7))))
     lines = []
-    fmt = f"{{:d}} {{:d}} {{:.{precision}f}} {{:.{precision}f}} {{:.{precision}f}}"
+    fmt = f"{{:d}} {{:d}} {{}} {{}} {{:.{precision}f}}"
     for g, curve in enumerate(domain.curves, start=1):
         x, y = remove_consecutive_duplicates(curve.x, curve.y, tol=10.0 ** -precision)
-        for i, (px, py) in enumerate(zip(x, y), start=1):
+        pts = []
+        for px, py in zip(x, y):
+            p = (f"{px:.{precision}f}", f"{py:.{precision}f}")
+            # points closer than the last digit can still print alike: write them once
+            if not pts or (float(p[0]), float(p[1])) != (float(pts[-1][0]), float(pts[-1][1])):
+                pts.append(p)
+        for i, (px, py) in enumerate(pts, start=1):
             lines.append(fmt.format(g, i, px, py, 0.0))
     return "\n".join(lines) + "\n"

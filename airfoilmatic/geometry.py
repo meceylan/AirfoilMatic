@@ -401,6 +401,8 @@ def _repair_overlap(xu, yu, xl, yl, span):
     need[:lo], need[hi + 1:] = 0.0, 0.0
     if sharp_end:
         need[-1] = 0.0   # the surfaces meet at the trailing edge and must go on doing so
+    if abs(t[0]) < 1e-9 * span:
+        need[0] = 0.0    # both surfaces start at the common leading-edge point
     # Both surfaces get a point at every grid value of the stretch, so the shift is exact.
     win = grid[lo: hi + 1]
     out = []
