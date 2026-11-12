@@ -68,6 +68,10 @@ STRINGS = {
         "tr": 'Dosyadaki profil eğik duruyor: hücum kenarı–firar kenarı doğrusu x ekseniyle {angle:+.1f}° yapıyor (artı = burun yukarı). Bu açı, Fluent yardımcısına gireceğiniz hücum açısına eklenir.',
         "en": 'The profile in the file is tilted: the leading edge–trailing edge line makes {angle:+.1f}° with the x axis (positive = nose up). This angle adds to the angle of attack you enter in the Fluent helper.',
     },
+    'note_overlap': {
+        "tr": 'Dosyada üst ve alt yüzey birbirinin içine giriyor (en fazla {amount:.2g}c, çoğunlukla firar kenarında). Eğriler kesişirse DesignModeler yüzey oluşturamaz; bu yüzden yüzeyler en çok bu kadar birbirinden uzaklaştırıldı. Geometri bundan fazla değişmedi.',
+        "en": 'In this file the upper and lower surfaces overlap (by up to {amount:.2g}c, mostly at the trailing edge). Curves that cross keep DesignModeler from building a surface, so the surfaces were moved apart by at most that much. The shape did not change by more than this.',
+    },
     'upload_info': {
         "tr": 'Lütfen bir kanat dosyası yükleyin.',
         "en": 'Please upload an airfoil file.',
@@ -810,7 +814,7 @@ ERRORS_TR = {
     'Invalid chord in file': 'Dosyadaki veter uzunluğu geçersiz',
     'Points are not in order along the surface (mixed-up rows or more than one element)': 'Noktalar yüzey boyunca sıralı değil (satırlar karışmış ya da dosyada birden fazla eleman var)',
     'Airfoil has no thickness': 'Profilin kalınlığı yok (üst ve alt yüzey aynı)',
-    'Upper and lower surfaces cross each other': 'Üst ve alt yüzey birbirini kesiyor',
+    'Upper and lower surfaces cross each other': 'Üst ve alt yüzey birbirini kesiyor (çakışma binde bir veterden fazla; dosyadaki noktaları kontrol edin)',
     'Split location must be between 0.05c and 0.9c': 'Bölme konumu 0.05c ile 0.9c arasında olmalı',
     'Skewness must be between 0 and 1': 'Skewness 0 ile 1 arasında olmalı',
     'Orthogonal quality must be between 0 and 1': 'Orthogonal quality 0 ile 1 arasında olmalı',

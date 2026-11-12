@@ -158,3 +158,20 @@ def test_upload_of_something_else_shows_one_error(data):
     at = upload("other.dat", data)
     assert not at.exception
     assert len(at.error) == 1
+
+
+def test_upload_with_overlapping_surfaces_is_repaired_and_says_so():
+    """Wortmann-style cusped trailing edge: the lower surface ends 0.03 % above the upper one."""
+    a = naca("2412", n_points=60)
+    yl = a.yl.copy()
+    rear = a.xl > 0.97
+    k = (a.xl[rear] - 0.97) / 0.03
+    yl[rear] = a.yu[rear] + 3e-4 * np.sin(np.pi * k)
+    yl[-1] = a.yu[-1] = 0.0
+    data = "\n".join(f"{p:.7f} {q:.7f}" for p, q in zip(np.concatenate([a.xu[::-1], a.xl[1:]]),
+                                                         np.concatenate([a.yu[::-1], yl[1:]]))).encode()
+    at = upload("cusp.dat", data)
+    assert not at.exception and not at.error
+    assert any("birbirinin içine" in n for n in notes(at))
+    at = upload("cusp.dat", data, lang="en")
+    assert any("overlap" in n for n in notes(at))

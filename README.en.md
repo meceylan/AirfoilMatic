@@ -1,4 +1,4 @@
-# AirfoilMatic V0.5.5 Beta — 2D CFD Domain Generator
+# AirfoilMatic V0.5.6 Beta — 2D CFD Domain Generator
 
 [Türkçe](README.md) | **English**
 
@@ -24,7 +24,7 @@ cd AirfoilMatic
 pip install -r requirements.txt
 streamlit run app.py
 ```
-Run the tests with `pip install pytest` and `pytest`. `tests/test_app.py` runs the app itself headless (Streamlit AppTest); `tests/test_hard_files.py` reads 75 hard files written from a known profile and compares the result with the true outline.
+Run the tests with `pip install pytest` and `pytest`. `tests/test_app.py` runs the app itself headless (Streamlit AppTest); `tests/test_hard_files.py` reads 75 hard files written from a known profile and compares the result with the true outline; `tests/test_database_findings.py` covers the problems found by running the whole UIUC database (overlapping surfaces).
 
 ## Ansys workflow
 1. **Import:** In DesignModeler, set `Units > Meter` first, then use `Concept > 3D Curve`, select the downloaded `.txt` file and click `Generate`.
