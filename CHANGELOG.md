@@ -1,5 +1,23 @@
 # Changelog
 
+## V0.6.0 Beta
+
+- **Section search.** The NACA box is now a search box for every section the app knows. A 4- or 5-digit NACA code is drawn from the NACA equations as before (201 points, sharp trailing edge; this is the NACA 0012 used in the validation). Every other section comes from a selection of 200 sections from the UIUC Airfoil Coordinates Database: NACA 6 and 16 series, NASA SC(2), NLF and LS, Eppler, Selig, Wortmann FX, Hepperle MH, Drela AG/HT, Althaus, Quabeck, Girsberger, RAE, Delft DU, Clark Y, Göttingen and others. Spaces, dashes and brackets do not matter (`63-215`, `n63215` and `NACA 63-215` find the same section). The app does not invent a section: a name that is neither a NACA code nor in the selection is reported as not in the database.
+- **Random section 🎲**, with filters for maximum thickness, camber (symmetric / cambered) and family, and ⬅ ➡ to go back to earlier sections.
+- The geometry tab names the source of the section: the NACA equations, or the UIUC file with its maximum thickness, camber and point count.
+- How the 200 were chosen (`tools/build_airfoil_library.py`, run on the full database): at least 25 points per surface, no chordwise gap over 0.07c, no kink over 30° behind the nose, no overlapping surfaces, not tilted or reversed, at least 3% thick; within a family the well-known sections first, the rest spread over thickness, camber and their positions. NACA 4/5-digit files are left out: the database copies have 18 points and a blunt trailing edge, and NACA 0012 is not in the database.
+- Every section in the selection is tested to give a domain without crossing curves and a mesh plan (`tests/test_library.py`).
+- The coordinates are credited to the UIUC database (Prof. M. S. Selig) in the README and the About box; they are not covered by the app's MIT license.
+
+## V0.6.0 Beta (Türkçe)
+
+- **Profil arama.** NACA kutusu artık uygulamanın bildiği tüm profiller için bir arama kutusu. 4 ya da 5 haneli NACA kodu eskisi gibi NACA denklemlerinden çiziliyor (201 nokta, keskin firar kenarı; doğrulamada kullanılan NACA 0012 budur). Diğer her profil UIUC Airfoil Coordinates Database'den seçilmiş 200 profilden geliyor: NACA 6 ve 16 serisi, NASA SC(2), NLF ve LS, Eppler, Selig, Wortmann FX, Hepperle MH, Drela AG/HT, Althaus, Quabeck, Girsberger, RAE, Delft DU, Clark Y, Göttingen ve diğerleri. Boşluk, tire ve parantez önemli değil (`63-215`, `n63215` ve `NACA 63-215` aynı profili bulur). Uygulama profil uydurmuyor: ne NACA kodu ne de seçkide olan bir ad için "veritabanında yok" diyor.
+- **Rastgele profil 🎲**: maksimum kalınlık, kamburluk (simetrik / kamburlu) ve aile filtreleriyle; ⬅ ➡ ile önceki profillere dönülüyor.
+- Geometri sekmesi profilin kaynağını yazıyor: NACA denklemleri ya da UIUC dosyası, maksimum kalınlığı, kamburluğu ve nokta sayısıyla.
+- 200 profilin seçimi (`tools/build_airfoil_library.py`, veritabanının tamamı üzerinde): yüzey başına en az 25 nokta, veter boyunca 0.07c'den büyük boşluk yok, burnun gerisinde 30°'den keskin kırık yok, iç içe giren yüzey yok, eğik ya da ters değil, en az %3 kalın; her ailede önce bilinen profiller, kalanı kalınlık, kamburluk ve konumlarına göre yayılarak. NACA 4/5 haneli dosyalar alınmadı: veritabanındaki kopyalar 18 noktalı ve küt firar kenarlı, NACA 0012 ise veritabanında yok.
+- Seçkideki her profilin kesişen eğri olmadan domain ve mesh planı verdiği test ediliyor (`tests/test_library.py`).
+- Koordinatlar README'de ve Hakkında kutusunda UIUC veritabanına (Prof. M. S. Selig) atfediliyor; uygulamanın MIT lisansına dahil değiller.
+
 ## V0.5.6 Beta
 
 The whole UIUC airfoil coordinate database (1665 files, Selig format) was run through the app: file reader, domain, Ansys TXT export and mesh plans for Re 1e5, 1e6 and 6e6 (`tests/test_database_findings.py` holds the cases found). 1662 files are read; the other three are refused correctly (two multi-element slat/flap files and one single-surface engine cowl).

@@ -9,6 +9,8 @@ a CSS variable defined with light-dark(), which the browser resolves from the
 color-scheme Streamlit sets on .stApp. One stylesheet therefore serves both
 themes and follows a theme switch immediately.
 """
+UIUC_URL = "https://m-selig.ae.illinois.edu/ads/coord_database.html"
+
 from html import escape
 
 DEVELOPER = {
@@ -237,7 +239,9 @@ def about_markdown(lang):
     if lang == "tr":
         return (f"**AirfoilMatic**: Ansys için 2B kanat profili CFD akış alanı üreticisi.\n\n"
                 f"Geliştirici: {d['name']}, {d['university']['tr']}\n\n"
-                f"[GitHub]({d['repo']}) · [LinkedIn]({d['linkedin']})")
+                f"[GitHub]({d['repo']}) · [LinkedIn]({d['linkedin']})\n\n"
+                f"Profil seçkisi: [UIUC Airfoil Coordinates Database]({UIUC_URL}) (M. S. Selig).")
     return (f"**AirfoilMatic**: 2D airfoil CFD domain generator for Ansys.\n\n"
             f"Developer: {d['name']}, {d['university']['en']}\n\n"
-            f"[GitHub]({d['repo']}) · [LinkedIn]({d['linkedin']})")
+            f"[GitHub]({d['repo']}) · [LinkedIn]({d['linkedin']})\n\n"
+            f"Section selection: [UIUC Airfoil Coordinates Database]({UIUC_URL}) (M. S. Selig).")

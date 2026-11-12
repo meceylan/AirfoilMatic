@@ -1,13 +1,14 @@
-# AirfoilMatic V0.5.6 Beta — 2D CFD Domain Generator
+# AirfoilMatic V0.6.0 Beta — 2D CFD Domain Generator
 
 [Türkçe](README.md) | **English**
 
 **[Run AirfoilMatic in your browser](https://airfoilmatic-gkxdkjpsclawjnbhmzng89.streamlit.app/)**
 
-AirfoilMatic builds the geometry of a 2D CFD flow domain around an airfoil (NACA 4/5-digit or a custom `.dat` file) and exports it in the Ansys DesignModeler `3D Curve` text format. The domain is already split into six four-sided blocks, so Ansys Meshing can produce a structured (mapped) mesh. It also gives you matching mesh settings (Inflation, Edge Sizing) and Fluent setup values.
+AirfoilMatic builds the geometry of a 2D CFD flow domain around an airfoil (NACA 4/5-digit, one of 200 sections selected from the UIUC database, or a custom `.dat` file) and exports it in the Ansys DesignModeler `3D Curve` text format. The domain is already split into six four-sided blocks, so Ansys Meshing can produce a structured (mapped) mesh. It also gives you matching mesh settings (Inflation, Edge Sizing) and Fluent setup values.
 
 ## Features
-* NACA 4-digit and 5-digit (standard, non-reflexed) airfoils, full-cosine point spacing
+* NACA 4-digit and 5-digit (standard, non-reflexed) airfoils, drawn from the NACA equations with 201 points and full-cosine spacing
+* **Section search and random section:** 200 sections selected from the UIUC Airfoil Coordinates Database (NACA 6 and 16 series, NASA SC(2)/NLF/LS, Eppler, Selig, Wortmann, Hepperle, Drela, RAE, Delft DU and more). Type a name (`63-215`, `e387`, `clark y`); the 🎲 button picks a random section filtered by thickness, camber and family, and back/forward return to earlier ones. The app does not invent sections: a name that is not listed is reported as not in the database
 * Custom airfoil files (`.dat`, `.txt`, `.csv`; Selig and Lednicer formats), automatic blunt trailing-edge closing. Units, origin and point order do not matter: the profile is moved so its leading edge is at the origin and scaled to the chord. Decimal commas, `;` separators, touching Fortran columns, a point-number column or a constant third column are read too. A profile drawn backwards is mirrored; tilted, very coarse or broken files get a message
 * C-grid and rectangular (wind tunnel) domains, split into 6 four-sided blocks
 * Choose which of the six split lines to export (all six are needed for mapped meshing; all six and front axis + wake axis were tested with quad-dominant + inflation), with a warning for a single line, which cannot work
@@ -24,7 +25,7 @@ cd AirfoilMatic
 pip install -r requirements.txt
 streamlit run app.py
 ```
-Run the tests with `pip install pytest` and `pytest`. `tests/test_app.py` runs the app itself headless (Streamlit AppTest); `tests/test_hard_files.py` reads 75 hard files written from a known profile and compares the result with the true outline; `tests/test_database_findings.py` covers the problems found by running the whole UIUC database (overlapping surfaces).
+Run the tests with `pip install pytest` and `pytest`. `tests/test_app.py` runs the app itself headless (Streamlit AppTest); `tests/test_hard_files.py` reads 75 hard files written from a known profile and compares the result with the true outline; `tests/test_database_findings.py` covers the problems found by running the whole UIUC database (overlapping surfaces); `tests/test_library.py` checks that every section in the selection builds a clean domain, and the search.
 
 ## Ansys workflow
 1. **Import:** In DesignModeler, set `Units > Meter` first, then use `Concept > 3D Curve`, select the downloaded `.txt` file and click `Generate`.
@@ -73,3 +74,5 @@ Please use the [Issues](https://github.com/meceylan/AirfoilMatic/issues) page fo
 
 ## License
 MIT License. The interface font, Source Serif 4, is distributed under the SIL Open Font License 1.1 (`static/fonts/OFL-SourceSerif4.txt`).
+
+The coordinates in the section selection come from the [UIUC Airfoil Coordinates Database](https://m-selig.ae.illinois.edu/ads/coord_database.html) maintained by Prof. Michael S. Selig and are not covered by the app's MIT license. The selection can be rebuilt from the database with `tools/build_airfoil_library.py`.
