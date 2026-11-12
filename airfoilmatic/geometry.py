@@ -40,6 +40,7 @@ class Airfoil:
     yl: np.ndarray
     chord: float
     name: str
+    overlap: float = 0.0   # largest overlap of the two surfaces found in a file and repaired, / chord
 
     @property
     def te_gap(self):
@@ -345,6 +346,73 @@ def _split_at_nose(a, b, span):
     return surfaces
 
 
+MAX_REPAIR = 1e-3    # largest overlap of the two surfaces that is repaired, / chord
+MIN_THICKNESS = 2e-5  # thickness the repaired stretch is given, / chord
+MAX_TE_SHIFT = 1e-2   # a surface that stops this far short of the other is extended, / chord
+
+
+def _extend(x, y, x_end, reach):
+    """Add a point at ``x_end`` on the straight continuation of the end of the surface.
+
+    The direction comes from the last point and the nearest earlier one that is at least
+    ``reach`` away, so two points that sit almost on top of each other (digitising jitter)
+    do not set a steep slope.
+    """
+    far = np.nonzero(x[-1] - x[:-1] >= reach)[0]
+    i = int(far[-1]) if len(far) else 0
+    slope = (y[-1] - y[i]) / (x[-1] - x[i])
+    return np.append(x, x_end), np.append(y, y[-1] + slope * (x_end - x[-1]))
+
+
+def _repair_overlap(xu, yu, xl, yl, span):
+    """Pull apart the two surfaces where the file lets them cross or touch.
+
+    Real files do this by a few ten-thousandths of the chord at a cusped trailing edge
+    (rounded coordinates, a lower surface that ends a little short of the upper one) or
+    at a thin section. The exported curves would then intersect each other and
+    DesignModeler cannot build a face from them. The surfaces are moved apart, half of
+    the gap to each, until they are ``MIN_THICKNESS`` apart; the shape changes by no more
+    than the overlap itself. Returns the new surfaces and the largest overlap (0 when
+    nothing had to be done). Overlaps beyond ``MAX_REPAIR`` are not repaired.
+    """
+    # A surface that ends short of the other one: look at the tip as if it went on.
+    gap = xu[-1] - xl[-1]
+    if gap != 0 and abs(gap) <= MAX_TE_SHIFT * span:
+        sx, sy = (xl, yl) if gap > 0 else (xu, yu)
+        ex, ey = _extend(sx, sy, max(xu[-1], xl[-1]), 0.005 * span)
+        tip = (yu[-1] - ey[-1]) if gap > 0 else (ey[-1] - yl[-1])
+        if tip < 0:
+            if gap > 0:
+                xl, yl = ex, ey
+            else:
+                xu, yu = ex, ey
+    grid = np.unique(np.concatenate([xu, xl]))
+    grid = grid[(grid >= max(xu[0], xl[0])) & (grid <= min(xu[-1], xl[-1]))]
+    t = np.interp(grid, xu, yu) - np.interp(grid, xl, yl)
+    worst = -float(t.min())
+    if worst <= 1e-9 * span:
+        return xu, yu, xl, yl, 0.0
+    if worst > MAX_REPAIR * span:
+        raise AirfoilError("Upper and lower surfaces cross each other")
+    neg = np.nonzero(t < -1e-9 * span)[0]
+    lo, hi = max(neg[0] - 1, 0), min(neg[-1] + 1, len(grid) - 1)
+    sharp_end = abs(t[-1]) < 1e-9 * span and hi == len(grid) - 1
+    need = np.maximum(MIN_THICKNESS * span - t, 0.0)
+    need[:lo], need[hi + 1:] = 0.0, 0.0
+    if sharp_end:
+        need[-1] = 0.0   # the surfaces meet at the trailing edge and must go on doing so
+    # Both surfaces get a point at every grid value of the stretch, so the shift is exact.
+    win = grid[lo: hi + 1]
+    out = []
+    for x, y, sign in ((xu, yu, 1.0), (xl, yl, -1.0)):
+        inside = (x >= win[0]) & (x <= win[-1])
+        nx = np.unique(np.concatenate([x[~inside], win, x[inside]]))
+        ny = np.interp(nx, x, y)
+        ny = ny + sign * 0.5 * np.interp(nx, grid, need)
+        out += [nx, ny]
+    return out[0], out[1], out[2], out[3], worst / span
+
+
 def parse_airfoil_file(content, chord=1.0, name="Custom", mirror=False):
     """Parse a Selig or Lednicer coordinate file into an ``Airfoil``.
 
@@ -397,12 +465,11 @@ def parse_airfoil_file(content, chord=1.0, name="Custom", mirror=False):
     thickness = np.interp(xs, xu, yu) - np.interp(xs, xl, yl)
     if thickness.max() < 1e-4 * span:
         raise AirfoilError("Airfoil has no thickness")
-    if thickness.min() < -2e-4 * span:
-        raise AirfoilError("Upper and lower surfaces cross each other")
+    xu, yu, xl, yl, overlap = _repair_overlap(xu, yu, xl, yl, span)
 
     x0, y0 = xu[0], yu[0]
     s = chord / (max(xu[-1], xl[-1]) - x0)
-    return Airfoil((xu - x0) * s, (yu - y0) * s, (xl - x0) * s, (yl - y0) * s, chord, name)
+    return Airfoil((xu - x0) * s, (yu - y0) * s, (xl - x0) * s, (yl - y0) * s, chord, name, overlap)
 
 
 def looks_reversed(af):

@@ -1,5 +1,21 @@
 # Changelog
 
+## V0.5.6 Beta
+
+The whole UIUC airfoil coordinate database (1665 files, Selig format) was run through the app: file reader, domain, Ansys TXT export and mesh plans for Re 1e5, 1e6 and 6e6 (`tests/test_database_findings.py` holds the cases found). 1662 files are read; the other three are refused correctly (two multi-element slat/flap files and one single-surface engine cowl).
+
+- **Surfaces that overlap by a few ten-thousandths of the chord.** Eleven files let the upper and the lower surface cross each other, mostly at a cusped trailing edge (Wortmann FX 62-K-131 and FX 63-147, Eppler STE 871-514 and others, 0.001–0.05 % c) or in a thin section (Eppler 378). Nine of them were exported without any warning with curves that cross each other, which DesignModeler cannot build a face from; two were refused with a message that did not say why. Now the surfaces are moved apart by at most the overlap (half to each) so that they are never closer than 2×10⁻⁵ c, a note on the geometry tab says by how much, and an overlap beyond 0.1 % c is still refused. Overlaps below 10⁻⁵ c (22 more files, rounded coordinates) are repaired without a note.
+- **Lower surface that stops short of the upper one** (Eppler STE files: the lower surface ends 0.4 % c before the upper surface, which then sticks out below it): the shorter surface is continued along its end direction to the same x, so the trailing-edge closure is no longer a near-horizontal line that the wake axis ran through.
+- Not tested in Ansys: no mesh was built from a repaired file. The repair is a few 10⁻⁴ c at most, far below the trailing-edge element size (0.003 c or more).
+
+## V0.5.6 Beta (Türkçe)
+
+UIUC kanat koordinat veritabanının tamamı (1665 dosya, Selig formatı) uygulamadan geçirildi: dosya okuyucu, domain, Ansys TXT çıktısı ve Re 1e5, 1e6, 6e6 için mesh planları (bulunan durumlar `tests/test_database_findings.py` içinde). 1662 dosya okunuyor; kalan üçü doğru olarak reddediliyor (slat/flap'lı iki çok elemanlı dosya ve tek yüzeyli bir motor kaportası).
+
+- **Veterin on binde birleri kadar iç içe giren yüzeyler.** On bir dosyada üst ve alt yüzey birbirini kesiyordu; çoğu sivri uçlu (cusp) firar kenarında (Wortmann FX 62-K-131 ve FX 63-147, Eppler STE 871-514 ve diğerleri, %0.001–0.05 c), biri ince bir kesitte (Eppler 378). Dokuzu hiçbir uyarı olmadan, birbirini kesen eğrilerle dışa aktarılıyordu; DesignModeler bunlardan yüzey kuramaz. İkisi nedeni belirtmeyen bir mesajla reddediliyordu. Artık yüzeyler en çok örtüşme kadar (yarısı her yüzeye) birbirinden uzaklaştırılıyor, iki yüzey hiçbir yerde 2×10⁻⁵ c'den yakın kalmıyor, geometri sekmesinde ne kadar olduğunu söyleyen bir not çıkıyor; %0.1 c'den fazla örtüşme hâlâ reddediliyor. 10⁻⁵ c'nin altındaki örtüşmeler (22 dosya daha, yuvarlanmış koordinatlar) not düşülmeden düzeltiliyor.
+- **Üst yüzeyden kısa biten alt yüzey** (Eppler STE dosyaları: alt yüzey üstten %0.4 c önce bitiyor, üst yüzey de onun altına taşıyor): kısa yüzey, ucundaki yön boyunca aynı x'e kadar uzatılıyor; firar kenarı kapama çizgisi artık wake ekseninin içinden geçen, neredeyse yatay bir çizgi olmuyor.
+- Ansys'te denenmedi: düzeltilmiş bir dosyadan mesh kurulmadı. Onarım en fazla birkaç 10⁻⁴ c; firar kenarı eleman boyunun (0.003 c ya da daha büyük) çok altında.
+
 ## V0.5.5 Beta
 
 Custom airfoil files were tested with 75 hard files written from a known profile; the outline the app reads is compared with the true one (`tests/test_hard_files.py`). 14 of them went wrong before this version.

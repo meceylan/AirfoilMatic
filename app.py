@@ -87,6 +87,7 @@ st.sidebar.markdown(ui.note_html(t("beta_warning", stage=APP_STAGE, version=APP_
 st.sidebar.markdown(ui.footer_html(L, t("dev_label")), unsafe_allow_html=True)
 
 # ---------------------------------------------------------------- geometry
+MIN_NOTE_OVERLAP = 1e-5   # smaller overlaps are repaired without a remark
 MIN_SURFACE_POINTS = 12   # below this DesignModeler's curve through the points is too coarse
 file_notes = []           # (kind, text) remarks about an uploaded file, shown on the geometry tab
 try:
@@ -115,6 +116,8 @@ try:
         n_min = min(len(airfoil.xu), len(airfoil.xl))
         if n_min < MIN_SURFACE_POINTS:
             file_notes.append(("warning", t("note_few_points", n=n_min, need=MIN_SURFACE_POINTS)))
+        if airfoil.overlap >= MIN_NOTE_OVERLAP:
+            file_notes.append(("warning", t("note_overlap", amount=airfoil.overlap)))
         tilt = chord_line_angle(airfoil)
         if abs(tilt) >= 1.0:
             file_notes.append(("info", t("note_tilt", angle=tilt)))
