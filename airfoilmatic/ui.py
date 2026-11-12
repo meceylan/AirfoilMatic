@@ -114,6 +114,12 @@ _CSS = """
   [class*="st-key-wide_"]{display:none !important;}
 }
 
+/* dice and back/forward buttons: one compact row, also on phones where Streamlit stacks columns */
+.st-key-af_buttons [data-testid="stHorizontalBlock"]{flex-direction:row !important;flex-wrap:nowrap !important;gap:.4rem !important;}
+.st-key-af_buttons [data-testid="stColumn"]{min-width:0 !important;width:auto !important;flex:1 1 0 !important;}
+.st-key-af_buttons button{min-height:2.1rem !important;padding:.1rem .4rem !important;}
+.st-key-af_buttons button p{font-size:1.05rem;line-height:1;}
+
 /* touch screens: a finger on a plot scrolls the page instead of zooming or panning the plot */
 @media (pointer:coarse){
   .js-plotly-plot .draglayer,.js-plotly-plot .nsewdrag,.js-plotly-plot [class*="drag"]{pointer-events:none !important;}

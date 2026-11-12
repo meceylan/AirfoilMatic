@@ -84,7 +84,7 @@ if source == "search":
     st.session_state.setdefault("af_hist_i", -1)
     query = st.sidebar.text_input(t("search_label"), key="af_query", help=t("search_help"),
                                   placeholder=t("search_placeholder"))
-    button_row = st.sidebar.container()   # filled below, once this run's section is in the history
+    button_row = st.sidebar.container(key="af_buttons")   # filled below, once this run's section is in the history
     found = lib.search(query)
     if found:
         # The key follows the query, so a new search starts at its best match.
@@ -101,9 +101,9 @@ if source == "search":
         file_prefix = "AirfoilMatic_custom"
     b1, b2, b3 = button_row.columns(3)
     b1.button("🎲", on_click=_dice, use_container_width=True, key="dice")
-    b2.button("⬅", on_click=_step, args=(-1,), use_container_width=True, key="hist_back",
+    b2.button("←", on_click=_step, args=(-1,), use_container_width=True, key="hist_back",
               disabled=st.session_state.af_hist_i <= 0)
-    b3.button("➡", on_click=_step, args=(1,), use_container_width=True, key="hist_fwd",
+    b3.button("→", on_click=_step, args=(1,), use_container_width=True, key="hist_fwd",
               disabled=st.session_state.af_hist_i >= len(st.session_state.af_history) - 1)
     with st.sidebar.expander(t("random_filters")):
         st.slider(t("f_thickness"), 0, MAX_T_PERCENT, (0, MAX_T_PERCENT), key="f_thick")

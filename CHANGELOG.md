@@ -1,5 +1,15 @@
 # Changelog
 
+## V0.6.2 Beta
+
+- **Phone layout.** The 🎲 ← → buttons stay in one compact row on a phone (Streamlit stacked them into three full-width buttons).
+- The forward arrow was drawn as a larger colour emoji than the back arrow; both are now the same plain arrow character.
+
+## V0.6.2 Beta (Türkçe)
+
+- **Telefon görünümü.** 🎲 ← → düğmeleri telefonda tek satırda, küçük boyutta duruyor (Streamlit onları üç ayrı tam genişlikli düğme olarak alt alta diziyordu).
+- İleri oku geri okundan büyük, renkli bir emoji olarak çiziliyordu; ikisi de artık aynı düz ok karakteri.
+
 ## V0.6.1 Beta
 
 - The 🎲 ⬅ ➡ buttons no longer show a hover tooltip; it floated over the page.
