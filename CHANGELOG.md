@@ -1,6 +1,6 @@
 # Changelog
 
-## V0.7.0 Beta
+## V0.6.4 Beta
 
 - **Domain sizes in chords.** Inlet radius / distance, wake length and the rectangle's top and bottom distances are entered as multiples of the chord (defaults 15c and 20c, as before for a 1 m chord); the sidebar shows them in metres. Before, the defaults were metres, so a 10 m chord got a domain only 1.5c across and a 5 cm chord one of 300c.
 - **Use the outline as drawn.** A new box for uploaded files keeps the closed outline in its own point order and cuts it only at the leading edge (smallest x) and the trailing edge (largest x), so a vortex generator, a flap or a kinked section survives; the normal reader sorts the surfaces along x and loses such shapes. The domain then has the front axis and the wake axis only (the validated inflation workflow); mapped meshing is not offered, and the wall edges are sized by hand (the app gives the LE/TE sizes and the wake axis). Self-crossing outlines are refused. Not tried in Ansys yet.
@@ -9,7 +9,7 @@
 - **Angle-of-attack sweep:** inlet velocity components and lift/drag vectors for a range of angles, with a CSV download, for running a polar.
 - At 0° the lift vector no longer prints "-0.000000".
 
-## V0.7.0 Beta (Türkçe)
+## V0.6.4 Beta (Türkçe)
 
 - **Domain boyutları veter cinsinden.** Giriş yarıçapı / uzaklığı, iz uzunluğu ve dikdörtgenin üst ve alt uzaklıkları veterin katı olarak giriliyor (varsayılan 15c ve 20c; 1 m veterde eskisiyle aynı); kenar çubuğu metre karşılığını gösteriyor. Önceden varsayılanlar metreydi, 10 m veterde domain yalnızca 1.5c, 5 cm veterde 300c oluyordu.
 - **Çizgiyi olduğu gibi kullan.** Yüklenen dosyalar için yeni bir kutu, kapalı çizgiyi kendi nokta sırasıyla tutup yalnızca hücum kenarında (en küçük x) ve firar kenarında (en büyük x) kesiyor; böylece vortex generator, flap ya da kırık profil korunuyor (normal okuyucu yüzeyleri x'e göre dizip bu şekilleri kaybediyor). Domain'de yalnızca ön eksen ve iz ekseni var (doğrulanmış Inflation iş akışı); mapped mesh sunulmuyor, duvar kenarlarının eleman boyu elle veriliyor (uygulama LE/TE boylarını ve iz eksenini veriyor). Kendini kesen çizgiler reddediliyor. Henüz Ansys'te denenmedi.

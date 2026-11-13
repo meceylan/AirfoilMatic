@@ -1,4 +1,4 @@
-"""V0.7.0: domain sizes in chords, temperature for Mach, free-stream turbulence decay, alpha sweep."""
+"""V0.6.4: domain sizes in chords, temperature for Mach, free-stream turbulence decay, alpha sweep."""
 import math
 
 import numpy as np
