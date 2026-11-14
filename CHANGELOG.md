@@ -7,6 +7,7 @@
 - **Free-stream turbulence decay** in the Fluent helper: the turbulence intensity that reaches the leading edge for an inlet Tu and viscosity ratio, the highest value that can reach it, and the inlet Tu needed for a wanted value at the airfoil (closed-form SST decay, Spalart & Rumsey 2007). With the domain defaults, 1% at the inlet leaves about 0.43% at the airfoil with ratio 100 and 0.14% with ratio 10. The numbers match the table used in the NACA 0012 validation.
 - **Temperature input** for the speed of sound and Mach (15 °C gives the old 340.29 m/s).
 - **Angle-of-attack sweep:** inlet velocity components and lift/drag vectors for a range of angles, with a CSV download, for running a polar.
+- **Airfoil profile only.** A new section on the Geometry tab downloads just the upper and lower surface, without a domain: a DesignModeler `3D Curve` TXT (group 1 upper, group 2 lower, group 3 the trailing-edge line when it is blunt) and a ZIP with two SolidWorks `Curve Through XYZ Points` files (one curve per file, tab-separated X Y Z). Unit m or mm. Not tried in SolidWorks / DesignModeler yet.
 - At 0° the lift vector no longer prints "-0.000000".
 
 ## V0.6.4 Beta (Türkçe)
@@ -16,6 +17,7 @@
 - Fluent yardımcısında **serbest akış türbülansının sönümü**: verilen inlet Tu ve viskozite oranıyla hücum kenarına ulaşan türbülans yoğunluğu, ulaşabilecek en yüksek değer ve kanatta istenen değer için gereken inlet Tu (SST'nin kapalı çözümü, Spalart & Rumsey 2007). Varsayılan domain'de inlet'te %1, oran 100 ile kanatta yaklaşık %0.43, oran 10 ile %0.14 kalıyor. Sayılar NACA 0012 doğrulamasında kullanılan tabloyla aynı.
 - Ses hızı ve Mach için **sıcaklık girişi** (15 °C eski 340.29 m/s'yi veriyor).
 - **Hücum açısı taraması:** bir açı aralığı için inlet hız bileşenleri ve lift/drag vektörleri, CSV indirme ile; polar çıkarmak için.
+- **Sadece kanat profili.** Geometri sekmesinde yeni bir bölüm, alan olmadan yalnızca üst ve alt yüzeyi indiriyor: DesignModeler `3D Curve` TXT (grup 1 üst, grup 2 alt, arka kenar kalınsa grup 3 arka kenar çizgisi) ve iki SolidWorks `Curve Through XYZ Points` dosyası içeren bir ZIP (dosya başına bir eğri, sekmeyle ayrılmış X Y Z). Birim m ya da mm. SolidWorks / DesignModeler'da henüz denenmedi.
 - 0°'de lift vektörü artık "-0.000000" yazmıyor.
 
 ## V0.6.3 Beta

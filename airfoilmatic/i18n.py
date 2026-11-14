@@ -188,6 +188,26 @@ STRINGS = {
         "tr": 'Alt Sınır Uzaklığı [× veter]',
         "en": 'Bottom Boundary Distance [× chord]',
     },
+    'profile_title': {
+        "tr": 'Sadece kanat profili',
+        "en": 'Airfoil profile only',
+    },
+    'profile_help': {
+        "tr": "Alan (domain) olmadan yalnızca profilin üst ve alt yüzeyi. **DesignModeler:** Concept → 3D Curve → Coordinates File ile okuyun (Units, aşağıda seçtiğiniz birimle aynı olsun), sonra Concept → Surfaces From Edges. **SolidWorks:** Insert → Curve → Curve Through XYZ Points ile önce üst, sonra alt dosyayı seçin (belge birimi aşağıdaki birimle aynı olsun). Arka kenar kalınsa iki ucu bir çizgiyle birleştirin.",
+        "en": "Only the upper and lower surface of the airfoil, without a domain. **DesignModeler:** read it with Concept → 3D Curve → Coordinates File (set Units to the unit chosen below), then Concept → Surfaces From Edges. **SolidWorks:** Insert → Curve → Curve Through XYZ Points, pick the upper file, then the lower one (document units = the unit chosen below). With a blunt trailing edge, join the two ends with a line.",
+    },
+    'profile_unit': {
+        "tr": 'Birim',
+        "en": 'Unit',
+    },
+    'profile_dm': {
+        "tr": 'DesignModeler TXT',
+        "en": 'DesignModeler TXT',
+    },
+    'profile_sw': {
+        "tr": 'SolidWorks (ZIP)',
+        "en": 'SolidWorks (ZIP)',
+    },
     'download': {
         "tr": 'Ansys TXT İndir',
         "en": 'Download Ansys TXT',

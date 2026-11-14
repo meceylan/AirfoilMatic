@@ -16,7 +16,8 @@ from airfoilmatic.geometry import (DEFAULT_SPLIT, AirfoilError, chord_line_angle
 from airfoilmatic.geometry import as_is_split, parse_outline_as_is
 from airfoilmatic.topology import C_GRID, RECT, SPLIT_LINES, build_domain, line_warnings, select_lines
 from airfoilmatic.topology import AS_IS_LINES, build_domain_as_is
-from airfoilmatic.export import safe_file_stem, to_ansys_txt
+from airfoilmatic.export import (UNIT_SCALE, profile_dm_txt, profile_solidworks_zip, safe_file_stem,
+                                 to_ansys_txt)
 from airfoilmatic import library as lib
 from airfoilmatic.mesh import DEFAULTS, MAX_GOOD_GROWTH, plan_inflation, plan_mesh, plan_wake_axis, reynolds
 from airfoilmatic.fluent import (AIR_DENSITY, AIR_VISCOSITY, alpha_sweep, decayed_tu, freestream, inlet_tu_for,
@@ -361,6 +362,17 @@ with tab_geo:
     st.download_button(t("download"), data=txt_data, file_name=f"{file_prefix}.txt",
                        mime="text/plain", width="stretch", key="dl_main",
                        type="primary")
+
+    st.subheader(t("profile_title"))
+    st.caption(t("profile_help"))
+    profile_unit = st.radio(t("profile_unit"), list(UNIT_SCALE), horizontal=True, key="profile_unit")
+    pc = st.columns(2)
+    pc[0].download_button(t("profile_dm"), data=profile_dm_txt(airfoil, profile_unit),
+                          file_name=f"{file_prefix}_profile_{profile_unit}.txt", mime="text/plain",
+                          width="stretch", key="dl_profile_dm")
+    pc[1].download_button(t("profile_sw"), data=profile_solidworks_zip(airfoil, file_prefix, profile_unit),
+                          file_name=f"{file_prefix}_profile_{profile_unit}_solidworks.zip", mime="application/zip",
+                          width="stretch", key="dl_profile_sw")
 
 # ================================================================ mesh tab
 INFLATION, MAPPED = "inflation", "mapped"
