@@ -116,3 +116,17 @@ def test_spaceclaim_file_adds_the_trailing_edge_line_for_a_blunt_section():
             break
     blocks = [b for b in profile_spaceclaim_txt(af).split("\n\n") if b.strip()]
     assert len(blocks) == 3 and len(blocks[2].strip().split("\n")) == 2
+
+
+def test_spaceclaim_domain_file_has_one_curve_per_domain_curve():
+    from airfoilmatic.export import to_ansys_txt, to_spaceclaim_txt
+    from airfoilmatic.geometry import split_at
+    from airfoilmatic.topology import C_GRID, build_domain
+    d = build_domain(split_at(close_small_te_gap(naca("4412", 1.0))), C_GRID, r_inlet=15, l_wake=20)
+    sc = to_spaceclaim_txt(d)
+    assert sc.startswith("3d=true\npolyline=false\nfit=false\n")
+    blocks = [b for b in sc.split("\n\n") if b.strip()]
+    assert len(blocks) == len(d.curves)
+    ans = [l.split() for l in to_ansys_txt(d).strip().splitlines()]
+    pts_sc = [r.split()[1:] for b in blocks for r in b.strip().splitlines() if r.startswith("0 ")]
+    assert pts_sc == [a[2:4] for a in ans]        # the same points as the Ansys file, in the same order

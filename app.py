@@ -17,7 +17,7 @@ from airfoilmatic.geometry import as_is_split, parse_outline_as_is
 from airfoilmatic.topology import C_GRID, RECT, SPLIT_LINES, build_domain, line_warnings, select_lines
 from airfoilmatic.topology import AS_IS_LINES, build_domain_as_is
 from airfoilmatic.export import (UNIT_SCALE, profile_dm_txt, profile_solidworks_zip, profile_spaceclaim_txt,
-                                 safe_file_stem, to_ansys_txt)
+                                 safe_file_stem, to_ansys_txt, to_spaceclaim_txt)
 from airfoilmatic import library as lib
 from airfoilmatic.mesh import DEFAULTS, MAX_GOOD_GROWTH, plan_inflation, plan_mesh, plan_wake_axis, reynolds
 from airfoilmatic.fluent import (AIR_DENSITY, AIR_VISCOSITY, air_density, alpha_sweep, decayed_tu, freestream,
@@ -226,10 +226,13 @@ if as_is:   # the outline as drawn has only the two axes; the split-line boxes d
 # drawn and exported for the chosen workflow.
 out_domain = select_lines(domain, kept_lines)
 txt_data = to_ansys_txt(out_domain)
-with sidebar_download:
+sc_data = to_spaceclaim_txt(out_domain)
+with sidebar_download.container():
     st.download_button(t("download"), data=txt_data, file_name=f"{file_prefix}.txt",
                        mime="text/plain", width="stretch", key="dl_sidebar",
                        type="primary")
+    st.download_button(t("download_sc"), data=sc_data, file_name=f"{file_prefix}_SpaceClaim.txt",
+                       mime="text/plain", width="stretch", key="dl_sidebar_sc")
 
 
 # ---------------------------------------------------------------- helpers
@@ -365,6 +368,9 @@ with tab_geo:
     st.download_button(t("download"), data=txt_data, file_name=f"{file_prefix}.txt",
                        mime="text/plain", width="stretch", key="dl_main",
                        type="primary")
+    st.download_button(t("download_sc"), data=sc_data, file_name=f"{file_prefix}_SpaceClaim.txt",
+                       mime="text/plain", width="stretch", key="dl_main_sc")
+    st.caption(t("download_sc_help"))
 
     st.subheader(t("profile_title"))
     st.caption(t("profile_help"))

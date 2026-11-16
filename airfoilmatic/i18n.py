@@ -192,6 +192,14 @@ STRINGS = {
         "tr": 'Alt Sınır Uzaklığı [× veter]',
         "en": 'Bottom Boundary Distance [× chord]',
     },
+    'download_sc': {
+        "tr": 'SpaceClaim TXT İndir',
+        "en": 'Download SpaceClaim TXT',
+    },
+    'download_sc_help': {
+        "tr": "SpaceClaim TXT: aynı domain (metre), SpaceClaim'in nokta-eğri metin biçiminde; File → Open ile açın, her çizgi ayrı eğri gelir. SpaceClaim yardımına göre yazıldı, henüz denenmedi.",
+        "en": 'SpaceClaim TXT: the same domain (metres) in SpaceClaim\'s point-curve text format; open it with File → Open, every line comes in as its own curve. Written from the SpaceClaim help; not tried yet.',
+    },
     'profile_title': {
         "tr": 'Sadece kanat profili',
         "en": 'Airfoil profile only',
