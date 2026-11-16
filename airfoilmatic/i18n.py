@@ -197,8 +197,8 @@ STRINGS = {
         "en": 'Airfoil profile only',
     },
     'profile_help': {
-        "tr": "Alan (domain) olmadan yalnızca profilin üst ve alt yüzeyi. **DesignModeler:** Concept → 3D Curve → Coordinates File ile okuyun (Units, aşağıda seçtiğiniz birimle aynı olsun), sonra Concept → Surfaces From Edges. **SolidWorks:** Insert → Curve → Curve Through XYZ Points ile önce üst, sonra alt dosyayı seçin (belge birimi aşağıdaki birimle aynı olsun). Arka kenar kalınsa iki ucu bir çizgiyle birleştirin.",
-        "en": "Only the upper and lower surface of the airfoil, without a domain. **DesignModeler:** read it with Concept → 3D Curve → Coordinates File (set Units to the unit chosen below), then Concept → Surfaces From Edges. **SolidWorks:** Insert → Curve → Curve Through XYZ Points, pick the upper file, then the lower one (document units = the unit chosen below). With a blunt trailing edge, join the two ends with a line.",
+        "tr": "Alan (domain) olmadan yalnızca profilin üst ve alt yüzeyi. **DesignModeler:** Concept → 3D Curve → Coordinates File ile okuyun (Units, aşağıda seçtiğiniz birimle aynı olsun), sonra Concept → Surfaces From Edges. **SolidWorks:** Insert → Curve → Curve Through XYZ Points ile önce üst, sonra alt dosyayı seçin (belge birimi aşağıdaki birimle aynı olsun). Arka kenar kalınsa iki ucu bir çizgiyle birleştirin. **SpaceClaim:** File → Open (ya da Insert) ile TXT dosyasını açın; üst, alt (ve kalın arka kenarda uç çizgisi) ayrı eğriler olarak gelir. Bu biçim SpaceClaim yardımındaki nokta-eğri metin dosyasına göre yazıldı, henüz denenmedi; hata verirse satır numarasını bildirin.",
+        "en": "Only the upper and lower surface of the airfoil, without a domain. **DesignModeler:** read it with Concept → 3D Curve → Coordinates File (set Units to the unit chosen below), then Concept → Surfaces From Edges. **SolidWorks:** Insert → Curve → Curve Through XYZ Points, pick the upper file, then the lower one (document units = the unit chosen below). With a blunt trailing edge, join the two ends with a line. **SpaceClaim:** open the TXT file with File → Open (or Insert); the upper, lower (and, for a blunt trailing edge, the end line) come in as separate curves. This format follows the point-curve text file in the SpaceClaim help and has not been tried yet; if it gives an error, report the line number.",
     },
     'profile_unit': {
         "tr": 'Birim',
@@ -207,6 +207,10 @@ STRINGS = {
     'profile_dm': {
         "tr": 'DesignModeler TXT',
         "en": 'DesignModeler TXT',
+    },
+    'profile_sc': {
+        "tr": 'SpaceClaim TXT',
+        "en": 'SpaceClaim TXT',
     },
     'profile_sw': {
         "tr": 'SolidWorks (ZIP)',

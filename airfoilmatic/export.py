@@ -109,3 +109,16 @@ def profile_solidworks_zip(af, stem, unit="mm"):
         z.writestr(f"{stem}_upper.txt", files["upper"])
         z.writestr(f"{stem}_lower.txt", files["lower"])
     return buf.getvalue()
+
+
+def profile_spaceclaim_txt(af, unit="mm"):
+    """SpaceClaim / DesignSpark point-curve text file: header keywords, then ``0 x y`` per line (first
+    column = plane height / Z = 0, then X and Y), a blank line between curves. Spline through the points
+    (``polyline=false``, ``fit=false`` = interpolation). Curves: upper, lower and, for a blunt trailing
+    edge, the trailing-edge line."""
+    upper, lower = _profile_points(af, unit)
+    groups = [upper, lower]
+    if upper[-1] != lower[-1]:
+        groups.append([upper[-1], lower[-1]])
+    body = "\n\n".join("\n".join(f"0 {px} {py}" for px, py in pts) for pts in groups)
+    return "3d=true\npolyline=false\nfit=false\n" + body + "\n"

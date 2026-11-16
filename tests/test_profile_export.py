@@ -89,3 +89,30 @@ def test_page_offers_the_profile_downloads_in_both_units():
     units.set_value("mm")
     at = at.run()
     assert not at.exception and not at.error
+
+
+def test_spaceclaim_file_has_the_header_and_separate_curves():
+    from airfoilmatic.export import profile_spaceclaim_txt
+    af = close_small_te_gap(naca("4412", 1.0))
+    text = profile_spaceclaim_txt(af, "mm")
+    lines = text.split("\n")
+    assert lines[:3] == ["3d=true", "polyline=false", "fit=false"]
+    blocks = [b for b in text.split("\n\n") if b.strip()]
+    assert len(blocks) == 2                               # sharp trailing edge: upper and lower only
+    first = blocks[0].split("\n", 3)[3].split("\n")
+    for row in first:
+        z, x, y = row.split()
+        assert z == "0"
+        float(x), float(y)
+    assert max(float(r.split()[1]) for r in first) == pytest.approx(1000.0)
+    assert not text.endswith("\n\n")
+
+
+def test_spaceclaim_file_adds_the_trailing_edge_line_for_a_blunt_section():
+    from airfoilmatic.export import profile_spaceclaim_txt
+    for s in lib.library():
+        af = close_small_te_gap(s.airfoil())
+        if af.te_gap > 1e-3:
+            break
+    blocks = [b for b in profile_spaceclaim_txt(af).split("\n\n") if b.strip()]
+    assert len(blocks) == 3 and len(blocks[2].strip().split("\n")) == 2
