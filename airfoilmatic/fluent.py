@@ -52,6 +52,17 @@ GAMMA_AIR = 1.4
 R_AIR = 287.05               # J/(kg K)
 
 
+def air_density(temp_c, pressure=101325.0):
+    """Ideal-gas density of air, kg/m3 (R = 287.05 J/(kg K))."""
+    return pressure / (287.05 * (temp_c + 273.15))
+
+
+def sutherland_viscosity(temp_c):
+    """Dynamic viscosity of air by Sutherland's law, Pa s (mu0 = 1.716e-5 at 273.15 K, S = 110.4 K)."""
+    t = temp_c + 273.15
+    return 1.716e-5 * (t / 273.15) ** 1.5 * (273.15 + 110.4) / (t + 110.4)
+
+
 def speed_of_sound(temp_c):
     """Speed of sound in air (ideal gas) at ``temp_c`` degrees Celsius; 15 degC gives 340.29 m/s."""
     t = temp_c + 273.15

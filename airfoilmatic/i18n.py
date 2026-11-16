@@ -665,8 +665,8 @@ STRINGS = {
         "en": 'y⁺ Correction (from a Fluent Result)',
     },
     'yplus_fix_help': {
-        "tr": "İlk çözümden sonra kanat üzerindeki y⁺ değerini girin; y⁺ ilk hücre yüksekliğiyle yaklaşık doğru orantılı olduğu için hedefe ulaşmak gereken yeni ilk hücre yüksekliği hesaplanır. Hedef y⁺ burada da Fluent'in raporladığı değer (hücre merkezi) olarak yorumlanır.",
-        "en": 'Enter the y⁺ seen on the airfoil after a first solution; since y⁺ scales roughly linearly with first-cell height, the height needed for the target is computed. The target is interpreted here as the y⁺ Fluent reports (cell centroid).',
+        "tr": "İlk çözümden sonra kanat üzerindeki y⁺ değerini girin; y⁺ ilk hücre yüksekliğiyle yaklaşık doğru orantılı olduğu için hedefe ulaşmak gereken yeni ilk hücre yüksekliği hesaplanır. Hedef y⁺ burada Fluent'in raporladığı değer (hücre merkezi) olarak yorumlanır. Plandaki ilk hücre yüksekliği ise tam hücre yüksekliğidir; Fluent'te raporlanan y⁺ planlanan hedefin yaklaşık yarısı çıkar, bu yüzden bu araçta aynı hedef daha küçük bir yükseklik verir.",
+        "en": 'Enter the y⁺ seen on the airfoil after a first solution; since y⁺ scales roughly linearly with first-cell height, the height needed for the target is computed. The target is interpreted here as the y⁺ Fluent reports (cell centroid). The plan on the other tab uses the full cell height, so the y⁺ Fluent reports comes out at about half the planned target; for the same target this tool therefore gives a smaller height.',
     },
     'yplus_used_dy': {
         "tr": 'Kullanılan ilk hücre yüksekliği [m]',
@@ -930,8 +930,8 @@ STRINGS = {
         "en": 'Not reachable with this viscosity ratio; raise the ratio',
     },
     'tu_note': {
-        "tr": "Akış kayma gerilmesi olmayan serbest akışta k ve ω sönümünün kapalı çözümüyle (Spalart & Rumsey, AIAA J. 2007) hesaplanır: inlet'te girdiğiniz Tu, kanada gelene kadar azalır ve Transition SST'de geçişi kanattaki değer belirler. Deneyle karşılaştırırken kanattaki Tu'yu rüzgâr tünelininkine eşitleyin. Daha yüksek inlet Tu daha hızlı söner; kanatta daha yüksek bir Tu için viskozite oranını artırın.",
-        "en": 'Computed from the closed-form decay of k and ω in a shear-free free stream (Spalart & Rumsey, AIAA J. 2007): the Tu set at the inlet drops before it reaches the airfoil, and in Transition SST transition follows the value at the airfoil. When comparing with an experiment, match the Tu at the airfoil to the wind tunnel. A higher inlet Tu decays faster; for more Tu at the airfoil raise the viscosity ratio.',
+        "tr": "Akış kayma gerilmesi olmayan serbest akışta k ve ω sönümünün kapalı çözümüyle (Spalart & Rumsey, AIAA J. 2007) hesaplanır: inlet'te girdiğiniz Tu, kanada gelene kadar azalır ve Transition SST'de geçişi kanattaki değer belirler. Deneyle karşılaştırırken kanattaki Tu'yu rüzgâr tünelininkine eşitleyin. Daha yüksek inlet Tu daha hızlı söner; kanatta daha yüksek bir Tu için viskozite oranını artırın. Fluent girişte yaklaşık 1–10 oranını önerir; 100'ün üzerinde yüzey sürtünmesi laminer değerden belirgin sapabilir. Ansys belgesindeki sabitlerin etiketleri (β, β*) SST'nin kendi sabitlerine göre ters yazılmış, belgedeki haliyle elle hesaplarsanız burada gösterilenden %5–55 yüksek çıkar; burada NASA Turbulence Modeling Resource sabitleri kullanılır.",
+        "en": 'Computed from the closed-form decay of k and ω in a shear-free free stream (Spalart & Rumsey, AIAA J. 2007): the Tu set at the inlet drops before it reaches the airfoil, and in Transition SST transition follows the value at the airfoil. When comparing with an experiment, match the Tu at the airfoil to the wind tunnel. A higher inlet Tu decays faster; for more Tu at the airfoil raise the viscosity ratio. Fluent suggests a ratio of about 1–10 at the inlet; above 100 the skin friction can depart clearly from the laminar value. The Ansys documentation labels the constants β and β* the other way round from SST itself; calculated by hand as written there the Tu comes out 5–55 % higher than shown here, which uses the NASA Turbulence Modeling Resource constants.',
     },
     'sweep_title': {
         "tr": 'Hücum açısı taraması (polar için)',
@@ -953,9 +953,25 @@ STRINGS = {
         "tr": 'Taramayı CSV olarak indir',
         "en": 'Download the sweep as CSV',
     },
+    'warn_yplus_high': {
+        "tr": "Transition SST için y⁺ ≈ 1 önerilir; y⁺ > 5'te geçiş öne kayabilir. Düz levha tahmini x = c içindir; en büyük y⁺ hücum kenarı yakınında ve hücum açısında emme tepesinde oluşur.",
+        "en": "Transition SST wants y⁺ ≈ 1; above 5 transition can move forward. The flat-plate estimate is for x = c; the largest y⁺ occurs near the leading edge and at the suction peak at angle of attack.",
+    },
+    'warn_coverage_low': {
+        "tr": "Inflation kalınlığı sınır tabakadan ince kalır (kapsama < 1). Düz levha tahmini emme tarafında gerçek kalınlıktan küçük olabilir; 1.5 ya da daha fazlası önerilir.",
+        "en": "The inflation is thinner than the boundary layer (coverage < 1). The flat-plate estimate can be smaller than the real thickness on the suction side; 1.5 or more is advised.",
+    },
+    'warn_re_high': {
+        "tr": "Re > 10⁹: sürtünme bağıntısı (Schlichting) bu aralık için tanımlı değil; y⁺ ve ilk hücre değerlerini kontrol edin.",
+        "en": "Re > 10⁹: the skin-friction correlation (Schlichting) is not defined for this range; check the y⁺ and first-cell values.",
+    },
+    'fl_temp_props': {
+        "tr": "{temp:g} °C için öneri (deniz seviyesi basıncı, ideal gaz ve Sutherland): yoğunluk ≈ {rho:.4f} kg/m³, viskozite ≈ {mu:.4e} Pa·s. Re ve Mach aynı duruma ait olsun diye bunları yukarıya girin.",
+        "en": "Suggestion for {temp:g} °C (sea-level pressure, ideal gas and Sutherland): density ≈ {rho:.4f} kg/m³, viscosity ≈ {mu:.4e} Pa·s. Enter them above so Re and Mach belong to the same state.",
+    },
     'fl_mach_warn': {
-        "tr": "Mach = {m:.2f} > 0.3: sıkıştırılabilirlik etkileri önemlidir; Fluent'te yoğunluğu ideal gaz olarak tanımlayın.",
-        "en": 'Mach = {m:.2f} > 0.3: compressibility matters; use ideal-gas density in Fluent.',
+        "tr": "Mach = {m:.2f} > 0.3: sıkıştırılabilirlik etkileri önemlidir; Fluent'te yoğunluğu ideal gaz olarak tanımlayın. Dış akışta velocity-inlet yerine pressure-far-field (Mach ve yön bileşenleri) daha uygun olabilir.",
+        "en": 'Mach = {m:.2f} > 0.3: compressibility matters; use ideal-gas density in Fluent. For external flow, pressure-far-field (Mach and direction components) may suit better than velocity-inlet.',
     },
     # ---- outline used as drawn (vortex generator, flap, kinked section)
     'as_is': {

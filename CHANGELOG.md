@@ -1,5 +1,21 @@
 # Changelog
 
+## V0.6.5 Beta
+
+An independent check of the mesh and Fluent formulas found no formula errors; these are the notes and warnings it asked for.
+
+- **Warnings:** target y⁺ above 2 (Transition SST wants about 1, and the largest y⁺ is near the leading edge), inflation coverage below 1, Reynolds number above 10⁹ (the skin-friction correlation stops there).
+- **Fluent helper:** a Mach above 0.3 now also points to pressure-far-field for external flow; for a temperature other than 15 °C the ideal-gas density and Sutherland viscosity are suggested so Re and Mach belong to the same state; the turbulence note adds Fluent's 1–10 viscosity-ratio advice (the default of 100 stays: it is what the NACA 0012 validation used) and that the Ansys documentation labels the SST constants the other way round.
+- **y⁺ correction tool:** the help says the plan's target is the full first-cell height, so Fluent reports about half of it.
+
+## V0.6.5 Beta (Türkçe)
+
+Mesh ve Fluent formüllerinin bağımsız denetiminde formül hatası çıkmadı; aşağıdakiler denetimin istediği not ve uyarılar.
+
+- **Uyarılar:** hedef y⁺ 2'nin üzerinde (Transition SST yaklaşık 1 ister, en büyük y⁺ hücum kenarı yakınında olur), Inflation kapsaması 1'in altında, Reynolds sayısı 10⁹'un üzerinde (sürtünme bağıntısı orada sona erer).
+- **Fluent yardımcısı:** Mach 0.3'ün üzerinde dış akış için pressure-far-field de öneriliyor; sıcaklık 15 °C'den farklıysa Re ve Mach aynı duruma ait olsun diye ideal gaz yoğunluğu ve Sutherland viskozitesi öneriliyor; türbülans notuna Fluent'in 1–10 viskozite oranı önerisi eklendi (varsayılan 100 kalıyor: NACA 0012 doğrulamasında bu kullanıldı) ve Ansys belgesinin SST sabitlerini ters etiketlediği yazıldı.
+- **y⁺ düzeltme aracı:** yardım metni, plandaki hedefin tam ilk hücre yüksekliği olduğunu ve Fluent'in bunun yaklaşık yarısını raporladığını söylüyor.
+
 ## V0.6.4 Beta
 
 - **Domain sizes in chords.** Inlet radius / distance, wake length and the rectangle's top and bottom distances are entered as multiples of the chord (defaults 15c and 20c, as before for a 1 m chord); the sidebar shows them in metres. Before, the defaults were metres, so a 10 m chord got a domain only 1.5c across and a 5 cm chord one of 300c.

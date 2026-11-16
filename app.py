@@ -20,8 +20,9 @@ from airfoilmatic.export import (UNIT_SCALE, profile_dm_txt, profile_solidworks_
                                  to_ansys_txt)
 from airfoilmatic import library as lib
 from airfoilmatic.mesh import DEFAULTS, MAX_GOOD_GROWTH, plan_inflation, plan_mesh, plan_wake_axis, reynolds
-from airfoilmatic.fluent import (AIR_DENSITY, AIR_VISCOSITY, alpha_sweep, decayed_tu, freestream, inlet_tu_for,
-                                 max_reachable_tu, speed_for_reynolds, speed_of_sound)
+from airfoilmatic.fluent import (AIR_DENSITY, AIR_VISCOSITY, air_density, alpha_sweep, decayed_tu, freestream,
+                                 inlet_tu_for, max_reachable_tu, speed_for_reynolds, speed_of_sound,
+                                 sutherland_viscosity)
 from airfoilmatic.quality import (FLUENT_MAX_SKEWNESS, FLUENT_MIN_ORTHO, RATING_LEVEL,
                                   expected_wall_aspect_ratio, rate_orthogonal, rate_skewness)
 from airfoilmatic.i18n import LANGS, tr, tr_error
@@ -409,6 +410,8 @@ with tab_mesh:
             mu = st.number_input(t("viscosity"), value=1.7894e-5, min_value=1e-9, format="%.4e", key="viscosity")
             re = reynolds(u_inf, rho, mu, chord)
             st.caption(f"Re = {short(re)}")
+        if re > 1.0e9:
+            st.warning(t("warn_re_high"))
     with c2.container(key="card_method"):
         st.markdown(ui.step_html(2, t("step_method")), unsafe_allow_html=True)
         if as_is:
@@ -419,6 +422,8 @@ with tab_mesh:
         if as_is:
             st.caption(t("asis_no_mapped"))
         y_plus = st.number_input(t("y_plus"), value=DEFAULTS["y_plus"], min_value=0.05, step=0.5, key="y_plus")
+        if y_plus > 2.0:
+            st.warning(t("warn_yplus_high"))
     with c3.container(key="card_growth"):
         st.markdown(ui.step_html(3, t("step_growth")), unsafe_allow_html=True)
         if mesh_mode == INFLATION:
@@ -426,6 +431,8 @@ with tab_mesh:
                                      step=0.01, format="%.3f", key="g_infl")
             coverage = st.number_input(t("coverage"), value=1.5, min_value=0.5, max_value=5.0, step=0.25,
                                        key="coverage")
+            if coverage < 1.0:
+                st.warning(t("warn_coverage_low"))
         else:
             growth = st.number_input(t("growth"), value=DEFAULTS["growth"], min_value=1.01, max_value=1.5,
                                      step=0.01, format="%.3f", key="g_map")
@@ -646,6 +653,8 @@ with tab_mesh:
                 st.warning(t("fl_re_mismatch", re_fl=fs.reynolds, re_mesh=re))
             if fs.mach > 0.3:
                 st.warning(t("fl_mach_warn", m=fs.mach))
+            if abs(temp_c - 15.0) >= 0.5:
+                st.caption(t("fl_temp_props", temp=temp_c, rho=air_density(temp_c), mu=sutherland_viscosity(temp_c)))
         st.caption(t("fluent_note"))
 
         if fs is not None:
