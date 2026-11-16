@@ -153,6 +153,9 @@ else:
 r_inlet, l_wake, l_top, l_bottom = (v * chord for v in (r_inlet_c, l_wake_c, l_top_c, l_bottom_c))
 st.sidebar.caption(t("domain_in_m", r=r_inlet, w=l_wake) if domain_kind == C_GRID
                    else t("domain_in_m_rect", r=r_inlet, w=l_wake, top=l_top, bot=l_bottom))
+out_unit = st.sidebar.radio(t("out_unit"), list(UNIT_SCALE), horizontal=True, key="out_unit", help=t("out_unit_help"))
+out_scale = UNIT_SCALE[out_unit]
+unit_tag = "" if out_unit == "m" else f"_{out_unit}"
 
 # Six checkboxes are rarely changed, so they sit in a collapsed expander that shows how many are on.
 # The label must not change between reruns, otherwise Streamlit treats it as a new
@@ -225,13 +228,13 @@ if as_is:   # the outline as drawn has only the two axes; the split-line boxes d
 # `domain` keeps every split line (used for sizing plans); `out_domain` is what is
 # drawn and exported for the chosen workflow.
 out_domain = select_lines(domain, kept_lines)
-txt_data = to_ansys_txt(out_domain)
-sc_data = to_spaceclaim_txt(out_domain)
+txt_data = to_ansys_txt(out_domain, scale=out_scale)
+sc_data = to_spaceclaim_txt(out_domain, scale=out_scale)
 with sidebar_download.container():
-    st.download_button(t("download"), data=txt_data, file_name=f"{file_prefix}.txt",
+    st.download_button(t("download"), data=txt_data, file_name=f"{file_prefix}{unit_tag}.txt",
                        mime="text/plain", width="stretch", key="dl_sidebar",
                        type="primary")
-    st.download_button(t("download_sc"), data=sc_data, file_name=f"{file_prefix}_SpaceClaim.txt",
+    st.download_button(t("download_sc"), data=sc_data, file_name=f"{file_prefix}_SpaceClaim{unit_tag}.txt",
                        mime="text/plain", width="stretch", key="dl_sidebar_sc")
 
 
@@ -365,16 +368,16 @@ with tab_geo:
     fitted_chart(fig_full, "plot_full", [xs.min() - pad, xs.max() + pad], [ys.min() - pad, ys.max() + pad],
                  max_h=520)
 
-    st.download_button(t("download"), data=txt_data, file_name=f"{file_prefix}.txt",
+    st.download_button(t("download"), data=txt_data, file_name=f"{file_prefix}{unit_tag}.txt",
                        mime="text/plain", width="stretch", key="dl_main",
                        type="primary")
-    st.download_button(t("download_sc"), data=sc_data, file_name=f"{file_prefix}_SpaceClaim.txt",
+    st.download_button(t("download_sc"), data=sc_data, file_name=f"{file_prefix}_SpaceClaim{unit_tag}.txt",
                        mime="text/plain", width="stretch", key="dl_main_sc")
     st.caption(t("download_sc_help"))
 
     st.subheader(t("profile_title"))
     st.caption(t("profile_help"))
-    profile_unit = st.radio(t("profile_unit"), list(UNIT_SCALE), horizontal=True, key="profile_unit")
+    profile_unit = out_unit   # the unit chosen in the sidebar
     pc = st.columns(3)
     pc[0].download_button(t("profile_dm"), data=profile_dm_txt(airfoil, profile_unit),
                           file_name=f"{file_prefix}_profile_{profile_unit}.txt", mime="text/plain",

@@ -36,15 +36,16 @@ def remove_consecutive_duplicates(x, y, tol=1e-9):
     return x[keep], y[keep]
 
 
-def _domain_curve_points(domain, precision=None):
-    """Every curve of the domain as a list of printed (x, y) strings; ``precision`` defaults to enough
-    decimals for ~1e-7 of the chord."""
+def _domain_curve_points(domain, precision=None, scale=1.0):
+    """Every curve of the domain as a list of printed (x, y) strings, coordinates multiplied by ``scale``
+    (1000 for millimetres); ``precision`` defaults to enough decimals for ~1e-7 of the chord."""
     if precision is None:
-        c = max(getattr(domain, "chord", 1.0), 1e-9)
+        c = max(getattr(domain, "chord", 1.0) * scale, 1e-9)
         precision = max(6, int(np.ceil(-np.log10(c * 1e-7))))
     curves = []
     for curve in domain.curves:
-        x, y = remove_consecutive_duplicates(curve.x, curve.y, tol=10.0 ** -precision)
+        x, y = remove_consecutive_duplicates(np.asarray(curve.x) * scale, np.asarray(curve.y) * scale,
+                                             tol=10.0 ** -precision)
         pts = []
         for px, py in zip(x, y):
             p = (f"{px:.{precision}f}", f"{py:.{precision}f}")
@@ -55,18 +56,18 @@ def _domain_curve_points(domain, precision=None):
     return curves, precision
 
 
-def to_ansys_txt(domain, precision=None):
-    curves, precision = _domain_curve_points(domain, precision)
+def to_ansys_txt(domain, precision=None, scale=1.0):
+    curves, precision = _domain_curve_points(domain, precision, scale)
     fmt = f"{{:d}} {{:d}} {{}} {{}} {{:.{precision}f}}"
     lines = [fmt.format(g, i, px, py, 0.0)
              for g, pts in enumerate(curves, start=1) for i, (px, py) in enumerate(pts, start=1)]
     return "\n".join(lines) + "\n"
 
 
-def to_spaceclaim_txt(domain, precision=None):
+def to_spaceclaim_txt(domain, precision=None, scale=1.0):
     """The whole domain as a SpaceClaim point-curve text file (same layout as ``profile_spaceclaim_txt``):
-    one curve per domain curve, in metres, a blank line between curves."""
-    curves, _ = _domain_curve_points(domain, precision)
+    one curve per domain curve (metres times ``scale``), a blank line between curves."""
+    curves, _ = _domain_curve_points(domain, precision, scale)
     body = "\n\n".join("\n".join(f"0 {px} {py}" for px, py in pts) for pts in curves)
     return "3d=true\npolyline=false\nfit=false\n" + body + "\n"
 

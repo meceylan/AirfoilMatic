@@ -84,7 +84,7 @@ def test_page_offers_the_profile_downloads_in_both_units():
     from streamlit.testing.v1 import AppTest
     at = AppTest.from_file(str(Path(__file__).resolve().parents[1] / "app.py"), default_timeout=120).run()
     assert not at.exception and not at.error
-    units = [r for r in at.radio if r.key == "profile_unit"][0]
+    units = [r for r in at.radio if r.key == "out_unit"][0]
     assert units.value == "m" and units.options == ["m", "mm"]
     units.set_value("mm")
     at = at.run()
@@ -130,3 +130,26 @@ def test_spaceclaim_domain_file_has_one_curve_per_domain_curve():
     ans = [l.split() for l in to_ansys_txt(d).strip().splitlines()]
     pts_sc = [r.split()[1:] for b in blocks for r in b.strip().splitlines() if r.startswith("0 ")]
     assert pts_sc == [a[2:4] for a in ans]        # the same points as the Ansys file, in the same order
+
+
+def test_domain_files_scale_with_the_unit_and_keep_the_same_points():
+    from airfoilmatic.export import to_ansys_txt, to_spaceclaim_txt
+    from airfoilmatic.geometry import split_at
+    from airfoilmatic.topology import C_GRID, build_domain
+    d = build_domain(split_at(close_small_te_gap(naca("4412", 1.0))), C_GRID, r_inlet=15, l_wake=20)
+    m = [l.split() for l in to_ansys_txt(d).strip().splitlines()]
+    mm = [l.split() for l in to_ansys_txt(d, scale=1000.0).strip().splitlines()]
+    assert len(m) == len(mm)
+    assert max(float(r[2]) for r in mm) == pytest.approx(1000.0 * max(float(r[2]) for r in m), rel=1e-6)
+    assert max(float(r[2]) for r in mm) == pytest.approx(20000.0 + 1000.0, rel=1e-3)   # wake end at 20 c + chord
+    assert to_ansys_txt(d, scale=1.0) == to_ansys_txt(d)
+    assert "3d=true" in to_spaceclaim_txt(d, scale=1000.0)
+
+
+def test_page_runs_with_the_output_unit_set_to_mm():
+    from pathlib import Path
+    from streamlit.testing.v1 import AppTest
+    at = AppTest.from_file(str(Path(__file__).resolve().parents[1] / "app.py"), default_timeout=120).run()
+    [r for r in at.radio if r.key == "out_unit"][0].set_value("mm")
+    at = at.run()
+    assert not at.exception and not at.error
