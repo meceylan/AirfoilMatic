@@ -38,7 +38,7 @@ Run the tests with `pip install pytest` and `pytest`. `tests/test_app.py` runs t
    * Inflation and Mapped Face Meshing cannot be combined on the same face.
 5. **Check:** Confirm the cell count and check y⁺ in Fluent. Fluent reports y⁺ at the cell centroid, so expect about half the target value.
 
-## Validation: NACA 0012
+## Comparison with NACA 0012 data
 The domain and inflation mesh from the app were compared with Ladson's wind-tunnel data (NASA TM-4074, Table I: M = 0.15, Re = 2 × 10⁶, free transition, α = 4.25°).
 
 **Setup:** c = 1 m, C-grid (R = 15 m, wake 20 m), front axis + wake axis, target y⁺ = 1. Ansys Fluent 2024 R2, Transition SST, U = 51.04 m/s, ρ = 1.225 kg/m³, μ = 3.126 × 10⁻⁵ Pa·s, inlet Tu = 1% and viscosity ratio 100. All settings were taken from the app's Mesh / y⁺ tab.
@@ -50,6 +50,12 @@ The domain and inflation mesh from the app were compared with Ladson's wind-tunn
 | Ladson (experiment) | | | | 0.4450 | 0.00670 |
 
 Cl is within 1% of the experiment and Cd within 2–3.5%; the scatter between different wind tunnels for the NACA 0012 is of the same order (McCroskey, NASA TM-100019). y⁺ on the airfoil is 0.14–1.14. Residuals fully converged in 1000 iterations.
+
+**Limits:** Only one section, one angle, one Reynolds number and the inflation mesh were tried; there is no result for the mapped mesh. The turbulence level of Ladson's tunnel is not known and a viscosity ratio of 100 was chosen at the inlet (about 0.43% Tu reaches the leading edge); how close Cd is to the experiment may depend partly on that choice. Read the result as "consistent with the experiment", not as a firm validation.
+
+## Scope
+* The mesh plan and the Fluent helper are for low speed (Mach < 0.3). Transonic sections in the library such as RAE and NASA SC(2) get the same plan, but there is no separate route for the shock region.
+* Domain size (default 15c): at high Cl the far-field boundary affects the lift. As Cl grows, enlarge the radius and check that the result does not change.
 
 ## Why split at X = 0.3c?
 If the airfoil goes into DesignModeler as a single curve, or as two curves split only at the LE and TE, surface creation can produce sliver faces near the leading edge. Those faces hurt mesh quality.

@@ -160,6 +160,10 @@ STRINGS = {
         "tr": 'Veter Uzunluğu (c) [m]',
         "en": 'Chord Length (c) [m]',
     },
+    'domain_help': {
+        "tr": "Yüksek Cl'de uzak alan sınırı taşıma kuvvetini etkiler: Cl arttıkça yarıçapı büyütüp sonucun değişmediğini kontrol edin. Plan düşük hız (Mach < 0.3) içindir.",
+        "en": 'At high Cl the far-field boundary affects the lift: as Cl grows, enlarge the radius and check that the result does not change. The plan is for low speed (Mach < 0.3).',
+    },
     'r_inlet': {
         "tr": 'Giriş Yarıçapı (R) [× veter]',
         "en": 'Inlet Radius (R) [× chord]',

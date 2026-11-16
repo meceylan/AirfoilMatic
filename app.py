@@ -140,11 +140,13 @@ file_prefix += "_CGrid" if domain_kind == C_GRID else "_Rect"
 # Domain sizes are entered as multiples of the chord, so a long or a tiny chord keeps the same
 # relative domain (in metres the defaults made a 10 m chord's domain only 1.5c across).
 if domain_kind == C_GRID:
-    r_inlet_c = st.sidebar.number_input(t("r_inlet"), value=15.0, step=1.0, min_value=2.0, key="r_inlet_c")
+    r_inlet_c = st.sidebar.number_input(t("r_inlet"), value=15.0, step=1.0, min_value=2.0, key="r_inlet_c",
+                                              help=t("domain_help"))
     l_wake_c = st.sidebar.number_input(t("l_wake"), value=20.0, step=1.0, min_value=1.0, key="l_wake_c")
     l_top_c = l_bottom_c = r_inlet_c
 else:
-    r_inlet_c = st.sidebar.number_input(t("l_inlet"), value=15.0, step=1.0, min_value=1.0, key="l_inlet_c")
+    r_inlet_c = st.sidebar.number_input(t("l_inlet"), value=15.0, step=1.0, min_value=1.0, key="l_inlet_c",
+                                              help=t("domain_help"))
     l_wake_c = st.sidebar.number_input(t("l_wake"), value=20.0, step=1.0, min_value=1.0, key="l_wake_c")
     l_top_c = st.sidebar.number_input(t("l_top"), value=15.0, step=1.0, min_value=1.0, key="l_top_c")
     l_bottom_c = st.sidebar.number_input(t("l_bottom"), value=15.0, step=1.0, min_value=1.0, key="l_bottom_c")

@@ -38,7 +38,7 @@ Testleri çalıştırmak için: `pip install pytest` ve ardından `pytest`. `tes
    * Inflation ile Mapped Face Meshing aynı yüzeyde birlikte kullanılamaz.
 5. **Kontrol:** Hücre sayısını ve Fluent'te y⁺ değerini kontrol edin. Fluent y⁺'ı hücre merkezinde raporladığı için görülen değer hedefin yaklaşık yarısı olur.
 
-## Doğrulama: NACA 0012
+## NACA 0012 ile karşılaştırma
 Uygulamanın ürettiği domain ve inflation mesh'i, Ladson'ın rüzgar tüneli verisiyle karşılaştırıldı (NASA TM-4074, Tablo I: M = 0.15, Re = 2 × 10⁶, serbest geçiş, α = 4.25°).
 
 **Kurulum:** c = 1 m, C-Grid (R = 15 m, iz 20 m), ön eksen + iz ekseni, hedef y⁺ = 1. Ansys Fluent 2024 R2, Transition SST, U = 51.04 m/s, ρ = 1.225 kg/m³, μ = 3.126 × 10⁻⁵ Pa·s, girişte Tu = %1 ve viskozite oranı 100. Tüm ayarlar uygulamanın Mesh / y⁺ sekmesinden alındı.
@@ -50,6 +50,12 @@ Uygulamanın ürettiği domain ve inflation mesh'i, Ladson'ın rüzgar tüneli v
 | Ladson (deney) | | | | 0.4450 | 0.00670 |
 
 Cl deneyden %1'den az, Cd %2–3.5 sapıyor; NACA 0012 için farklı rüzgar tünelleri arasındaki dağılım da bu mertebede (McCroskey, NASA TM-100019). Kanat üzerinde y⁺ 0.14–1.14 arasında. Residual'lar 1000 iterasyonda tamamen yakınsadı.
+
+**Sınırlar:** Yalnızca tek profil, tek açı, tek Reynolds sayısı ve inflation mesh'i denendi; mapped mesh için sonuç yok. Ladson'ın tünelindeki türbülans seviyesi bilinmiyor ve girişte viskozite oranı 100 seçildi (hücum kenarına yaklaşık %0.43 Tu ulaşıyor); Cd'nin deneye yakınlığı kısmen bu seçime bağlı olabilir. Bu yüzden sonuç "deneyle uyumlu" olarak okunmalı, kesin bir doğrulama sayılmamalı.
+
+## Kapsam
+* Mesh planı ve Fluent yardımcısı düşük hız içindir (Mach < 0.3). Seçkideki RAE ve NASA SC(2) gibi transonik profiller de aynı planla verilir ama şok bölgesi için ayrı bir yol yoktur.
+* Domain boyutu (varsayılan 15c): yüksek Cl'de uzak alan sınırı taşıma kuvvetini etkiler. Cl arttıkça yarıçapı büyütüp sonucun değişmediğini kontrol edin.
 
 ## Neden X = 0.3c?
 Kanat DesignModeler'a tek bir eğri olarak ya da yalnızca hücum ve firar kenarından bölünmüş iki eğri olarak aktarıldığında, yüzey oluşturma sırasında hücum kenarında dar açılı hatalı yüzeyler (sliver face) oluşabilir. Bu da mesh kalitesini düşürür.
