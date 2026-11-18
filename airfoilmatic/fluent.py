@@ -63,6 +63,20 @@ def sutherland_viscosity(temp_c):
     return 1.716e-5 * (t / 273.15) ** 1.5 * (273.15 + 110.4) / (t + 110.4)
 
 
+def mach_state(mach, reynolds, temp_c, chord):
+    """Free stream of a Mach number, Reynolds number and temperature (ideal-gas air, Sutherland viscosity).
+    The density follows from the Reynolds number, the static pressure from the density:
+    ``speed``, ``sound`` (m/s), ``viscosity`` (Pa s), ``density`` (kg/m3), ``pressure`` (Pa), ``temperature`` (K)."""
+    if mach <= 0 or reynolds <= 0 or chord <= 0:
+        raise ValueError("Mach number, Reynolds number and chord must be positive")
+    a = speed_of_sound(temp_c)
+    u = mach * a
+    mu = sutherland_viscosity(temp_c)
+    rho = reynolds * mu / (u * chord)
+    t_k = temp_c + 273.15
+    return dict(speed=u, sound=a, viscosity=mu, density=rho, pressure=rho * R_AIR * t_k, temperature=t_k)
+
+
 def speed_of_sound(temp_c):
     """Speed of sound in air (ideal gas) at ``temp_c`` degrees Celsius; 15 degC gives 340.29 m/s."""
     t = temp_c + 273.15

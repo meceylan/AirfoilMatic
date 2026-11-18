@@ -21,7 +21,7 @@ from airfoilmatic.export import (UNIT_SCALE, profile_dm_txt, profile_solidworks_
 from airfoilmatic import library as lib
 from airfoilmatic.mesh import DEFAULTS, MAX_GOOD_GROWTH, plan_inflation, plan_mesh, plan_wake_axis, reynolds
 from airfoilmatic.fluent import (AIR_DENSITY, AIR_VISCOSITY, air_density, alpha_sweep, decayed_tu, freestream,
-                                 inlet_tu_for, max_reachable_tu, speed_for_reynolds, speed_of_sound,
+                                 inlet_tu_for, mach_state, max_reachable_tu, speed_for_reynolds, speed_of_sound,
                                  sutherland_viscosity)
 from airfoilmatic.quality import (FLUENT_MAX_SKEWNESS, FLUENT_MIN_ORTHO, RATING_LEVEL,
                                   expected_wall_aspect_ratio, rate_orthogonal, rate_skewness)
@@ -413,11 +413,20 @@ with tab_mesh:
     c1, c2, c3 = st.columns(3)
     with c1.container(key="card_flow"):
         st.markdown(ui.step_html(1, t("step_flow")), unsafe_allow_html=True)
-        flow_mode = st.radio(t("flow_input"), ["re", "vel"], horizontal=True, key="flow_mode",
-                             format_func=lambda k: t("flow_re") if k == "re" else t("flow_vel"))
-        u_inf = rho = mu = None
+        flow_mode = st.radio(t("flow_input"), ["re", "mach", "vel"], horizontal=True, key="flow_mode",
+                             format_func=lambda k: t({"re": "flow_re", "mach": "flow_mach", "vel": "flow_vel"}[k]))
+        u_inf = rho = mu = mach_flow = None
         if flow_mode == "re":
             re = st.number_input(t("re"), value=2.0e6, min_value=1.0e3, step=1.0e5, format="%.4e", key="re")
+        elif flow_mode == "mach":
+            mach_in = st.number_input(t("mach"), value=0.15, min_value=0.01, max_value=1.0, step=0.01,
+                                      format="%.3f", key="mach_in")
+            re = st.number_input(t("re"), value=2.0e6, min_value=1.0e3, step=1.0e5, format="%.4e", key="re")
+            mach_temp = st.number_input(t("fl_temp"), value=15.0, step=5.0, min_value=-100.0, max_value=500.0,
+                                        format="%.1f", key="mach_temp")
+            mach_flow = mach_state(mach_in, re, mach_temp, chord)
+            u_inf, rho, mu = mach_flow["speed"], mach_flow["density"], mach_flow["viscosity"]
+            st.caption(t("mach_state", u=u_inf, rho=rho, mu=mu, p=mach_flow["pressure"]))
         else:
             u_inf = st.number_input(t("velocity"), value=30.0, min_value=0.01, key="velocity")
             rho = st.number_input(t("density"), value=1.225, min_value=1e-6, format="%.4f", key="density")
@@ -635,10 +644,14 @@ with tab_mesh:
         u_default = u_inf if u_inf is not None else speed_for_reynolds(re, chord, rho_f, mu_f)
         fc = st.columns(3)
         aoa = fc[0].number_input(t("aoa"), value=4.25, step=0.25, format="%.2f", key="aoa")
-        temp_c = fc[2].number_input(t("fl_temp"), value=15.0, step=5.0, min_value=-100.0, max_value=500.0,
-                                    format="%.1f", key="fl_temp", help=t("fl_temp_help"))
+        if mach_flow is not None:   # the temperature already given with the Mach number
+            temp_c = fc[2].number_input(t("fl_temp"), value=mach_temp, format="%.1f", disabled=True,
+                                        key="fl_temp_mach")
+        else:
+            temp_c = fc[2].number_input(t("fl_temp"), value=15.0, step=5.0, min_value=-100.0, max_value=500.0,
+                                        format="%.1f", key="fl_temp", help=t("fl_temp_help"))
         a_sound = speed_of_sound(temp_c)
-        u0 = float(f"{u_default:.4g}")   # Re = 1000 on a long chord needs less than 1 mm/s
+        u0 = float(f"{u_default:.6g}" if mach_flow is not None else f"{u_default:.4g}")   # Re = 1000 on a long chord needs less than 1 mm/s
         u_fl = fc[1].number_input(t("fl_speed"), value=u0, min_value=min(0.001, u0),
                                   format="%.3f", help=t("fl_speed_help"))
         try:
@@ -662,7 +675,15 @@ with tab_mesh:
                 {t("col_setting"): t("fl_re_mach"), t("col_value"): f"Re = {fs.reynolds:.4e},  M = {fs.mach:.3f}"},
                 {t("col_setting"): t("fl_sound"), t("col_value"): f"{a_sound:.2f} m/s ({temp_c:g} °C)"},
             ]
+            if mach_flow is not None:   # what a pressure-far-field inlet asks for
+                rows_f += [
+                    {t("col_setting"): t("fl_ff_mach"), t("col_value"): f"{fs.mach:.4f}"},
+                    {t("col_setting"): t("fl_ff_pressure"), t("col_value"): f"{mach_flow['pressure']:.0f} Pa"},
+                    {t("col_setting"): t("fl_ff_temp"), t("col_value"): f"{mach_flow['temperature']:.2f} K"},
+                ]
             st.markdown(ui.table_html(rows_f), unsafe_allow_html=True)
+            if mach_flow is not None:
+                st.caption(t("fl_ff_note"))
             if abs(fs.reynolds - re) > 0.01 * re:
                 st.warning(t("fl_re_mismatch", re_fl=fs.reynolds, re_mesh=re))
             if fs.mach > 0.3:

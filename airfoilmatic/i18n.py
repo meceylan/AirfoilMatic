@@ -380,6 +380,34 @@ STRINGS = {
         "tr": 'Akış koşulu girişi',
         "en": 'Flow condition input',
     },
+    'flow_mach': {
+        "tr": 'Mach + Reynolds',
+        "en": 'Mach + Reynolds',
+    },
+    'mach': {
+        "tr": 'Mach sayısı',
+        "en": 'Mach number',
+    },
+    'mach_state': {
+        "tr": 'Hız = {u:.5g} m/s, yoğunluk = {rho:.5g} kg/m³, viskozite = {mu:.4e} Pa·s (Sutherland), statik basınç = {p:.0f} Pa. Yoğunluk Re\'den, basınç yoğunluktan hesaplanır.',
+        "en": 'Speed = {u:.5g} m/s, density = {rho:.5g} kg/m³, viscosity = {mu:.4e} Pa·s (Sutherland), static pressure = {p:.0f} Pa. The density follows from Re, the pressure from the density.',
+    },
+    'fl_ff_mach': {
+        "tr": 'Pressure Far-Field: Mach Number',
+        "en": 'Pressure Far-Field: Mach Number',
+    },
+    'fl_ff_pressure': {
+        "tr": 'Pressure Far-Field: Gauge Pressure (Operating Pressure = 0 Pa)',
+        "en": 'Pressure Far-Field: Gauge Pressure (Operating Pressure = 0 Pa)',
+    },
+    'fl_ff_temp': {
+        "tr": 'Pressure Far-Field: Temperature',
+        "en": 'Pressure Far-Field: Temperature',
+    },
+    'fl_ff_note': {
+        "tr": "Pressure far-field girişi için: Mach, yukarıdaki akış yönü bileşenleri, Gauge Pressure ve Temperature (Operating Pressure = 0 Pa varsayımıyla; Operating Pressure başka ise onu çıkarın), enerji denklemi açık, yoğunluk ideal gaz, viskozite Sutherland. Basınç Re'yi tutturmak için seçilir.",
+        "en": 'For a pressure-far-field inlet: Mach, the flow-direction components above, Gauge Pressure and Temperature (assuming Operating Pressure = 0 Pa; subtract it otherwise), energy equation on, ideal-gas density, Sutherland viscosity. The pressure is chosen to match Re.',
+    },
     'flow_re': {
         "tr": 'Reynolds sayısı',
         "en": 'Reynolds number',
