@@ -103,7 +103,8 @@ def test_random_pick_reaches_every_family():
 
 def test_thickness_slider_covers_the_whole_selection():
     import ast
-    src = open(__file__.replace("tests/test_library.py", "app.py")).read()
+    from pathlib import Path
+    src = (Path(__file__).resolve().parents[1] / "app.py").read_text(encoding="utf-8")
     top = next(n.value.value for n in ast.parse(src).body
                if isinstance(n, ast.Assign) and getattr(n.targets[0], "id", "") == "MAX_T_PERCENT")
     assert max(s.t for s in SECTIONS) * 100 <= top
