@@ -9,6 +9,7 @@ must then be rotated by the same angle:
     lift      L =       (-sin a, cos a)   (perpendicular, pointing "up")
 """
 import math
+import re
 from dataclasses import dataclass
 
 # Fluent default air and the standard sea-level speed of sound (15 deg C).
@@ -158,3 +159,137 @@ def alpha_sweep(start, stop, step, speed):
         c, s = math.cos(r), math.sin(r)
         out.append(dict(aoa=a, ux=speed * c, uy=speed * s, drag=(c, s), lift=(0.0 - s, c)))   # 0.0 - s: no "-0" at 0°
     return out
+
+
+# ----------------------------------------------------------------------------- sweep journal
+_NAME_RE = re.compile(r"^[A-Za-z0-9_.:-]+$")
+
+
+def _check_name(value, what):
+    """``what`` is a fixed label so the error message can be translated."""
+    value = str(value).strip()
+    if not _NAME_RE.match(value):
+        raise ValueError(f"{what} may only contain letters, digits and _ . : -")
+    return value
+
+
+def _label_angle(aoa):
+    """Angle as written in names and markers: 2 decimals, never a negative zero."""
+    return round(aoa, 2) + 0.0
+
+
+def _case_name(prefix, aoa):
+    a = _label_angle(aoa)
+    tag = ("m" if a < 0 else "") + f"{abs(a):05.2f}".replace(".", "p")
+    return f"{prefix.replace('.', '_')}_aoa_{tag}"
+
+
+_EXPR_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
+def _check_expression(value):
+    value = str(value).strip()
+    if not _EXPR_RE.match(value):
+        raise ValueError("Expression name may only contain letters, digits and _ and must not start with a digit")
+    return value
+
+
+def _angle_text(aoa):
+    """Compact angle for a Fluent expression: up to 4 decimals, no trailing zeros, never "-0"."""
+    s = f"{aoa:.4f}".rstrip("0").rstrip(".")
+    return "0" if s in ("-0", "") else s
+
+
+def _positive(value, what):
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value <= 0:
+        raise ValueError(f"{what} must be a positive number")
+    return float(value)
+
+
+def expression_setup(expression="aoa", density=1.225, speed=1.0, chord=1.0, depth=1.0, wall="wall"):
+    """Strings the Fluent case needs for the named-expression sweep: the two flow-direction
+    components of the pressure-far-field zone and the Cl / Cd expression definitions.
+    Tried in Ansys Fluent 2024 R2 (2D): the Cl/Cd values matched Fluent's own force reports."""
+    expression = _check_expression(expression)
+    wall = _check_name(wall, "Wall zone name")
+    density = _positive(density, "Density")
+    speed = _positive(speed, "Speed")
+    area = _positive(chord, "Chord") * _positive(depth, "Depth")
+    q = f"(0.5 * {density:.6g} [kg m^-3] * ({speed:.6g} [m s^-1])^2 * {area:.6g} [m^2])"
+    force = f"dot(Force(['{wall}']), vector("
+    return dict(
+        flow_x=f"cos({expression})",
+        flow_y=f"sin({expression})",
+        cl=f"{force}-sin({expression}), cos({expression}), 0)) / {q}",
+        cd=f"{force}cos({expression}), sin({expression}), 0)) / {q}",
+    )
+
+
+def sweep_journal(start, stop, step, iterations=1000, expression="aoa", save_each=False, folder="",
+                  prefix="airfoilmatic", version=""):
+    """Return the text of a Fluent TUI journal (.jou) for an angle-of-attack sweep.
+
+    At each angle (smallest to largest) only the named expression ``expression`` changes and the
+    solver iterates, continuing from the previous solution. The case must use that expression for
+    the pressure-far-field flow direction and for the Cl / Cd expression reports (see
+    ``expression_setup``). Tried in Ansys Fluent 2024 R2 (standalone, TUI version 24.2)."""
+    if isinstance(iterations, bool) or not isinstance(iterations, int) or iterations < 1:
+        raise ValueError("Iterations must be an integer of at least 1")
+    expression = _check_expression(expression)
+    prefix = _check_name(prefix, "File name prefix")
+    folder = str(folder or "").strip()
+    if not folder.isascii():
+        raise ValueError("Folder must contain only ASCII characters (Fluent may not handle others)")
+    if '"' in folder:
+        raise ValueError("Folder must not contain a double quote")
+    folder = folder.replace("\\", "/").rstrip("/")
+    rows = alpha_sweep(start, stop, step, 1.0)
+    n = len(rows)
+    if len({_case_name(prefix, r["aoa"]) for r in rows}) != n:
+        raise ValueError("Angle step too small: two angles get the same file name")
+
+    def path(aoa):
+        name = _case_name(prefix, aoa)
+        return f'"{folder}/{name}"' if folder else f'"{name}"'
+
+    first, last = rows[0]["aoa"], rows[-1]["aoa"]
+    e = expression
+    out = [
+        f"; AirfoilMatic {version}".rstrip() + " - angle-of-attack sweep journal for Ansys Fluent (2D)",
+        "; The case must contain, before this journal is read:",
+        f";   - a named expression {e} (angle, e.g. {_angle_text(first)} [deg]),",
+        f";   - the pressure-far-field flow direction X = cos({e}), Y = sin({e}),",
+        f";   - Cl and Cd as expression report definitions that use {e}",
+        f";     (force direction from cos({e}) and sin({e})),",
+        ";   - report files that hold only expression reports (and the moment report): a lift/drag",
+        ";     report with a changed force vector may ask a question about its file,",
+        ";   - residual convergence checks off (otherwise each angle stops after a few iterations).",
+        f"; Set {e} to the first angle ({_angle_text(first)} deg), initialise and run at least one iteration yourself:",
+        "; a run that starts at iteration 0 can make Fluent ask \"Ok to overwrite?\" for existing",
+        "; report files, and inside a journal the next line would become the answer.",
+        f"; At each angle the journal only changes {e} and iterates; every angle continues from the",
+        "; previous solution (no initialisation).",
+        f"; Angles: first {first:g}, last {last:g}, step {step:g}, count {n}, {iterations} iterations each.",
+        "; Cl and Cd per angle = the last value of each block of that many iterations in the report files.",
+        "; Tried in Ansys Fluent 2024 R2 (standalone, 2D): the edit command, the Cl/Cd expressions and",
+        "; the report files (no questions asked), and a 3-angle sweep (-2, 0, 2 deg, 50 iterations",
+        "; each) that ran to the end without a question. A long sweep (many angles, 1000",
+        "; iterations) is not tried yet.",
+        "; Meant for standalone Fluent (Launcher): Fluent in Workbench asks about changed settings.",
+        "; Run: File > Read > Journal.",
+        "; It turns off Fluent's overwrite question for this session (existing files with the same",
+        "; names are overwritten). Fluent 2024 R2 accepted /file/confirm-overwrite? no without error;",
+        "; overwriting a case file with it has not been tried yet.",
+        '/file/set-tui-version "24.2"',
+        "/file/confirm-overwrite? no",
+    ]
+    for i, r in enumerate(rows, 1):
+        out.append(f'(display "\\n=== AirfoilMatic: alpha {_label_angle(r["aoa"]):.2f} deg ({i}/{n}) ===\\n")')
+        out.append(f'/define/named-expressions/edit {e} definition "{_angle_text(r["aoa"])} [deg]" q')
+        out.append(f"/solve/iterate {iterations}")
+        if save_each:
+            out.append(f"/file/write-case-data {path(r['aoa'])}")
+    if not save_each:
+        out.append(f"/file/write-case-data {path(last)}")
+    out.append('(display "\\n=== AirfoilMatic: sweep done ===\\n")')
+    return "\n".join(out) + "\n"

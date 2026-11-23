@@ -17,6 +17,7 @@ AirfoilMatic builds the geometry of a 2D CFD flow domain around an airfoil (NACA
 * **Mesh / y⁺ assistant:** first-cell height for a target y⁺ and boundary-layer estimate, with two outputs: Ansys **Inflation** settings (first layer, growth rate, maximum layers) or a mapped-mesh **Edge Sizing** table (Number of Divisions + Bias Factor) with the expected cell count
 * **Mesh quality check** (skewness, orthogonal quality, aspect ratio) against Ansys bands and Fluent limits
 * **y⁺ correction** from a first Fluent result, and a **Fluent setup helper** that turns a free-stream speed and angle of attack into the inlet X/Y velocity components, the Lift/Drag vectors and the reference values, and checks Reynolds and Mach (speed of sound from the temperature); **free-stream turbulence decay** (SST) from the inlet to the airfoil and an **angle-of-attack sweep** (CSV) for a polar
+* **Fluent journal:** a TUI journal (`.jou`) that steps a named expression `aoa` through the angles of the sweep and runs the iterations (the case uses `aoa` for the pressure-far-field flow direction and the Cl/Cd expression reports; the app prints them). Tried in Ansys Fluent 2024 R2 (standalone) with a 3-angle sweep (50 iterations each); a long sweep, Workbench and case overwriting have not been tried yet
 * Turkish / English interface
 
 ## Local installation

@@ -1005,6 +1005,78 @@ STRINGS = {
         "tr": 'Taramayı CSV olarak indir',
         "en": 'Download the sweep as CSV',
     },
+    'jou_title': {
+        "tr": 'Fluent journal (pressure-far-field)',
+        "en": 'Fluent journal (pressure-far-field)',
+    },
+    'jou_note': {
+        "tr": "Journal her açıda yalnızca {expr} named expression'ını değiştirip iterasyon koşar; her açı bir öncekinin çözümünden devam eder. Case'inizde yukarıdaki dört satırın kurulu olması, report file'larda yalnızca expression report'lar (ve moment) bulunması ve residual convergence checks'in kapalı olması gerekir. {expr} değerini ilk açıya (\"İlk açı\") ayarlayıp initialize edin ve en az bir iterasyonu kendiniz koşun (iterasyon 0'dan başlayan bir çalışmada Fluent report file'lar için \"Ok to overwrite?\" diye sorabilir ve journal bozulur). Cl/Cd, report file'larda her {iterations} iterasyonluk bloğun son değeridir. Named expression düzenleme komutu, Cl/Cd expression'ları ve report file'lar Fluent 2024 R2'de (standalone, 2B) 3 açılı kısa bir taramayla denendi (açı başına 50 iterasyon, soru sorulmadan bitti); uzun bir tarama henüz denenmedi. Workbench içindeki Fluent ayar değişikliği için soru sorar; journal standalone Fluent (Launcher) içindir. Aynı adlı dosyaların üzerine sormadan yazılır. Velocity-inlet henüz desteklenmiyor.",
+        "en": "At each angle the journal only changes the named expression {expr} and iterates; every angle continues from the previous solution. Your case needs the four lines above, report files holding only expression reports (and the moment), and residual convergence checks off. Set {expr} to the first angle (\"First angle\"), initialise, and run at least one iteration yourself (a run starting at iteration 0 can make Fluent ask \"Ok to overwrite?\" for the report files and breaks the journal). Cl/Cd are the last value of each block of {iterations} iterations in the report files. The named-expression edit command, the Cl/Cd expressions and the report files were tried in Fluent 2024 R2 (standalone, 2D) with a short 3-angle sweep (50 iterations each, no question asked); a long sweep is untried. Fluent in Workbench asks about changed settings; the journal is meant for standalone Fluent (Launcher). Existing files with the same names are overwritten without asking. Velocity-inlet is not supported yet.",
+    },
+    'jou_setup_title': {
+        "tr": 'Case\'te olması gerekenler (named expression ve report definition)',
+        "en": 'What the case needs (named expression and report definitions)',
+    },
+    'jou_setup_aoa': {
+        "tr": 'Named expression {expr}: ilk açı, örn. {first} [deg]',
+        "en": 'Named expression {expr}: the first angle, e.g. {first} [deg]',
+    },
+    'jou_setup_flow_x': {
+        "tr": 'Pressure-far-field, X-Component of Flow Direction',
+        "en": 'Pressure-far-field, X-Component of Flow Direction',
+    },
+    'jou_setup_flow_y': {
+        "tr": 'Pressure-far-field, Y-Component of Flow Direction',
+        "en": 'Pressure-far-field, Y-Component of Flow Direction',
+    },
+    'jou_setup_cl': {
+        "tr": 'Report definition cl (expression)',
+        "en": 'Report definition cl (expression)',
+    },
+    'jou_setup_cd': {
+        "tr": 'Report definition cd (expression)',
+        "en": 'Report definition cd (expression)',
+    },
+    'jou_setup_note': {
+        "tr": "Yoğunluk ve hız yukarıdaki serbest akış değerlerinden alındı ve alan c × 1 m. Fluent'in Reference Values bölümündeki yoğunluk ve hız farklıysa bu iki değeri Fluent'inkilerle değiştirin (Fluent pressure-far-field referans hızını kendi gamma değeriyle hesaplar; bir denemede 51.025 yerine 51.044 m/s çıktı, yaklaşık %0.1 fark). Duvar bölgesinin adı wall değilse Force(['...']) içini değiştirin.",
+        "en": "Density and speed come from the free-stream values above and the area is c × 1 m. If the density and velocity in Fluent's Reference Values differ, replace these two numbers with Fluent's (Fluent computes the pressure-far-field reference velocity with its own gamma; one case gave 51.044 instead of 51.025 m/s, about 0.1 % difference). If your wall zone is not called wall, change the name inside Force(['...']).",
+    },
+    'jou_expr': {
+        "tr": 'Named expression adı',
+        "en": 'Named expression name',
+    },
+    'jou_expr_help': {
+        "tr": "Fluent'teki açı named expression'ının adı (varsayılan aoa). Harf, rakam ve _ içerebilir; rakamla başlayamaz.",
+        "en": "Name of the angle named expression in Fluent (default aoa). Letters, digits and _; must not start with a digit.",
+    },
+    'jou_iter': {
+        "tr": 'Açı başına iterasyon',
+        "en": 'Iterations per angle',
+    },
+    'jou_save_each': {
+        "tr": "Her açıda case & data kaydet",
+        "en": 'Save case & data at every angle',
+    },
+    'jou_save_each_help': {
+        "tr": "Kapalıysa yalnızca son açı kaydedilir. 50 bin hücreli mesh için açı başına yaklaşık 9 MB.",
+        "en": 'Otherwise only the last angle is saved. About 9 MB per angle for a 50k-cell mesh.',
+    },
+    'jou_folder': {
+        "tr": 'Kayıt klasörü',
+        "en": 'Save folder',
+    },
+    'jou_folder_help': {
+        "tr": "Tam yol, örn. C:/.../fluent; Türkçe karakter olmasın (ç, ş, ü...). Boşsa Fluent'in çalışma klasörü kullanılır.",
+        "en": "Full path, e.g. C:/.../fluent; ASCII characters only. Empty = Fluent's working folder.",
+    },
+    'jou_download': {
+        "tr": 'Fluent journal (.jou) indir',
+        "en": 'Download the Fluent journal (.jou)',
+    },
+    'jou_error': {
+        "tr": 'Journal üretilemedi: {msg}',
+        "en": 'Could not build the journal: {msg}',
+    },
     'warn_yplus_high': {
         "tr": "Transition SST için y⁺ ≈ 1 önerilir; y⁺ > 5'te geçiş öne kayabilir. Düz levha tahmini x = c içindir; en büyük y⁺ hücum kenarı yakınında ve hücum açısında emme tepesinde oluşur.",
         "en": "Transition SST wants y⁺ ≈ 1; above 5 transition can move forward. The flat-plate estimate is for x = c; the largest y⁺ occurs near the leading edge and at the suction peak at angle of attack.",
@@ -1087,6 +1159,17 @@ ERRORS_TR = {
     'The outline crosses itself': 'Çizgi kendini kesiyor (dosyadaki nokta sırasını kontrol edin)',
     'The outline crosses the front axis (the horizontal line ahead of the leading edge)': 'Çizgi ön ekseni (hücum kenarının önündeki yatay çizgiyi) kesiyor',
     'The outline crosses the wake axis (the horizontal line behind the trailing edge)': 'Çizgi iz eksenini (firar kenarının arkasındaki yatay çizgiyi) kesiyor',
+    'Iterations must be an integer of at least 1': 'İterasyon sayısı en az 1 olan bir tam sayı olmalı',
+    'Expression name may only contain letters, digits and _ and must not start with a digit': 'Expression adı yalnızca harf, rakam ve _ içerebilir ve rakamla başlayamaz',
+    'Wall zone name may only contain letters, digits and _ . : -': 'Duvar bölgesi adı yalnızca harf, rakam ve _ . : - içerebilir',
+    'Density must be a positive number': 'Yoğunluk pozitif bir sayı olmalı',
+    'Speed must be a positive number': 'Hız pozitif bir sayı olmalı',
+    'Chord must be a positive number': 'Veter pozitif bir sayı olmalı',
+    'Depth must be a positive number': 'Derinlik pozitif bir sayı olmalı',
+    'File name prefix may only contain letters, digits and _ . : -': 'Dosya adı öneki yalnızca harf, rakam ve _ . : - içerebilir',
+    'Folder must not contain a double quote': 'Klasör yolunda çift tırnak olamaz',
+    'Folder must contain only ASCII characters (Fluent may not handle others)': 'Klasör yolunda yalnızca ASCII karakterler olmalı (Fluent diğerlerini işleyemeyebilir)',
+    'Angle step too small: two angles get the same file name': 'Açı adımı çok küçük: iki açı aynı dosya adını alıyor',
     'math range error': 'Sayısal taşma: ayarlar uç değerlerde; büyüme oranını veya hücre boylarını değiştirin',
 }
 

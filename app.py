@@ -22,7 +22,7 @@ from airfoilmatic import library as lib
 from airfoilmatic.mesh import DEFAULTS, MAX_GOOD_GROWTH, plan_inflation, plan_mesh, plan_wake_axis, reynolds
 from airfoilmatic.fluent import (AIR_DENSITY, AIR_VISCOSITY, air_density, alpha_sweep, decayed_tu, freestream,
                                  inlet_tu_for, mach_state, max_reachable_tu, speed_for_reynolds, speed_of_sound,
-                                 sutherland_viscosity)
+                                 sutherland_viscosity, sweep_journal, expression_setup)
 from airfoilmatic.quality import (FLUENT_MAX_SKEWNESS, FLUENT_MIN_ORTHO, RATING_LEVEL,
                                   expected_wall_aspect_ratio, rate_orthogonal, rate_skewness)
 from airfoilmatic.i18n import LANGS, tr, tr_error
@@ -738,3 +738,40 @@ with tab_mesh:
                 wide_table(rows_s, "sweep")
                 st.download_button(t("sweep_csv"), data=rows_to_csv(rows_s),
                                    file_name=f"{file_prefix}_aoa_sweep.csv", mime="text/csv", key="sweep_csv")
+
+                # ---- Fluent journal: steps a named expression (the angle) through the same angles
+                st.markdown(f"**{t('jou_title')}**")
+                expr_now = str(st.session_state.get("jou_expr", "aoa")).strip()
+                iter_now = int(st.session_state.get("jou_iter", 1000))
+                try:
+                    setup = expression_setup(expr_now, rho_f, fs.speed, chord)
+                except ValueError:
+                    pass   # the same name error is shown once, below, by sweep_journal
+                else:
+                    first_txt = f"{a0:.4f}".rstrip("0").rstrip(".")
+                    first_txt = "0" if first_txt in ("-0", "") else first_txt
+                    st.markdown(t("jou_setup_title"))
+                    st.code("\n".join([
+                        f"{t('jou_setup_aoa', expr=expr_now, first=first_txt)}",
+                        f"{t('jou_setup_flow_x')}: {setup['flow_x']}",
+                        f"{t('jou_setup_flow_y')}: {setup['flow_y']}",
+                        f"{t('jou_setup_cl')}: {setup['cl']}",
+                        f"{t('jou_setup_cd')}: {setup['cd']}",
+                    ]), language=None)
+                    st.caption(t("jou_setup_note"))
+                st.caption(t("jou_note", iterations=iter_now, expr=expr_now))
+                jc = st.columns(3)
+                jou_iter = jc[0].number_input(t("jou_iter"), value=1000, min_value=1, step=100, key="jou_iter")
+                jou_expr = jc[1].text_input(t("jou_expr"), value="aoa", help=t("jou_expr_help"), key="jou_expr")
+                jou_save = jc[2].checkbox(t("jou_save_each"), value=False, help=t("jou_save_each_help"),
+                                          key="jou_save_each")
+                jou_folder = st.text_input(t("jou_folder"), value="", help=t("jou_folder_help"), key="jou_folder")
+                try:
+                    jou_text = sweep_journal(a0, a1, da, iterations=int(jou_iter), expression=jou_expr.strip(),
+                                             save_each=jou_save, folder=jou_folder.strip(), prefix=file_prefix,
+                                             version=APP_VERSION)
+                except ValueError as e:
+                    st.error(t("jou_error", msg=te(e)))
+                else:
+                    st.download_button(t("jou_download"), data=jou_text, file_name=f"{file_prefix}_aoa_sweep.jou",
+                                       mime="text/plain", key="jou_download")
