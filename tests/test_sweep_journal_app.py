@@ -38,7 +38,8 @@ def test_input_widgets_exist_with_defaults():
     assert by_key(at, "number_input", "jou_iter").value == 1000
     assert by_key(at, "text_input", "jou_expr").value == "aoa"
     assert by_key(at, "text_input", "jou_folder").value == ""
-    assert by_key(at, "checkbox", "jou_save_each").value is False
+    assert by_key(at, "number_input", "jou_save_every").value == 0
+    assert not [w for w in at.checkbox if w.key == "jou_save_each"]
     keys = {w.key for w in at.text_input}
     assert not keys & {"jou_zones", "jou_lift", "jou_drag"}
 
@@ -49,9 +50,9 @@ def test_download_button_appears_with_defaults():
     assert has_journal_download(at)
 
 
-def test_save_each_and_folder_still_give_a_download():
+def test_save_every_and_folder_still_give_a_download():
     at = start()
-    by_key(at, "checkbox", "jou_save_each").set_value(True)
+    by_key(at, "number_input", "jou_save_every").set_value(5)
     by_key(at, "text_input", "jou_folder").set_value("C:/work/fluent")
     at = at.run()
     assert not at.exception and not at.error
@@ -94,6 +95,7 @@ def test_texts_render_in_both_languages(lang):
     assert tr("jou_note", lang, iterations=1000, expr="aoa") in " ".join(c.value for c in at.caption)
     assert by_key(at, "number_input", "jou_iter").label == tr("jou_iter", lang)
     assert by_key(at, "text_input", "jou_expr").label == tr("jou_expr", lang)
+    assert by_key(at, "number_input", "jou_save_every").label == tr("jou_save_every", lang)
     assert tr("jou_download", lang) in download_labels(at)
 
 

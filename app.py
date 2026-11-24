@@ -763,12 +763,12 @@ with tab_mesh:
                 jc = st.columns(3)
                 jou_iter = jc[0].number_input(t("jou_iter"), value=1000, min_value=1, step=100, key="jou_iter")
                 jou_expr = jc[1].text_input(t("jou_expr"), value="aoa", help=t("jou_expr_help"), key="jou_expr")
-                jou_save = jc[2].checkbox(t("jou_save_each"), value=False, help=t("jou_save_each_help"),
-                                          key="jou_save_each")
+                jou_save = jc[2].number_input(t("jou_save_every"), value=0, min_value=0, step=1,
+                                              help=t("jou_save_every_help"), key="jou_save_every")
                 jou_folder = st.text_input(t("jou_folder"), value="", help=t("jou_folder_help"), key="jou_folder")
                 try:
                     jou_text = sweep_journal(a0, a1, da, iterations=int(jou_iter), expression=jou_expr.strip(),
-                                             save_each=jou_save, folder=jou_folder.strip(), prefix=file_prefix,
+                                             save_every=int(jou_save), folder=jou_folder.strip(), prefix=file_prefix,
                                              version=APP_VERSION)
                 except ValueError as e:
                     st.error(t("jou_error", msg=te(e)))

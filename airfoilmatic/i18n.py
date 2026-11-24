@@ -1010,8 +1010,8 @@ STRINGS = {
         "en": 'Fluent journal (pressure-far-field)',
     },
     'jou_note': {
-        "tr": "Journal her açıda yalnızca {expr} named expression'ını değiştirip iterasyon koşar; her açı bir öncekinin çözümünden devam eder. Case'inizde yukarıdaki dört satırın kurulu olması, report file'larda yalnızca expression report'lar (ve moment) bulunması ve residual convergence checks'in kapalı olması gerekir. {expr} değerini ilk açıya (\"İlk açı\") ayarlayıp initialize edin ve en az bir iterasyonu kendiniz koşun (iterasyon 0'dan başlayan bir çalışmada Fluent report file'lar için \"Ok to overwrite?\" diye sorabilir ve journal bozulur). Cl/Cd, report file'larda her {iterations} iterasyonluk bloğun son değeridir. Named expression düzenleme komutu, Cl/Cd expression'ları ve report file'lar Fluent 2024 R2'de (standalone, 2B) 3 açılı kısa bir taramayla denendi (açı başına 50 iterasyon, soru sorulmadan bitti); uzun bir tarama henüz denenmedi. Workbench içindeki Fluent ayar değişikliği için soru sorar; journal standalone Fluent (Launcher) içindir. Aynı adlı dosyaların üzerine sormadan yazılır. Velocity-inlet henüz desteklenmiyor.",
-        "en": "At each angle the journal only changes the named expression {expr} and iterates; every angle continues from the previous solution. Your case needs the four lines above, report files holding only expression reports (and the moment), and residual convergence checks off. Set {expr} to the first angle (\"First angle\"), initialise, and run at least one iteration yourself (a run starting at iteration 0 can make Fluent ask \"Ok to overwrite?\" for the report files and breaks the journal). Cl/Cd are the last value of each block of {iterations} iterations in the report files. The named-expression edit command, the Cl/Cd expressions and the report files were tried in Fluent 2024 R2 (standalone, 2D) with a short 3-angle sweep (50 iterations each, no question asked); a long sweep is untried. Fluent in Workbench asks about changed settings; the journal is meant for standalone Fluent (Launcher). Existing files with the same names are overwritten without asking. Velocity-inlet is not supported yet.",
+        "tr": "Journal her açıda yalnızca {expr} named expression'ını değiştirip iterasyon koşar; her açı bir öncekinin çözümünden devam eder. Case'inizde yukarıdaki dört satırın kurulu olması, report file'larda yalnızca expression report'lar (ve moment) bulunması ve residual convergence checks'in kapalı olması gerekir. {expr} değerini ilk açıya (\"İlk açı\") ayarlayıp initialize edin ve en az bir iterasyonu kendiniz koşun (iterasyon 0'dan başlayan bir çalışmada Fluent report file'lar için \"Ok to overwrite?\" diye sorabilir ve journal bozulur). Açı başına {iterations} iterasyon üst sınırdır: case'te Convergence Conditions (Solution → Report Definitions) varsa Fluent koşul dolunca o açıyı erken bitirir ve journal sonraki açıya geçer. Cl/Cd, report file'larda her açının bloğundan okunur. Named expression düzenleme komutu, Cl/Cd expression'ları ve report file'lar Fluent 2024 R2'de (standalone, 2B) 3 açılı kısa bir taramayla (açı başına 50 iterasyon) ve 11 açılı uzun bir taramayla (−4…16°, en çok 2000 iterasyon, Convergence Conditions, velocity-inlet case) denendi; ikisi de soru sorulmadan bitti. Workbench içindeki Fluent ayar değişikliği için soru sorar; journal standalone Fluent (Launcher) içindir. Aynı adlı dosyaların üzerine sormadan yazılır. Velocity-inlet henüz desteklenmiyor.",
+        "en": "At each angle the journal only changes the named expression {expr} and iterates; every angle continues from the previous solution. Your case needs the four lines above, report files holding only expression reports (and the moment), and residual convergence checks off. Set {expr} to the first angle (\"First angle\"), initialise, and run at least one iteration yourself (a run starting at iteration 0 can make Fluent ask \"Ok to overwrite?\" for the report files and breaks the journal). {iterations} iterations per angle is an upper limit: if the case has Convergence Conditions (Solution → Report Definitions), Fluent ends the angle early when they are met and the journal goes on to the next angle. Cl/Cd are read from each angle's block in the report files. The named-expression edit command, the Cl/Cd expressions and the report files were tried in Fluent 2024 R2 (standalone, 2D) with a short 3-angle sweep (50 iterations each) and an 11-angle sweep (−4…16°, up to 2000 iterations, Convergence Conditions, velocity-inlet case); both ended without a question. Fluent in Workbench asks about changed settings; the journal is meant for standalone Fluent (Launcher). Existing files with the same names are overwritten without asking. Velocity-inlet is not supported yet.",
     },
     'jou_setup_title': {
         "tr": 'Case\'te olması gerekenler (named expression ve report definition)',
@@ -1053,13 +1053,13 @@ STRINGS = {
         "tr": 'Açı başına iterasyon',
         "en": 'Iterations per angle',
     },
-    'jou_save_each': {
-        "tr": "Her açıda case & data kaydet",
-        "en": 'Save case & data at every angle',
+    'jou_save_every': {
+        "tr": "Case & data: her kaç açıda bir",
+        "en": 'Case & data: every how many angles',
     },
-    'jou_save_each_help': {
-        "tr": "Kapalıysa yalnızca son açı kaydedilir. 50 bin hücreli mesh için açı başına yaklaşık 9 MB.",
-        "en": 'Otherwise only the last angle is saved. About 9 MB per angle for a 50k-cell mesh.',
+    'jou_save_every_help': {
+        "tr": "1 = her açıdan sonra, 5 = her 5 açıda bir; son açı her zaman kaydedilir. 0 = yalnızca son açı. Kayıt başına yaklaşık 7–9 MB (50 bin hücre). Uzun süren açılarda 1 seçin. Tarama yarıda kalırsa: son kaydedilen case & data'yı açın, burada ilk açıyı bir sonraki açı yapın, yeni journal indirip okutun (denenmedi; report file'da bazı iterasyonlar iki kez yazılabilir, sonraki satırlar geçerlidir).",
+        "en": 'Every k-th angle (1 = every angle, 5 = every 5 angles); the last angle is always saved. 0 = only the last angle. About 7–9 MB per save (50k cells). Use 1 when each angle takes long. If the sweep stops midway: read the last saved case & data, set the first angle here to the next angle, download a new journal and read it (not tried; the report file may then hold some iterations twice, the later lines are the valid ones).',
     },
     'jou_folder': {
         "tr": 'Kayıt klasörü',
@@ -1160,6 +1160,7 @@ ERRORS_TR = {
     'The outline crosses the front axis (the horizontal line ahead of the leading edge)': 'Çizgi ön ekseni (hücum kenarının önündeki yatay çizgiyi) kesiyor',
     'The outline crosses the wake axis (the horizontal line behind the trailing edge)': 'Çizgi iz eksenini (firar kenarının arkasındaki yatay çizgiyi) kesiyor',
     'Iterations must be an integer of at least 1': 'İterasyon sayısı en az 1 olan bir tam sayı olmalı',
+    'Save interval must be a whole number of 0 or more': 'Kayıt aralığı 0 ya da daha büyük bir tam sayı olmalı',
     'Expression name may only contain letters, digits and _ and must not start with a digit': 'Expression adı yalnızca harf, rakam ve _ içerebilir ve rakamla başlayamaz',
     'Wall zone name may only contain letters, digits and _ . : -': 'Duvar bölgesi adı yalnızca harf, rakam ve _ . : - içerebilir',
     'Density must be a positive number': 'Yoğunluk pozitif bir sayı olmalı',

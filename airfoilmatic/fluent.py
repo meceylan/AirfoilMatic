@@ -225,16 +225,21 @@ def expression_setup(expression="aoa", density=1.225, speed=1.0, chord=1.0, dept
     )
 
 
-def sweep_journal(start, stop, step, iterations=1000, expression="aoa", save_each=False, folder="",
+def sweep_journal(start, stop, step, iterations=1000, expression="aoa", save_every=0, folder="",
                   prefix="airfoilmatic", version=""):
     """Return the text of a Fluent TUI journal (.jou) for an angle-of-attack sweep.
 
     At each angle (smallest to largest) only the named expression ``expression`` changes and the
     solver iterates, continuing from the previous solution. The case must use that expression for
     the pressure-far-field flow direction and for the Cl / Cd expression reports (see
-    ``expression_setup``). Tried in Ansys Fluent 2024 R2 (standalone, TUI version 24.2)."""
+    ``expression_setup``). Tried in Ansys Fluent 2024 R2 (standalone, TUI version 24.2).
+
+    ``save_every`` = k writes case & data after every k-th angle (1 = every angle); the last angle
+    is always written. 0 (default) writes only the last angle."""
     if isinstance(iterations, bool) or not isinstance(iterations, int) or iterations < 1:
         raise ValueError("Iterations must be an integer of at least 1")
+    if isinstance(save_every, bool) or not isinstance(save_every, int) or save_every < 0:
+        raise ValueError("Save interval must be a whole number of 0 or more")
     expression = _check_expression(expression)
     prefix = _check_name(prefix, "File name prefix")
     folder = str(folder or "").strip()
@@ -254,6 +259,12 @@ def sweep_journal(start, stop, step, iterations=1000, expression="aoa", save_eac
 
     first, last = rows[0]["aoa"], rows[-1]["aoa"]
     e = expression
+    if save_every == 1:
+        save_text = "after every angle"
+    elif save_every > 1:
+        save_text = f"every {save_every} angles and after the last angle"
+    else:
+        save_text = "only after the last angle"
     out = [
         f"; AirfoilMatic {version}".rstrip() + " - angle-of-attack sweep journal for Ansys Fluent (2D)",
         "; The case must contain, before this journal is read:",
@@ -269,12 +280,18 @@ def sweep_journal(start, stop, step, iterations=1000, expression="aoa", save_eac
         "; report files, and inside a journal the next line would become the answer.",
         f"; At each angle the journal only changes {e} and iterates; every angle continues from the",
         "; previous solution (no initialisation).",
-        f"; Angles: first {first:g}, last {last:g}, step {step:g}, count {n}, {iterations} iterations each.",
-        "; Cl and Cd per angle = the last value of each block of that many iterations in the report files.",
+        f"; Angles: first {first:g}, last {last:g}, step {step:g}, count {n}.",
+        f"; Iterations per angle: {iterations} = upper limit. If the case has Convergence Conditions",
+        "; (Solution > Report Definitions), Fluent stops an angle early when they are met and the journal",
+        "; goes on to the next angle (seen in Fluent 2024 R2, 11-angle sweep).",
+        f"; Case & data are written {save_text}.",
+        "; To continue a stopped sweep: read the last written case & data, set the first angle in",
+        "; AirfoilMatic to the next angle, download a new journal and read it (not tried yet; the",
+        "; report file may then hold some iterations twice - the later lines are the valid ones).",
         "; Tried in Ansys Fluent 2024 R2 (standalone, 2D): the edit command, the Cl/Cd expressions and",
         "; the report files (no questions asked), and a 3-angle sweep (-2, 0, 2 deg, 50 iterations",
-        "; each) that ran to the end without a question. A long sweep (many angles, 1000",
-        "; iterations) is not tried yet.",
+        "; each) that ran to the end without a question. An 11-angle sweep (-4 ... 16 deg, up to 2000",
+        "; iterations each, Convergence Conditions; velocity-inlet case) also ran to the end.",
         "; Meant for standalone Fluent (Launcher): Fluent in Workbench asks about changed settings.",
         "; Run: File > Read > Journal.",
         "; It turns off Fluent's overwrite question for this session (existing files with the same",
@@ -287,9 +304,7 @@ def sweep_journal(start, stop, step, iterations=1000, expression="aoa", save_eac
         out.append(f'(display "\\n=== AirfoilMatic: alpha {_label_angle(r["aoa"]):.2f} deg ({i}/{n}) ===\\n")')
         out.append(f'/define/named-expressions/edit {e} definition "{_angle_text(r["aoa"])} [deg]" q')
         out.append(f"/solve/iterate {iterations}")
-        if save_each:
+        if i == n or (save_every and i % save_every == 0):
             out.append(f"/file/write-case-data {path(r['aoa'])}")
-    if not save_each:
-        out.append(f"/file/write-case-data {path(last)}")
     out.append('(display "\\n=== AirfoilMatic: sweep done ===\\n")')
     return "\n".join(out) + "\n"

@@ -85,13 +85,13 @@ def test_confirm_overwrite_once_after_tui_version_before_first_marker():
 
 
 def test_tiny_negative_angle_is_zero_without_sign():
-    text = sweep_journal(-0.001, -0.001, 1, save_each=True, prefix="a")
+    text = sweep_journal(-0.001, -0.001, 1, save_every=1, prefix="a")
     assert "alpha -0.00" not in text
     assert "a_aoa_m00p00" not in text
 
 
 def test_negative_zero_rounding_label_in_name():
-    text = sweep_journal(-0.004, -0.004, 1, save_each=True, prefix="a")
+    text = sweep_journal(-0.004, -0.004, 1, save_every=1, prefix="a")
     assert "alpha 0.00 deg" in text
     assert '"a_aoa_00p00"' in text
 
@@ -128,8 +128,8 @@ def test_angle_order_and_count():
     assert text.count("/define/named-expressions/edit") == 11
 
 
-def test_save_each_writes_every_angle():
-    text = sweep_journal(-4, 0, 2, save_each=True, folder="D:/run", prefix="a")
+def test_save_every_one_writes_every_angle():
+    text = sweep_journal(-4, 0, 2, save_every=1, folder="D:/run", prefix="a")
     writes = [l for l in lines_of(text) if l.startswith("/file/write-case-data")]
     assert writes == [
         '/file/write-case-data "D:/run/a_aoa_m04p00"',
@@ -138,7 +138,7 @@ def test_save_each_writes_every_angle():
     ]
 
 
-def test_no_save_each_writes_once_with_last_angle():
+def test_default_writes_once_with_last_angle():
     text = sweep_journal(10, 15, 2.5, folder="D:/run", prefix="a")
     writes = [l for l in lines_of(text) if l.startswith("/file/write-case-data")]
     assert writes == ['/file/write-case-data "D:/run/a_aoa_15p00"']
@@ -146,13 +146,57 @@ def test_no_save_each_writes_once_with_last_angle():
     assert "12p50" not in text and "10p00" not in text
 
 
+def writes_of(text):
+    return [l.split("_aoa_")[1].rstrip('"') for l in lines_of(text) if l.startswith("/file/write-case-data")]
+
+
+def test_save_every_k_angles_and_always_the_last():
+    # 10 angles (-4 ... 14), every 5th angle -> 5th and 10th
+    assert writes_of(sweep_journal(-4, 14, 2, save_every=5)) == ["04p00", "14p00"]
+    # 11 angles (-4 ... 16), every 5th -> 5th, 10th and the last (11th)
+    assert writes_of(sweep_journal(-4, 16, 2, save_every=5)) == ["04p00", "14p00", "16p00"]
+    # every 3rd of 4 angles
+    assert writes_of(sweep_journal(0, 6, 2, save_every=3)) == ["04p00", "06p00"]
+
+
+def test_save_every_zero_or_larger_than_count_saves_only_the_last():
+    assert writes_of(sweep_journal(0, 6, 2, save_every=0)) == ["06p00"]
+    assert writes_of(sweep_journal(0, 6, 2, save_every=10)) == ["06p00"]
+
+
+def test_save_written_right_after_its_angle_iterates():
+    lines = lines_of(sweep_journal(0, 4, 2, iterations=7, save_every=2))
+    i = lines.index('/file/write-case-data "airfoilmatic_aoa_02p00"')
+    assert lines[i - 1] == "/solve/iterate 7"
+    assert lines[i - 2] == '/define/named-expressions/edit aoa definition "2 [deg]" q'
+
+
+@pytest.mark.parametrize("bad", [-1, 1.5, "2", None, True])
+def test_save_every_validation(bad):
+    with pytest.raises(ValueError, match="Save interval must be a whole number of 0 or more"):
+        sweep_journal(0, 2, 1, save_every=bad)
+
+
+def test_save_each_parameter_is_gone():
+    with pytest.raises(TypeError):
+        sweep_journal(0, 2, 1, save_each=True)
+
+
+def test_header_explains_save_interval_and_resume():
+    header = " ".join(l for l in sweep_journal(-4, 16, 2, save_every=5).splitlines() if l.startswith(";"))
+    assert "every 5 angles" in header
+    assert "To continue a stopped sweep" in header
+    assert "upper limit" in header and "Convergence Conditions" in header
+    assert "last value of each block" not in header
+
+
 def test_folder_backslashes_converted_and_trailing_stripped():
-    text = sweep_journal(0, 0, 1, save_each=True, folder="C:\\Users\\me\\run\\\\")
+    text = sweep_journal(0, 0, 1, save_every=1, folder="C:\\Users\\me\\run\\\\")
     assert '"C:/Users/me/run/airfoilmatic_aoa_00p00"' in text
 
 
 def test_empty_folder_gives_bare_name():
-    assert '/file/write-case-data "airfoilmatic_aoa_00p00"' in lines_of(sweep_journal(0, 0, 1, save_each=True))
+    assert '/file/write-case-data "airfoilmatic_aoa_00p00"' in lines_of(sweep_journal(0, 0, 1, save_every=1))
 
 
 @pytest.mark.parametrize("bad", [0, -5, 1.5, "10", None, True])
@@ -181,7 +225,7 @@ def test_removed_parameters_are_gone():
 
 
 def test_ascii_only_and_trailing_newline():
-    text = sweep_journal(-4, 4, 2, version="1.2.3", save_each=True, folder="a\\b")
+    text = sweep_journal(-4, 4, 2, version="1.2.3", save_every=1, folder="a\\b")
     text.encode("ascii")
     assert text.endswith("\n") and not text.endswith("\n\n")
     assert "\r" not in text
