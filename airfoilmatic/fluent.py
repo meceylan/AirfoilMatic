@@ -217,11 +217,17 @@ def expression_setup(expression="aoa", density=1.225, speed=1.0, chord=1.0, dept
     area = _positive(chord, "Chord") * _positive(depth, "Depth")
     q = f"(0.5 * {density:.6g} [kg m^-3] * ({speed:.6g} [m s^-1])^2 * {area:.6g} [m^2])"
     force = f"dot(Force(['{wall}']), vector("
+    cl = f"{force}-sin({expression}), cos({expression}), 0)) / {q}"
     return dict(
         flow_x=f"cos({expression})",
         flow_y=f"sin({expression})",
-        cl=f"{force}-sin({expression}), cos({expression}), 0)) / {q}",
+        cl=cl,
         cd=f"{force}cos({expression}), sin({expression}), 0)) / {q}",
+        # Fluent's Convergence Conditions use a relative change, which never settles when Cl is
+        # about 0 (symmetric profile at 0 deg). Cl + 1 stays near 1, so its relative change is
+        # about the absolute change of Cl. Tried in Fluent 2024 R2 (0 deg: stopped by itself
+        # after 366 iterations with the same Cl/Cd as a 2000-iteration run).
+        clconv=f"{cl} + 1",
     )
 
 

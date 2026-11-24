@@ -109,3 +109,5 @@ def test_setup_code_block_lists_the_four_expressions(lang):
     assert "cl" in text and "cd" in text
     assert "dot(Force(['wall'])" in text
     assert tr("jou_setup_cl", lang) in text
+    assert tr("jou_setup_clconv", lang) in text
+    assert "* 1 [m^2]) + 1" in text

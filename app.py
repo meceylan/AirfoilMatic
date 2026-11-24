@@ -757,6 +757,7 @@ with tab_mesh:
                         f"{t('jou_setup_flow_y')}: {setup['flow_y']}",
                         f"{t('jou_setup_cl')}: {setup['cl']}",
                         f"{t('jou_setup_cd')}: {setup['cd']}",
+                        f"{t('jou_setup_clconv')}: {setup['clconv']}",
                     ]), language=None)
                     st.caption(t("jou_setup_note"))
                 st.caption(t("jou_note", iterations=iter_now, expr=expr_now))

@@ -1037,9 +1037,13 @@ STRINGS = {
         "tr": 'Report definition cd (expression)',
         "en": 'Report definition cd (expression)',
     },
+    'jou_setup_clconv': {
+        "tr": "Report definition clconv (expression; report file'a eklemeyin, Convergence Conditions'ta cl yerine seçin)",
+        "en": "Report definition clconv (expression; keep it out of the report files, pick it instead of cl in Convergence Conditions)",
+    },
     'jou_setup_note': {
-        "tr": "Yoğunluk ve hız yukarıdaki serbest akış değerlerinden alındı ve alan c × 1 m. Fluent'in Reference Values bölümündeki yoğunluk ve hız farklıysa bu iki değeri Fluent'inkilerle değiştirin (Fluent pressure-far-field referans hızını kendi gamma değeriyle hesaplar; bir denemede 51.025 yerine 51.044 m/s çıktı, yaklaşık %0.1 fark). Duvar bölgesinin adı wall değilse Force(['...']) içini değiştirin.",
-        "en": "Density and speed come from the free-stream values above and the area is c × 1 m. If the density and velocity in Fluent's Reference Values differ, replace these two numbers with Fluent's (Fluent computes the pressure-far-field reference velocity with its own gamma; one case gave 51.044 instead of 51.025 m/s, about 0.1 % difference). If your wall zone is not called wall, change the name inside Force(['...']).",
+        "tr": "clconv = cl + 1: Fluent'in Convergence Conditions ölçütü görelidir; Cl ≈ 0 olan açıda (simetrik profilde 0°) hiç dolmaz ve açı iterasyon üst sınırına kadar koşar. cl + 1 değeri 1 civarında kaldığı için göreli değişimi Cl'nin mutlak değişimine eşit olur. Fluent 2024 R2'de denendi: 0°'de açı 366 iterasyonda kendisi durdu, Cl ve Cd 2000 iterasyonluk koşuyla aynı çıktı. Yoğunluk ve hız yukarıdaki serbest akış değerlerinden alındı ve alan c × 1 m. Fluent'in Reference Values bölümündeki yoğunluk ve hız farklıysa bu iki değeri Fluent'inkilerle değiştirin (Fluent pressure-far-field referans hızını kendi gamma değeriyle hesaplar; bir denemede 51.025 yerine 51.044 m/s çıktı, yaklaşık %0.1 fark). Duvar bölgesinin adı wall değilse Force(['...']) içini değiştirin.",
+        "en": "clconv = cl + 1: Fluent's Convergence Conditions use a relative change; at an angle where Cl ≈ 0 (a symmetric profile at 0°) it is never met and the angle runs to the iteration limit. cl + 1 stays near 1, so its relative change equals the absolute change of Cl. Tried in Fluent 2024 R2: at 0° the angle stopped by itself after 366 iterations with the same Cl and Cd as a 2000-iteration run. Density and speed come from the free-stream values above and the area is c × 1 m. If the density and velocity in Fluent's Reference Values differ, replace these two numbers with Fluent's (Fluent computes the pressure-far-field reference velocity with its own gamma; one case gave 51.044 instead of 51.025 m/s, about 0.1 % difference). If your wall zone is not called wall, change the name inside Force(['...']).",
     },
     'jou_expr': {
         "tr": 'Named expression adı',

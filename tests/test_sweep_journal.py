@@ -253,7 +253,14 @@ def test_expression_setup_reproduces_verified_strings():
               "(0.5 * 0.7011 [kg m^-3] * (51.025 [m s^-1])^2 * 1 [m^2])",
         "cd": "dot(Force(['wall']), vector(cos(aoa), sin(aoa), 0)) / "
               "(0.5 * 0.7011 [kg m^-3] * (51.025 [m s^-1])^2 * 1 [m^2])",
+        "clconv": "dot(Force(['wall']), vector(-sin(aoa), cos(aoa), 0)) / "
+                  "(0.5 * 0.7011 [kg m^-3] * (51.025 [m s^-1])^2 * 1 [m^2]) + 1",
     }
+
+
+def test_clconv_is_cl_plus_one():
+    d = expression_setup("alpha", 1.225, 30, chord=2.0, wall="airfoil")
+    assert d["clconv"] == d["cl"] + " + 1"
 
 
 def test_expression_setup_options_and_validation():
