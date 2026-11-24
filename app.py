@@ -22,7 +22,8 @@ from airfoilmatic import library as lib
 from airfoilmatic.mesh import DEFAULTS, MAX_GOOD_GROWTH, plan_inflation, plan_mesh, plan_wake_axis, reynolds
 from airfoilmatic.fluent import (AIR_DENSITY, AIR_VISCOSITY, air_density, alpha_sweep, decayed_tu, freestream,
                                  inlet_tu_for, mach_state, max_reachable_tu, speed_for_reynolds, speed_of_sound,
-                                 sutherland_viscosity, sweep_journal, expression_setup)
+                                 sutherland_viscosity, sweep_journal, expression_setup,
+                                 rarefaction, KNUDSEN_CONTINUUM)
 from airfoilmatic.quality import (FLUENT_MAX_SKEWNESS, FLUENT_MIN_ORTHO, RATING_LEVEL,
                                   expected_wall_aspect_ratio, rate_orthogonal, rate_skewness)
 from airfoilmatic.i18n import LANGS, tr, tr_error
@@ -437,6 +438,9 @@ with tab_mesh:
             mach_flow = mach_state(mach_in, re, mach_temp, chord)
             u_inf, rho, mu = mach_flow["speed"], mach_flow["density"], mach_flow["viscosity"]
             st.caption(t("mach_state", u=u_inf, rho=rho, mu=mu, p=mach_flow["pressure"]))
+            kn = rarefaction(mach_flow, mach_temp, chord)
+            if kn > KNUDSEN_CONTINUUM:
+                st.warning(t("warn_rarefied", p=mach_flow["pressure"], kn=kn))
         else:
             u_inf = st.number_input(t("velocity"), value=30.0, min_value=0.01, key="velocity")
             rho = st.number_input(t("density"), value=1.225, min_value=1e-6, format="%.4f", key="density")
@@ -776,6 +780,8 @@ with tab_mesh:
                         f"{t('jou_setup_aoa', expr=expr_now, first=first_txt)}",
                         f"{t('jou_setup_flow_x')}: {setup['flow_x']}",
                         f"{t('jou_setup_flow_y')}: {setup['flow_y']}",
+                        f"{t('jou_setup_inlet_x')}: {setup['inlet_x']}",
+                        f"{t('jou_setup_inlet_y')}: {setup['inlet_y']}",
                         f"{t('jou_setup_cl')}: {setup['cl']}",
                         f"{t('jou_setup_cd')}: {setup['cd']}",
                         f"{t('jou_setup_clconv')}: {setup['clconv']}",

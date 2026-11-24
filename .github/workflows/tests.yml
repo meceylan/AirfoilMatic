@@ -2,11 +2,20 @@ name: tests
 on: [push, pull_request]
 jobs:
   pytest:
-    runs-on: ubuntu-latest
+    # Linux and Windows (the app is developed on Windows), each with the newest Streamlit that
+    # requirements.txt allows and with its lowest one (streamlit==1.55.*).
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        streamlit: ["latest", "lowest"]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt pytest
+      - if: matrix.streamlit == 'lowest'
+        run: pip install "streamlit==1.55.*"
       - run: python -m pytest -q

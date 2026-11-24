@@ -49,8 +49,8 @@ STRINGS = {
         "en": 'Sections found ({n})',
     },
     'not_found': {
-        "tr": '"{q}" veritabanında yok. Geçerli bir 4/5 haneli NACA kodu ya da seçkideki bir profil adı yazın; listede olmayan bir profili dosya olarak yükleyebilirsiniz.',
-        "en": '"{q}" is not in the database. Type a valid 4/5-digit NACA code or the name of a section in the selection; a section that is not listed can be uploaded as a file.',
+        "tr": '"{q}" veritabanında yok. Geçerli bir 4/5 haneli NACA kodu ya da seçkideki bir profil adı yazın; listede olmayan bir profili dosya olarak yükleyebilirsiniz. Denklemle yalnızca 4 haneli ve standart (refleks olmayan) 5 haneli kodlar çizilir; refleks kodlar (ör. 23112) ve 6 serisi (ör. 64-012) yalnızca seçkide varsa bulunur.',
+        "en": '"{q}" is not in the database. Type a valid 4/5-digit NACA code or the name of a section in the selection; a section that is not listed can be uploaded as a file. Only 4-digit and standard (non-reflexed) 5-digit codes are drawn from the equations; reflexed codes (e.g. 23112) and the 6-series (e.g. 64-012) are found only if they are in the selection.',
     },
     'search_empty': {
         "tr": 'Bir profil adı yazın ya da 🎲 ile rastgele seçin.',
@@ -133,8 +133,8 @@ STRINGS = {
         "en": 'The file has only {n} points per surface. DesignModeler fits its curve through these points; below {need} points the leading edge comes out angular. Use a file with more points.',
     },
     'note_tilt': {
-        "tr": 'Dosyadaki profil eğik duruyor: hücum kenarı–firar kenarı doğrusu x ekseniyle {angle:+.1f}° yapıyor (artı = burun yukarı). Bu açı, Fluent yardımcısına gireceğiniz hücum açısına eklenir.',
-        "en": 'The profile in the file is tilted: the leading edge–trailing edge line makes {angle:+.1f}° with the x axis (positive = nose up). This angle adds to the angle of attack you enter in the Fluent helper.',
+        "tr": 'Dosyadaki profil eğik duruyor: hücum kenarı–firar kenarı doğrusu x ekseniyle {angle:+.1f}° yapıyor (artı = burun yukarı). Bu açı, Fluent yardımcısına gireceğiniz hücum açısına eklenir. Hücum kenarı en öndeki nokta alınır; çok kamburlu bir burunda (ör. NACA 9940) eğik olmayan bir dosya da 1–2° gösterebilir.',
+        "en": 'The profile in the file is tilted: the leading edge–trailing edge line makes {angle:+.1f}° with the x axis (positive = nose up). This angle adds to the angle of attack you enter in the Fluent helper. The leading edge is taken as the most forward point; on a strongly cambered nose (e.g. NACA 9940) an untilted file can also show 1–2°.',
     },
     'note_overlap': {
         "tr": 'Dosyada üst ve alt yüzey birbirinin içine giriyor (en fazla {amount:.2g}c, çoğunlukla firar kenarında). Eğriler kesişirse DesignModeler yüzey oluşturamaz; bu yüzden yüzeyler en çok bu kadar birbirinden uzaklaştırıldı. Geometri bundan fazla değişmedi.',
@@ -205,8 +205,8 @@ STRINGS = {
         "en": 'Airfoil profile only',
     },
     'profile_help': {
-        "tr": "Alan (domain) olmadan yalnızca profilin üst ve alt yüzeyi. **DesignModeler:** Concept → 3D Curve → Coordinates File ile okuyun (Units, aşağıda seçtiğiniz birimle aynı olsun), sonra Concept → Surfaces From Edges. **SolidWorks:** Insert → Curve → Curve Through XYZ Points ile önce üst, sonra alt dosyayı seçin (belge birimi aşağıdaki birimle aynı olsun). Arka kenar kalınsa iki ucu bir çizgiyle birleştirin. **SpaceClaim:** File → Open (ya da Insert) ile TXT dosyasını açın; üst, alt (ve kalın arka kenarda uç çizgisi) ayrı eğriler olarak gelir. Bu biçim SpaceClaim yardımındaki nokta-eğri metin dosyasına göre yazıldı, henüz denenmedi; hata verirse satır numarasını bildirin.",
-        "en": "Only the upper and lower surface of the airfoil, without a domain. **DesignModeler:** read it with Concept → 3D Curve → Coordinates File (set Units to the unit chosen below), then Concept → Surfaces From Edges. **SolidWorks:** Insert → Curve → Curve Through XYZ Points, pick the upper file, then the lower one (document units = the unit chosen below). With a blunt trailing edge, join the two ends with a line. **SpaceClaim:** open the TXT file with File → Open (or Insert); the upper, lower (and, for a blunt trailing edge, the end line) come in as separate curves. This format follows the point-curve text file in the SpaceClaim help and has not been tried yet; if it gives an error, report the line number.",
+        "tr": "Alan (domain) olmadan yalnızca profilin üst ve alt yüzeyi. **DesignModeler:** Concept → 3D Curve → Coordinates File ile okuyun (Units, kenar çubuğunda seçtiğiniz çıktı birimiyle aynı olsun), sonra Concept → Surfaces From Edges. **SolidWorks:** Insert → Curve → Curve Through XYZ Points ile önce üst, sonra alt dosyayı seçin (belge birimi kenar çubuğundaki çıktı birimiyle aynı olsun). Arka kenar kalınsa iki ucu bir çizgiyle birleştirin. **SpaceClaim:** File → Open (ya da Insert) ile TXT dosyasını açın; üst, alt (ve kalın arka kenarda uç çizgisi) ayrı eğriler olarak gelir. Bu biçim SpaceClaim yardımındaki nokta-eğri metin dosyasına göre yazıldı, henüz denenmedi; hata verirse satır numarasını bildirin.",
+        "en": "Only the upper and lower surface of the airfoil, without a domain. **DesignModeler:** read it with Concept → 3D Curve → Coordinates File (set Units to the output unit chosen in the sidebar), then Concept → Surfaces From Edges. **SolidWorks:** Insert → Curve → Curve Through XYZ Points, pick the upper file, then the lower one (document units = the output unit in the sidebar). With a blunt trailing edge, join the two ends with a line. **SpaceClaim:** open the TXT file with File → Open (or Insert); the upper, lower (and, for a blunt trailing edge, the end line) come in as separate curves. This format follows the point-curve text file in the SpaceClaim help and has not been tried yet; if it gives an error, report the line number.",
     },
     'out_unit': {
         "tr": 'İndirilen dosyaların birimi',
@@ -215,10 +215,6 @@ STRINGS = {
     'out_unit_help': {
         "tr": "Domain (Ansys ve SpaceClaim TXT) ve profil dosyalarındaki koordinatlar bu birimde yazılır; dosyanın içinde birim yazmaz, DesignModeler / SpaceClaim / SolidWorks'te aynı birimi seçin. Mesh / y⁺ sekmesindeki ölçüler hem metre hem milimetre olarak verilir.",
         "en": 'The coordinates of the domain (Ansys and SpaceClaim TXT) and profile files are written in this unit; the file does not state it, so choose the same unit in DesignModeler / SpaceClaim / SolidWorks. The sizes on the Mesh / y⁺ tab are given in both metres and millimetres.',
-    },
-    'profile_unit': {
-        "tr": 'Birim',
-        "en": 'Unit',
     },
     'profile_dm': {
         "tr": 'DesignModeler TXT',
@@ -926,8 +922,8 @@ STRINGS = {
         "en": 'Free-stream speed U∞ [m/s]',
     },
     'fl_speed_help': {
-        "tr": "Varsayılan değer, Mesh / y⁺ sekmesindeki Reynolds sayısını veren hızdır (Fluent'in varsayılan havası ile). Kendi hızınızı girebilirsiniz; Reynolds farklı çıkarsa uyarı gösterilir.",
-        "en": "The default is the speed that gives the Reynolds number of the Mesh / y⁺ tab (with Fluent's default air). You can enter your own; a warning is shown if the Reynolds number differs.",
+        "tr": "Varsayılan değer, Mesh / y⁺ sekmesindeki akış girişinin hızıdır (Re modunda Fluent'in varsayılan havasıyla o Reynolds sayısını veren hız, Mach modunda Mach sayısından gelen hız). Kendi hızınızı girebilirsiniz; Reynolds farklı çıkarsa uyarı gösterilir.",
+        "en": "The default is the speed of the Mesh / y⁺ flow input (in Re mode the speed that gives that Reynolds number with Fluent's default air, in Mach mode the speed from the Mach number). You can enter your own; a warning is shown if the Reynolds number differs.",
     },
     'fl_re_mach': {
         "tr": 'Bu hızla Reynolds ve Mach',
@@ -942,8 +938,8 @@ STRINGS = {
         "en": 'Temperature [°C]',
     },
     'fl_temp_help': {
-        "tr": 'Yalnızca ses hızı ve Mach için (ideal gaz hava, γ = 1.4). Yoğunluk ve viskozite ayrıca girilir.',
-        "en": 'Only for the speed of sound and Mach (ideal-gas air, γ = 1.4). Density and viscosity are entered separately.',
+        "tr": "Yalnızca ses hızı ve Mach için (ideal gaz hava, γ = 1.4). Yoğunluk ve viskozite bunu izlemez: Re modunda Fluent'in varsayılan havası, hız modunda girdiğiniz değerler kullanılır.",
+        "en": "Only for the speed of sound and Mach (ideal-gas air, γ = 1.4). Density and viscosity do not follow it: Re mode uses Fluent's default air, speed mode the values you entered.",
     },
     'fl_sound': {
         "tr": 'Ses hızı',
@@ -1010,12 +1006,12 @@ STRINGS = {
         "en": 'Download the sweep as CSV',
     },
     'jou_title': {
-        "tr": 'Fluent journal (pressure-far-field)',
-        "en": 'Fluent journal (pressure-far-field)',
+        "tr": 'Fluent journal',
+        "en": 'Fluent journal',
     },
     'jou_note': {
-        "tr": "Journal her açıda yalnızca {expr} named expression'ını değiştirip iterasyon koşar; her açı bir öncekinin çözümünden devam eder. Case'inizde yukarıdaki dört satırın kurulu olması, report file'larda yalnızca expression report'lar (ve moment) bulunması ve residual convergence checks'in kapalı olması gerekir. {expr} değerini ilk açıya (\"İlk açı\") ayarlayıp initialize edin ve en az bir iterasyonu kendiniz koşun (iterasyon 0'dan başlayan bir çalışmada Fluent report file'lar için \"Ok to overwrite?\" diye sorabilir ve journal bozulur). Açı başına {iterations} iterasyon üst sınırdır: case'te Convergence Conditions (Solution → Report Definitions) varsa Fluent koşul dolunca o açıyı erken bitirir ve journal sonraki açıya geçer. Cl/Cd, report file'larda her açının bloğundan okunur. Named expression düzenleme komutu, Cl/Cd expression'ları ve report file'lar Fluent 2024 R2'de (standalone, 2B) 3 açılı kısa bir taramayla (açı başına 50 iterasyon) ve 11 açılı uzun bir taramayla (−4…16°, en çok 2000 iterasyon, Convergence Conditions, velocity-inlet case) denendi; ikisi de soru sorulmadan bitti. Workbench içindeki Fluent ayar değişikliği için soru sorar; journal standalone Fluent (Launcher) içindir. Aynı adlı dosyaların üzerine sormadan yazılır. Velocity-inlet henüz desteklenmiyor.",
-        "en": "At each angle the journal only changes the named expression {expr} and iterates; every angle continues from the previous solution. Your case needs the four lines above, report files holding only expression reports (and the moment), and residual convergence checks off. Set {expr} to the first angle (\"First angle\"), initialise, and run at least one iteration yourself (a run starting at iteration 0 can make Fluent ask \"Ok to overwrite?\" for the report files and breaks the journal). {iterations} iterations per angle is an upper limit: if the case has Convergence Conditions (Solution → Report Definitions), Fluent ends the angle early when they are met and the journal goes on to the next angle. Cl/Cd are read from each angle's block in the report files. The named-expression edit command, the Cl/Cd expressions and the report files were tried in Fluent 2024 R2 (standalone, 2D) with a short 3-angle sweep (50 iterations each) and an 11-angle sweep (−4…16°, up to 2000 iterations, Convergence Conditions, velocity-inlet case); both ended without a question. Fluent in Workbench asks about changed settings; the journal is meant for standalone Fluent (Launcher). Existing files with the same names are overwritten without asking. Velocity-inlet is not supported yet.",
+        "tr": "Journal her açıda yalnızca {expr} named expression'ını değiştirip iterasyon koşar; her açı bir öncekinin çözümünden devam eder. Case'inizde yukarıdaki satırların kurulu olması (sınır koşulunuza göre pressure-far-field ya da velocity-inlet satırları), report file'larda yalnızca expression report'lar (ve moment) bulunması ve residual convergence checks'in kapalı olması gerekir. {expr} değerini ilk açıya (\"İlk açı\") ayarlayıp initialize edin ve en az bir iterasyonu kendiniz koşun (iterasyon 0'dan başlayan bir çalışmada Fluent report file'lar için \"Ok to overwrite?\" diye sorabilir ve journal bozulur). Açı başına {iterations} iterasyon üst sınırdır: case'te Convergence Conditions (Solution → Report Definitions) varsa Fluent koşul dolunca o açıyı erken bitirir ve journal sonraki açıya geçer. Cl/Cd, report file'larda her açının bloğundan okunur. Named expression düzenleme komutu, Cl/Cd expression'ları ve report file'lar Fluent 2024 R2'de (standalone, 2B) 3 açılı kısa bir taramayla (açı başına 50 iterasyon) ve 11 açılı uzun bir taramayla (−4…16°, en çok 2000 iterasyon, Convergence Conditions, velocity-inlet case) denendi; ikisi de soru sorulmadan bitti. Workbench içindeki Fluent ayar değişikliği için soru sorar; journal standalone Fluent (Launcher) içindir. Journal Fluent'in üzerine yazma sorusunu kapatır; aynı adlı bir case dosyasının üzerine yazma henüz denenmedi.",
+        "en": "At each angle the journal only changes the named expression {expr} and iterates; every angle continues from the previous solution. Your case needs the lines above (the pressure-far-field or the velocity-inlet lines, for your boundary condition), report files holding only expression reports (and the moment), and residual convergence checks off. Set {expr} to the first angle (\"First angle\"), initialise, and run at least one iteration yourself (a run starting at iteration 0 can make Fluent ask \"Ok to overwrite?\" for the report files and breaks the journal). {iterations} iterations per angle is an upper limit: if the case has Convergence Conditions (Solution → Report Definitions), Fluent ends the angle early when they are met and the journal goes on to the next angle. Cl/Cd are read from each angle's block in the report files. The named-expression edit command, the Cl/Cd expressions and the report files were tried in Fluent 2024 R2 (standalone, 2D) with a short 3-angle sweep (50 iterations each) and an 11-angle sweep (−4…16°, up to 2000 iterations, Convergence Conditions, velocity-inlet case); both ended without a question. Fluent in Workbench asks about changed settings; the journal is meant for standalone Fluent (Launcher). The journal turns off Fluent's overwrite question; overwriting a case file of the same name has not been tried yet.",
     },
     'jou_setup_title': {
         "tr": 'Case\'te olması gerekenler (named expression ve report definition)',
@@ -1033,6 +1029,14 @@ STRINGS = {
         "tr": 'Pressure-far-field, Y-Component of Flow Direction',
         "en": 'Pressure-far-field, Y-Component of Flow Direction',
     },
+    'jou_setup_inlet_x': {
+        "tr": 'ya da velocity-inlet (Components), X-Velocity',
+        "en": 'or velocity-inlet (Components), X-Velocity',
+    },
+    'jou_setup_inlet_y': {
+        "tr": 'ya da velocity-inlet (Components), Y-Velocity',
+        "en": 'or velocity-inlet (Components), Y-Velocity',
+    },
     'jou_setup_cl': {
         "tr": 'Report definition cl (expression)',
         "en": 'Report definition cl (expression)',
@@ -1046,8 +1050,8 @@ STRINGS = {
         "en": "Report definition clconv (expression; keep it out of the report files, pick it instead of cl in Convergence Conditions)",
     },
     'jou_setup_note': {
-        "tr": "clconv = cl + 1: Fluent'in Convergence Conditions ölçütü görelidir; Cl ≈ 0 olan açıda (simetrik profilde 0°) hiç dolmaz ve açı iterasyon üst sınırına kadar koşar. cl + 1 değeri 1 civarında kaldığı için göreli değişimi Cl'nin mutlak değişimine eşit olur. Fluent 2024 R2'de denendi: 0°'de açı 366 iterasyonda kendisi durdu, Cl ve Cd 2000 iterasyonluk koşuyla aynı çıktı. Yoğunluk ve hız yukarıdaki serbest akış değerlerinden alındı ve alan c × 1 m. Fluent'in Reference Values bölümündeki yoğunluk ve hız farklıysa bu iki değeri Fluent'inkilerle değiştirin (Fluent pressure-far-field referans hızını kendi gamma değeriyle hesaplar; bir denemede 51.025 yerine 51.044 m/s çıktı, yaklaşık %0.1 fark). Duvar bölgesinin adı wall değilse Force(['...']) içini değiştirin.",
-        "en": "clconv = cl + 1: Fluent's Convergence Conditions use a relative change; at an angle where Cl ≈ 0 (a symmetric profile at 0°) it is never met and the angle runs to the iteration limit. cl + 1 stays near 1, so its relative change equals the absolute change of Cl. Tried in Fluent 2024 R2: at 0° the angle stopped by itself after 366 iterations with the same Cl and Cd as a 2000-iteration run. Density and speed come from the free-stream values above and the area is c × 1 m. If the density and velocity in Fluent's Reference Values differ, replace these two numbers with Fluent's (Fluent computes the pressure-far-field reference velocity with its own gamma; one case gave 51.044 instead of 51.025 m/s, about 0.1 % difference). If your wall zone is not called wall, change the name inside Force(['...']).",
+        "tr": "clconv = cl + 1: Fluent'in Convergence Conditions ölçütü görelidir; Cl ≈ 0 olan açıda (simetrik profilde 0°) hiç dolmaz ve açı iterasyon üst sınırına kadar koşar. cl + 1 değeri 1 civarında kaldığı için göreli değişimi Cl'nin mutlak değişimine eşit olur. Fluent 2024 R2'de denendi: 0°'de açı 366 iterasyonda kendisi durdu, Cl ve Cd 2000 iterasyonluk koşuyla aynı çıktı. Yoğunluk ve hız yukarıdaki serbest akış değerlerinden alındı ve alan c × 1 m. Fluent'in Reference Values bölümündeki yoğunluk ve hız farklıysa (ör. pressure-far-field'da Fluent referans hızı kendisi hesaplar) bu iki değeri Fluent'inkilerle değiştirin. Velocity-inlet satırlarındaki hız da aynı hızdır. Duvar bölgesinin adı wall değilse Force(['...']) içini değiştirin.",
+        "en": "clconv = cl + 1: Fluent's Convergence Conditions use a relative change; at an angle where Cl ≈ 0 (a symmetric profile at 0°) it is never met and the angle runs to the iteration limit. cl + 1 stays near 1, so its relative change equals the absolute change of Cl. Tried in Fluent 2024 R2: at 0° the angle stopped by itself after 366 iterations with the same Cl and Cd as a 2000-iteration run. Density and speed come from the free-stream values above and the area is c × 1 m. If the density and velocity in Fluent's Reference Values differ (e.g. Fluent computes the reference velocity itself for a pressure far field), replace these two numbers with Fluent's. The velocity-inlet lines use the same speed. If your wall zone is not called wall, change the name inside Force(['...']).",
     },
     'jou_expr': {
         "tr": 'Named expression adı',
@@ -1088,6 +1092,10 @@ STRINGS = {
     'warn_yplus_high': {
         "tr": "Transition SST için y⁺ ≈ 1 önerilir; y⁺ > 5'te geçiş öne kayabilir. Düz levha tahmini x = c içindir; en büyük y⁺ hücum kenarı yakınında ve hücum açısında emme tepesinde oluşur.",
         "en": "Transition SST wants y⁺ ≈ 1; above 5 transition can move forward. The flat-plate estimate is for x = c; the largest y⁺ occurs near the leading edge and at the suction peak at angle of attack.",
+    },
+    'warn_rarefied': {
+        "tr": "Bu Mach ve Reynolds sayısı çok seyrek bir gaz veriyor (statik basınç {p:.3g} Pa, Knudsen sayısı {kn:.1e}). 1e-3'ün üzerinde gaz duvarda kaymaya başlar ve Fluent'in sürekli ortam (kaymasız) modeli geçerliliğini yitirir; girişleri kontrol edin.",
+        "en": "This Mach and Reynolds number give a very thin gas (static pressure {p:.3g} Pa, Knudsen number {kn:.1e}). Above 1e-3 the gas starts to slip at the wall and Fluent's continuum (no-slip) model no longer holds; check the inputs.",
     },
     'warn_coverage_low': {
         "tr": "Inflation kalınlığı sınır tabakadan ince kalır (kapsama < 1). Düz levha tahmini emme tarafında gerçek kalınlıktan küçük olabilir; 1.5 ya da daha fazlası önerilir.",
@@ -1145,6 +1153,7 @@ ERRORS_TR = {
     'NACA 4-digit code must be 4 digits': 'NACA 4 haneli kod 4 rakamdan oluşmalı',
     'Thickness must be between 1% and 40%': 'Kalınlık %1 ile %40 arasında olmalı',
     'Cambered NACA 4-digit needs a camber position (2nd digit) > 0': "Kamburlu NACA 4 haneli profilde kamburluk konumu (2. hane) 0'dan büyük olmalı",
+    'Symmetric NACA 4-digit has no camber position: the 2nd digit must be 0': 'Simetrik NACA 4 haneli profilde kamburluk konumu yoktur: 2. hane 0 olmalı',
     'Surface extends past the trailing edge (camber/thickness too large)': 'Yüzey firar kenarını aşıyor (kamburluk/kalınlık çok büyük)',
     'NACA 5-digit code must be 5 digits': 'NACA 5 haneli kod 5 rakamdan oluşmalı',
     'A 5-digit code starting with 6 is a NACA 6-series name (e.g. 64-012), not a 5-digit section': '6 ile başlayan 5 haneli kod bir NACA 6 serisi adıdır (ör. 64-012), 5 haneli profil değildir',
@@ -1176,7 +1185,8 @@ ERRORS_TR = {
     'Speed must be a positive number': 'Hız pozitif bir sayı olmalı',
     'Chord must be a positive number': 'Veter pozitif bir sayı olmalı',
     'Depth must be a positive number': 'Derinlik pozitif bir sayı olmalı',
-    'File name prefix may only contain letters, digits and _ . : -': 'Dosya adı öneki yalnızca harf, rakam ve _ . : - içerebilir',
+    'File name prefix may only contain letters, digits and _ . -': 'Dosya adı öneki yalnızca harf, rakam ve _ . - içerebilir',
+    'Mach number, Reynolds number and chord must be positive': 'Mach sayısı, Reynolds sayısı ve veter pozitif olmalı',
     'Folder must not contain a double quote': 'Klasör yolunda çift tırnak olamaz',
     'Folder must contain only ASCII characters (Fluent may not handle others)': 'Klasör yolunda yalnızca ASCII karakterler olmalı (Fluent diğerlerini işleyemeyebilir)',
     'Angle step too small: two angles get the same file name': 'Açı adımı çok küçük: iki açı aynı dosya adını alıyor',

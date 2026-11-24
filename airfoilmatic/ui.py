@@ -30,10 +30,9 @@ CRYSTAL = "linear-gradient(135deg,#0E3B25 0%,#17573A 45%,#258A5A 100%)"
 # Plot colours. Plotly figures are drawn once per script run, so they cannot
 # follow a theme switch either; these mid tones read well on light and dark.
 # line: airfoil, fill: LE -> TE gradient, split: split lines, boundary: domain,
-# grid/zero: axes, fit/ext: GCI Richardson curve and extrapolated value.
+# grid/zero: axes.
 PLOT = dict(line="#2E8B60", fill=("rgba(28,97,66,0.60)", "rgba(94,189,145,0.18)"), split="#D49A45",
-            boundary="#8FA198", grid="rgba(94,160,125,0.16)", zero="rgba(94,160,125,0.35)",
-            fit="#D49A45", ext="#D2694F")
+            boundary="#8FA198", grid="rgba(94,160,125,0.16)", zero="rgba(94,160,125,0.35)")
 
 MOBILE_MAX = 640   # px; below this, wide tables are shown as cards
 

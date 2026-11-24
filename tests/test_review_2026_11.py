@@ -1,6 +1,8 @@
 """Findings of the November 2026 code review (H1-H6 and the deprecated button argument)."""
 from pathlib import Path
 
+import numpy as np
+
 import pytest
 from streamlit.testing.v1 import AppTest
 
@@ -165,3 +167,146 @@ def test_no_use_container_width_in_app():
 def test_readme_does_not_fix_the_unit_to_metre(name):
     text = (ROOT / name).read_text(encoding="utf-8")
     assert "`Units > Meter` " not in text and "set `Units > Meter` first" not in text
+
+
+# ================================================================ groups 2-4 of the review
+from airfoilmatic import i18n
+from airfoilmatic.fluent import expression_setup, mach_state, rarefaction
+from airfoilmatic.geometry import chord_line_angle, naca4, parse_airfoil_file
+
+
+def selig_text(af):
+    """A Selig file of an airfoil: upper surface TE -> LE, then lower LE -> TE."""
+    pts = list(zip(af.xu[::-1], af.yu[::-1])) + list(zip(af.xl[1:], af.yl[1:]))
+    return ("test\n" + "\n".join(f"{x:.6f} {y:.6f}" for x, y in pts)).encode()
+
+
+# ---- velocity-inlet lines in the journal setup
+def test_expression_setup_gives_velocity_inlet_components():
+    d = expression_setup(density=1.225, speed=51.04)
+    assert d["inlet_x"] == "51.04 [m s^-1]*cos(aoa)"
+    assert d["inlet_y"] == "51.04 [m s^-1]*sin(aoa)"
+
+
+def test_setup_block_lists_velocity_inlet_lines():
+    at = start()
+    code = " ".join(c.value for c in at.code)
+    assert "[m s^-1]*cos(aoa)" in code and "[m s^-1]*sin(aoa)" in code
+    assert tr("jou_setup_inlet_x", "tr") in code
+
+
+@pytest.mark.parametrize("lang", ["tr", "en"])
+def test_journal_texts_are_current(lang):
+    note = tr("jou_note", lang, iterations=1000, expr="aoa")
+    for stale in ("desteklenmiyor", "not supported yet", "dört satır", "four lines"):
+        assert stale not in note
+    assert "pressure-far-field" not in tr("jou_title", lang)
+    assert "51.025" not in tr("jou_setup_note", lang)
+
+
+@pytest.mark.parametrize("lang", ["tr", "en"])
+def test_profile_help_points_to_the_sidebar_unit(lang):
+    text = tr("profile_help", lang)
+    assert "aşağıda seçtiğiniz" not in text and "chosen below" not in text and "aşağıdaki birim" not in text
+    assert "profile_unit" not in i18n.STRINGS
+
+
+@pytest.mark.parametrize("lang", ["tr", "en"])
+def test_flow_help_texts_do_not_claim_one_mode(lang):
+    assert "entered separately" not in tr("fl_temp_help", lang)
+    assert "ayrıca girilir" not in tr("fl_temp_help", lang)
+
+
+def test_changelog_does_not_call_the_far_field_pressure_the_validated_run():
+    text = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    assert "the value used in the NACA 0012 run" not in text
+    assert "NACA 0012 koşusunda kullanılan değer" not in text
+
+
+@pytest.mark.parametrize("name,words", [("README.md", ("SpaceClaim", "SolidWorks", "Mach", "mm")),
+                                        ("README.en.md", ("SpaceClaim", "SolidWorks", "Mach", "mm"))])
+def test_readme_feature_list_is_complete(name, words):
+    text = (ROOT / name).read_text(encoding="utf-8")
+    features = text.split("\n## ")[1]   # first section after the title
+    for w in words:
+        assert w in features, w
+
+
+# ---- CI matrix
+def test_ci_runs_windows_and_the_lowest_streamlit():
+    wf = (ROOT / ".github" / "workflows" / "tests.yml").read_text(encoding="utf-8")
+    assert "windows-latest" in wf and "ubuntu-latest" in wf
+    assert "streamlit==1.55" in wf
+
+
+# ---- tilt and camber measured from the true chord line
+@pytest.mark.parametrize("code", ["4412", "23012", "6409"])
+def test_untilted_cambered_files_are_not_reported_tilted(code):
+    af = parse_airfoil_file(selig_text(naca(code)), 1.0)
+    assert abs(chord_line_angle(af)) < 0.3
+
+
+@pytest.mark.parametrize("lang", ["tr", "en"])
+def test_tilt_note_warns_about_strongly_cambered_noses(lang):
+    # NACA 9940 read back from a file shows about 2 deg although it is not tilted
+    assert "9940" in tr("note_tilt", lang, angle=1.8)
+
+
+def test_tilted_file_is_still_reported():
+    base = naca("0012")
+    a = np.radians(3.0)
+    rot = lambda x, y: (x * np.cos(a) + y * np.sin(a), -x * np.sin(a) + y * np.cos(a))
+    xu, yu = rot(base.xu, base.yu)
+    xl, yl = rot(base.xl, base.yl)
+    pts = list(zip(xu[::-1], yu[::-1])) + list(zip(xl[1:], yl[1:]))
+    af = parse_airfoil_file(("t\n" + "\n".join(f"{x:.6f} {y:.6f}" for x, y in pts)).encode(), 1.0)
+    assert chord_line_angle(af) == pytest.approx(3.0, abs=0.2)
+
+
+def test_library_camber_measured_from_chord_line():
+    s = {x.id: x for x in lib.library()}
+    assert s["ag38"].camber > 0.015 and s["ag38"].xc < 0.6
+    assert s["sc20712"].camber > 0.015 and s["sc20712"].xc < 0.95
+
+
+# ---- thin-air warning in Mach mode
+def test_rarefaction_flags_near_vacuum_only():
+    thin = mach_state(0.8, 1.0e3, 15.0, 1.0)
+    normal = mach_state(0.15, 2.0e6, 15.0, 1.0)
+    assert rarefaction(thin, 15.0, 1.0) > 1e-3
+    assert rarefaction(normal, 15.0, 1.0) < 1e-6
+
+
+def test_mach_mode_warns_for_near_vacuum():
+    at = start()
+    by_key(at, "radio", "flow_mode").set_value("mach")
+    at = at.run()
+    by_key(at, "number_input", "mach_in").set_value(0.8)
+    by_key(at, "number_input", "re").set_value(1.0e3)
+    at = at.run()
+    assert tr("warn_rarefied", "tr").split("{")[0][:30] in " ".join(w.value for w in at.warning)
+
+
+# ---- small ones
+def test_symmetric_code_with_camber_position_is_refused():
+    with pytest.raises(AirfoilError):
+        naca4("0312")
+    naca4("0012")
+
+
+@pytest.mark.parametrize("lang", ["tr", "en"])
+def test_not_found_mentions_unsupported_codes(lang):
+    text = tr("not_found", lang, q="23112")
+    assert ("refleks" in text) if lang == "tr" else ("reflexed" in text)
+
+
+def test_colon_not_allowed_in_journal_prefix():
+    from airfoilmatic.fluent import sweep_journal
+    with pytest.raises(ValueError):
+        sweep_journal(0, 2, 1, prefix="a:b")
+
+
+def test_mach_state_error_is_translated():
+    with pytest.raises(ValueError) as exc:
+        mach_state(0.0, 2e6, 15.0, 1.0)
+    assert tr_error(exc.value, "tr") != str(exc.value)

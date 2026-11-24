@@ -13,11 +13,14 @@ AirfoilMatic builds the geometry of a 2D CFD flow domain around an airfoil (NACA
 * **Use-as-drawn mode:** the closed outline of an uploaded file is used in its own point order, so shapes that go back in x (a vortex generator, a flap, a kinked section) are kept (inflation workflow only: front axis + wake axis)
 * C-grid and rectangular (wind tunnel) domains, split into 6 four-sided blocks; domain sizes are entered in chords
 * Choose which of the six split lines to export (all six are needed for mapped meshing; all six and front axis + wake axis were tested with quad-dominant + inflation), with a warning for a single line, which cannot work
-* Ansys DesignModeler TXT export
+* Domain export: Ansys DesignModeler TXT and SpaceClaim TXT (the SpaceClaim format is not tried yet)
+* **Profile only:** upper and lower surface without a domain; DesignModeler TXT, SolidWorks ZIP (two files for Curve Through XYZ Points) and SpaceClaim TXT
+* **m / mm** output unit in the sidebar (all downloaded files)
+* Flow input: Reynolds, **Mach + Reynolds + temperature** (with the pressure-far-field values; Sutherland viscosity) or speed + density + viscosity
 * **Mesh / y⁺ assistant:** first-cell height for a target y⁺ and boundary-layer estimate, with two outputs: Ansys **Inflation** settings (first layer, growth rate, maximum layers) or a mapped-mesh **Edge Sizing** table (Number of Divisions + Bias Factor) with the expected cell count
 * **Mesh quality check** (skewness, orthogonal quality, aspect ratio) against Ansys bands and Fluent limits
 * **y⁺ correction** from a first Fluent result, and a **Fluent setup helper** that turns a free-stream speed and angle of attack into the inlet X/Y velocity components, the Lift/Drag vectors and the reference values, and checks Reynolds and Mach (speed of sound from the temperature); **free-stream turbulence decay** (SST) from the inlet to the airfoil and an **angle-of-attack sweep** (CSV) for a polar
-* **Fluent journal:** a TUI journal (`.jou`) that steps a named expression `aoa` through the angles of the sweep and runs the iterations (the case uses `aoa` for the pressure-far-field flow direction and the Cl/Cd expression reports; the app prints them). Case & data can be saved every k angles (the last angle always); a stopped sweep continues from the last save. Tried in Ansys Fluent 2024 R2 (standalone) with a 3-angle sweep (50 iterations each) and an 11-angle sweep (−4…16°, with Convergence Conditions, velocity-inlet case); Workbench, case overwriting and continuing a stopped sweep have not been tried yet
+* **Fluent journal:** a TUI journal (`.jou`) that steps a named expression `aoa` through the angles of the sweep and runs the iterations (the case uses `aoa` in the pressure-far-field flow direction or the velocity-inlet components and in the Cl/Cd expression reports; the app prints these expressions and the `clconv` stop criterion for the angle where Cl ≈ 0). Case & data can be saved every k angles (the last angle always); a stopped sweep continues from the last save. Tried in Ansys Fluent 2024 R2 (standalone) with a 3-angle sweep (50 iterations each) and an 11-angle sweep (−4…16°, with Convergence Conditions, velocity-inlet case); Workbench, case overwriting and continuing a stopped sweep have not been tried yet
 * Turkish / English interface
 
 ## Local installation
@@ -55,7 +58,7 @@ Cl is within 1% of the experiment and Cd within 2–3.5%; the scatter between di
 **Limits:** Only one section, one angle, one Reynolds number and the inflation mesh were tried; there is no result for the mapped mesh. The turbulence level of Ladson's tunnel is not known and a viscosity ratio of 100 was chosen at the inlet (about 0.43% Tu reaches the leading edge); how close Cd is to the experiment may depend partly on that choice. Read the result as "consistent with the experiment", not as a firm validation.
 
 ## Scope
-* The mesh plan and the Fluent helper are for low speed (Mach < 0.3). Transonic sections in the library such as RAE and NASA SC(2) get the same plan, but there is no separate route for the shock region.
+* The mesh plan is built for low speed (Mach < 0.3). The Mach input accepts up to 1.0 and suggests a pressure far field above Mach 0.3, but gives no mesh settings specific to compressible flow. Transonic sections in the library such as RAE and NASA SC(2) get the same plan, but there is no separate route for the shock region.
 * Domain size (default 15c): at high Cl the far-field boundary affects the lift. As Cl grows, enlarge the radius and check that the result does not change.
 
 ## Why split at X = 0.3c?

@@ -114,7 +114,7 @@ def test_non_ascii_folder_rejected():
 def test_prefix_error_message_is_fixed():
     with pytest.raises(ValueError) as exc:
         sweep_journal(0, 2, 1, prefix="bad prefix")
-    assert str(exc.value) == "File name prefix may only contain letters, digits and _ . : -"
+    assert str(exc.value) == "File name prefix may only contain letters, digits and _ . -"
 
 
 def test_angle_order_and_count():
@@ -249,6 +249,8 @@ def test_expression_setup_reproduces_verified_strings():
     assert d == {
         "flow_x": "cos(aoa)",
         "flow_y": "sin(aoa)",
+        "inlet_x": "51.025 [m s^-1]*cos(aoa)",
+        "inlet_y": "51.025 [m s^-1]*sin(aoa)",
         "cl": "dot(Force(['wall']), vector(-sin(aoa), cos(aoa), 0)) / "
               "(0.5 * 0.7011 [kg m^-3] * (51.025 [m s^-1])^2 * 1 [m^2])",
         "cd": "dot(Force(['wall']), vector(cos(aoa), sin(aoa), 0)) / "

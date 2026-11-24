@@ -78,6 +78,19 @@ def mach_state(mach, reynolds, temp_c, chord):
     return dict(speed=u, sound=a, viscosity=mu, density=rho, pressure=rho * R_AIR * t_k, temperature=t_k)
 
 
+# Above this Knudsen number (mean free path / chord) the gas starts to slip at the wall and the
+# continuum (no-slip Navier-Stokes) model of Fluent's pressure-based solver no longer holds.
+KNUDSEN_CONTINUUM = 1e-3
+
+
+def rarefaction(state, temp_c, chord):
+    """Knudsen number of a ``mach_state`` free stream: mean free path mu/p * sqrt(pi R T / 2) over the chord.
+    About M / Re * sqrt(gamma pi / 2); 1e-7 at M 0.15, Re 2e6 and 1e-3 at M 0.8, Re 1e3."""
+    t_k = temp_c + 273.15
+    path = state["viscosity"] / state["pressure"] * math.sqrt(math.pi * R_AIR * t_k / 2.0)
+    return path / chord
+
+
 def speed_of_sound(temp_c):
     """Speed of sound in air (ideal gas) at ``temp_c`` degrees Celsius; 15 degC gives 340.29 m/s."""
     t = temp_c + 273.15
@@ -162,7 +175,8 @@ def alpha_sweep(start, stop, step, speed):
 
 
 # ----------------------------------------------------------------------------- sweep journal
-_NAME_RE = re.compile(r"^[A-Za-z0-9_.:-]+$")
+_NAME_RE = re.compile(r"^[A-Za-z0-9_.:-]+$")      # Fluent zone names ("wall:011")
+_FILE_RE = re.compile(r"^[A-Za-z0-9_.-]+$")        # file names: ':' is not allowed on Windows
 
 
 def _check_name(value, what):
@@ -170,6 +184,13 @@ def _check_name(value, what):
     value = str(value).strip()
     if not _NAME_RE.match(value):
         raise ValueError(f"{what} may only contain letters, digits and _ . : -")
+    return value
+
+
+def _check_file_name(value, what):
+    value = str(value).strip()
+    if not _FILE_RE.match(value):
+        raise ValueError(f"{what} may only contain letters, digits and _ . -")
     return value
 
 
@@ -221,6 +242,10 @@ def expression_setup(expression="aoa", density=1.225, speed=1.0, chord=1.0, dept
     return dict(
         flow_x=f"cos({expression})",
         flow_y=f"sin({expression})",
+        # Velocity inlet set by Components: the components themselves, not a direction (tried in
+        # Fluent 2024 R2 as 51.04 [m/s]*cos(aoa), the 11-angle sweep).
+        inlet_x=f"{speed:.6g} [m s^-1]*cos({expression})",
+        inlet_y=f"{speed:.6g} [m s^-1]*sin({expression})",
         cl=cl,
         cd=f"{force}cos({expression}), sin({expression}), 0)) / {q}",
         # Fluent's Convergence Conditions use a relative change, which never settles when Cl is
@@ -247,7 +272,7 @@ def sweep_journal(start, stop, step, iterations=1000, expression="aoa", save_eve
     if isinstance(save_every, bool) or not isinstance(save_every, int) or save_every < 0:
         raise ValueError("Save interval must be a whole number of 0 or more")
     expression = _check_expression(expression)
-    prefix = _check_name(prefix, "File name prefix")
+    prefix = _check_file_name(prefix, "File name prefix")
     folder = str(folder or "").strip()
     if not folder.isascii():
         raise ValueError("Folder must contain only ASCII characters (Fluent may not handle others)")

@@ -93,16 +93,43 @@ def measure(data):
         return None
     if max(turn(af.xu, af.yu), turn(af.xl, af.yl)) > MAX_KINK:
         return None
-    xs = np.linspace(0.0, 1.0, 1001)
-    yu, yl = np.interp(xs, af.xu, af.yu), np.interp(xs, af.xl, af.yl)
-    t, c = yu - yl, 0.5 * (yu + yl)
-    if t.max() < MIN_THICKNESS:
+    shape = shape_numbers(af)
+    if shape["t"] < MIN_THICKNESS:
         return None
     build_domain(split_at(close_small_te_gap(af)), C_GRID, r_inlet=10, l_wake=20)   # must not raise
+    return shape
+
+
+def shape_numbers(af):
+    """Thickness, camber and their positions. The camber is measured from the chord line (LE to the
+    trailing-edge midpoint), not from the x axis: a file whose trailing edge is not at y = 0 (ag38,
+    sc20712) otherwise showed a negative camber at the trailing edge."""
+    xs = np.linspace(0.0, 1.0, 1001)
+    yu, yl = np.interp(xs, af.xu, af.yu), np.interp(xs, af.xl, af.yl)
+    x_le, y_le = af.xu[0], af.yu[0]
+    x_te, y_te = 0.5 * (af.xu[-1] + af.xl[-1]), 0.5 * (af.yu[-1] + af.yl[-1])
+    chord_y = y_le + (y_te - y_le) * (xs - x_le) / (x_te - x_le)
+    t, c = yu - yl, 0.5 * (yu + yl) - chord_y
     i, j = int(t.argmax()), int(np.abs(c).argmax())
     return dict(t=round(float(t[i]), 4), xt=round(float(xs[i]), 3), camber=round(float(c[j]), 4),
                 xc=round(float(xs[j]), 3), te=round(float(af.te_gap), 5),
                 points=int(len(af.xu) + len(af.xl) - 1))
+
+
+def restat():
+    """Recompute the shape numbers of the sections already in the library from their stored files
+    (no UIUC folder needed; the selection itself does not change)."""
+    with gzip.open(OUT, "rt", encoding="utf-8") as fh:
+        payload = json.load(fh)
+    changed = 0
+    for e in payload["airfoils"]:
+        new = shape_numbers(parse_airfoil_file(e["data"].encode("latin-1"), 1.0))
+        if any(e[k] != v for k, v in new.items()):
+            changed += 1
+        e.update(new)
+    with gzip.open(OUT, "wt", encoding="utf-8", compresslevel=9) as fh:
+        json.dump(payload, fh, separators=(",", ":"))
+    print(f"{changed} of {len(payload['airfoils'])} sections got new shape numbers")
 
 
 def spread(candidates, k):
@@ -194,6 +221,9 @@ def main(folder):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
+    if sys.argv[1:] == ["--restat"]:
+        restat()
+    elif len(sys.argv) != 2:
         sys.exit(__doc__)
-    main(sys.argv[1])
+    else:
+        main(sys.argv[1])

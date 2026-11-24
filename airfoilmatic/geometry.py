@@ -125,6 +125,8 @@ def naca4(code, chord=1.0, n_points=201, blunt_te=False):
         raise AirfoilError("Thickness must be between 1% and 40%")
     if m > 0 and p == 0:
         raise AirfoilError("Cambered NACA 4-digit needs a camber position (2nd digit) > 0")
+    if m == 0 and p > 0:   # "0312" would silently be the 0012 shape under another name
+        raise AirfoilError("Symmetric NACA 4-digit has no camber position: the 2nd digit must be 0")
 
     xc = cosine_spacing(n_points)
     yt = _thickness(xc, t, blunt_te)
@@ -501,7 +503,11 @@ def looks_reversed(af):
 
 
 def chord_line_angle(af):
-    """Angle between the LE -> TE line and the x axis in degrees, positive nose-up."""
+    """Angle between the LE -> TE line and the x axis in degrees, positive nose-up.
+    The LE is the most forward point. On a strongly cambered nose that point sits above the true
+    chord line, so an untilted file can show up to about 2 deg (NACA 9940: 1.8 deg; 4412: 0.2 deg).
+    Neither the farthest point from the TE nor any other outline point fixes this: the true LE is
+    not marked in a coordinate file."""
     x_te = 0.5 * (af.xu[-1] + af.xl[-1]) - af.xu[0]
     y_te = 0.5 * (af.yu[-1] + af.yl[-1]) - af.yu[0]
     return float(np.degrees(np.arctan2(-y_te, x_te)))
