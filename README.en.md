@@ -30,7 +30,7 @@ streamlit run app.py
 Run the tests with `pip install pytest` and `pytest`. `tests/test_app.py` runs the app itself headless (Streamlit AppTest); `tests/test_hard_files.py` reads 75 hard files written from a known profile and compares the result with the true outline; `tests/test_database_findings.py` covers the problems found by running the whole UIUC database (overlapping surfaces); `tests/test_library.py` checks that every section in the selection builds a clean domain, and the search.
 
 ## Ansys workflow
-1. **Import:** In DesignModeler, set `Units > Meter` first, then use `Concept > 3D Curve`, select the downloaded `.txt` file and click `Generate`.
+1. **Import:** In DesignModeler, first set `Units` to the output unit chosen in the sidebar (`Meter` for m, `Millimeter` for mm), then use `Concept > 3D Curve`, select the downloaded `.txt` file and click `Generate`.
 2. **Surface:** Use `Concept > Surfaces from Edges` with the outer boundary and airfoil edges to create the flow surface.
 3. **Split:** Use `Tools > Projection` with the exported split lines.
 4. **Mesh:** choose one of the two workflows; the **Mesh / y⁺** tab gives the settings for both.

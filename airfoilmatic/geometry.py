@@ -152,6 +152,10 @@ def _check_surfaces(xu, xl):
 def naca5(code, chord=1.0, n_points=201, blunt_te=False):
     if len(code) != 5 or not code.isdigit():
         raise AirfoilError("NACA 5-digit code must be 5 digits")
+    if code[0] == "6":
+        # "64012", "63010": an undashed NACA 6-series name (64-012), not a 5-digit code with design Cl 0.9
+        raise AirfoilError("A 5-digit code starting with 6 is a NACA 6-series name (e.g. 64-012), "
+                           "not a 5-digit section")
     L = int(code[0])
     P = int(code[1:3])
     t = int(code[3:5]) / 100.0

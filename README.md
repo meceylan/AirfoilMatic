@@ -30,7 +30,7 @@ streamlit run app.py
 Testleri çalıştırmak için: `pip install pytest` ve ardından `pytest`. `tests/test_app.py` uygulamanın kendisini (Streamlit AppTest ile) tarayıcı olmadan çalıştırır; `tests/test_hard_files.py` bilinen bir profilden üretilmiş 75 zor dosyayı okutup çıkan şekli gerçeğiyle karşılaştırır; `tests/test_database_findings.py` UIUC veritabanının tamamından çıkan hataları (iç içe giren yüzeyler) sınar; `tests/test_library.py` seçkideki her profilden temiz bir domain kurulduğunu ve aramayı sınar.
 
 ## Ansys iş akışı
-1. **İçe aktarma:** DesignModeler'da önce `Units > Meter` seçin, sonra `Concept > 3D Curve` ile indirdiğiniz `.txt` dosyasını seçip `Generate` deyin.
+1. **İçe aktarma:** DesignModeler'da önce `Units` menüsünden kenar çubuğunda seçtiğiniz çıktı birimini (m ise `Meter`, mm ise `Millimeter`) seçin, sonra `Concept > 3D Curve` ile indirdiğiniz `.txt` dosyasını seçip `Generate` deyin.
 2. **Yüzey:** `Concept > Surfaces from Edges` ile dış sınırları ve kanat kenarlarını seçerek akış yüzeyini oluşturun.
 3. **Bölme:** `Tools > Projection` ile dışa aktarılan bölme çizgilerini kullanın.
 4. **Mesh:** iki akıştan birini seçin; **Mesh / y⁺** sekmesi ikisinin de ayarlarını verir.

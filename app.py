@@ -50,6 +50,16 @@ PLOT = ui.PLOT
 st.markdown(ui.css(), unsafe_allow_html=True)
 st.markdown(ui.header_html(APP_VERSION, APP_STAGE, t("subtitle")), unsafe_allow_html=True)
 
+# Streamlit forgets the value of a widget that is not drawn in a run, so an input hidden by a mode
+# switch (Re <-> speed, inflation <-> mapped, search <-> file, C-grid <-> rectangle) came back at its
+# default. Writing the value back at the top of every run keeps it until the widget is shown again.
+KEPT_WHEN_HIDDEN = ("re", "mach_in", "mach_temp", "velocity", "density", "viscosity", "fl_temp",
+                    "g_infl", "coverage", "g_map", "wake_growth", "af_query", "f_thick", "f_camber",
+                    "f_family", "as_is", "r_inlet_c", "l_inlet_c", "l_top_c", "l_bottom_c")
+for _k in KEPT_WHEN_HIDDEN:
+    if _k in st.session_state:
+        st.session_state[_k] = st.session_state[_k]
+
 # ---------------------------------------------------------------- sidebar inputs
 # Widgets whose label is translated carry a key: without one, Streamlit treats the
 # relabelled widget as a new one after a language switch and resets it to its default.
@@ -109,11 +119,11 @@ if source == "search":
     else:
         file_prefix = "AirfoilMatic_custom"
     b1, b2, b3 = button_row.columns(3)
-    b1.button("🎲", on_click=_dice, use_container_width=True, key="dice")
+    b1.button("🎲", on_click=_dice, width="stretch", key="dice")
     back = -1 if section is not None else 0   # no section shown (unknown query): ← returns to the last one
-    b2.button("←", on_click=_step, args=(back,), use_container_width=True, key="hist_back",
+    b2.button("←", on_click=_step, args=(back,), width="stretch", key="hist_back",
               disabled=st.session_state.af_hist_i + back < 0)
-    b3.button("→", on_click=_step, args=(1,), use_container_width=True, key="hist_fwd",
+    b3.button("→", on_click=_step, args=(1,), width="stretch", key="hist_fwd",
               disabled=st.session_state.af_hist_i >= len(st.session_state.af_history) - 1)
     with st.sidebar.expander(t("random_filters")):
         st.slider(t("f_thickness"), 0, MAX_T_PERCENT, (0, MAX_T_PERCENT), key="f_thick")
@@ -603,6 +613,7 @@ with tab_mesh:
                                     placeholder="0.995", key="q_oq_avg")
         q_rows = []
         worst = 0
+        avg_worst = None   # rating key of the worse average: a bad average means much of the mesh, not a few cells
         for label, val, rater, limit_ok in (
                 (t("q_sk_max"), sk_max, rate_skewness, lambda v: v < FLUENT_MAX_SKEWNESS),
                 (t("q_sk_avg"), sk_avg, rate_skewness, None),
@@ -612,15 +623,22 @@ with tab_mesh:
                 continue
             key = rater(val)
             fluent = "—" if limit_ok is None else (t("q_pass") if limit_ok(val) else t("q_fail"))
-            worst = max(worst, RATING_LEVEL[key] if limit_ok is not None else 0)
-            if limit_ok is not None and not limit_ok(val):
-                worst = 3
+            if limit_ok is None:
+                if RATING_LEVEL[key] > 0 and (avg_worst is None or RATING_LEVEL[key] > RATING_LEVEL[avg_worst]):
+                    avg_worst = key
+            else:
+                worst = max(worst, RATING_LEVEL[key])
+                if not limit_ok(val):
+                    worst = 3
             q_rows.append({t("q_metric"): label, t("col_value"): f"{val:.4g}",
                            t("q_rating"): t(key), t("q_fluent"): fluent})
         if q_rows:
             st.markdown(ui.table_html(q_rows), unsafe_allow_html=True)
-            msg = ("q_verdict_ok", "q_verdict_check", "q_verdict_bad", "q_verdict_fail")[worst]
-            (st.success if worst == 0 else st.warning if worst < 3 else st.error)(t(msg))
+            if worst > 0 or avg_worst is None:
+                msg = ("q_verdict_ok", "q_verdict_check", "q_verdict_bad", "q_verdict_fail")[worst]
+                (st.success if worst == 0 else st.warning if worst < 3 else st.error)(t(msg))
+            if avg_worst is not None:
+                st.warning(t("q_verdict_avg", band=t(avg_worst)))
         if dy_ref:
             st.markdown(t("q_ar_expected",
                           ar_le=expected_wall_aspect_ratio(dy_ref, ds_le * chord),
@@ -632,7 +650,9 @@ with tab_mesh:
         with st.expander(t("yplus_fix_title")):
             st.caption(t("yplus_fix_help"))
             dy0 = float(f"{dy_ref:.4e}")   # very high Re or a tiny chord can go below the usual 1e-9 m floor
-            used = st.number_input(t("yplus_used_dy"), value=dy0, min_value=min(1e-9, dy0), format="%.4e")
+            # The key carries the default: a new plan starts from its own height, a language switch keeps the input.
+            used = st.number_input(t("yplus_used_dy"), value=dy0, min_value=min(1e-9, dy0), format="%.4e",
+                                   key=f"yplus_used_{dy0:.4e}")
             seen = st.number_input(t("yplus_seen"), value=None, min_value=1e-3, format="%.3f", key="yplus_seen")
             if seen:
                 st.success(t("yplus_fix_result", dy=m_mm(used * y_plus / seen), target=y_plus))
@@ -644,16 +664,17 @@ with tab_mesh:
         u_default = u_inf if u_inf is not None else speed_for_reynolds(re, chord, rho_f, mu_f)
         fc = st.columns(3)
         aoa = fc[0].number_input(t("aoa"), value=4.25, step=0.25, format="%.2f", key="aoa")
-        if mach_flow is not None:   # the temperature already given with the Mach number
-            temp_c = fc[2].number_input(t("fl_temp"), value=mach_temp, format="%.1f", disabled=True,
-                                        key="fl_temp_mach")
+        if mach_flow is not None:   # the temperature already given with the Mach number (shown, not entered)
+            temp_c = mach_temp
+            fc[2].number_input(t("fl_temp"), value=mach_temp, format="%.1f", disabled=True,
+                               key=f"fl_temp_mach_{mach_temp:.6g}")
         else:
             temp_c = fc[2].number_input(t("fl_temp"), value=15.0, step=5.0, min_value=-100.0, max_value=500.0,
                                         format="%.1f", key="fl_temp", help=t("fl_temp_help"))
         a_sound = speed_of_sound(temp_c)
         u0 = float(f"{u_default:.6g}" if mach_flow is not None else f"{u_default:.4g}")   # Re = 1000 on a long chord needs less than 1 mm/s
         u_fl = fc[1].number_input(t("fl_speed"), value=u0, min_value=min(0.001, u0),
-                                  format="%.3f", help=t("fl_speed_help"))
+                                  format="%.3f", help=t("fl_speed_help"), key=f"fl_speed_{u0:.6g}")
         try:
             fs = freestream(aoa, u_fl, chord, rho_f, mu_f, speed_of_sound=a_sound)
         except ValueError as e:

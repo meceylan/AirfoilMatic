@@ -13,6 +13,14 @@ An independent check of the mesh and Fluent formulas found no formula errors; th
 - **y⁺ correction tool:** the help says the plan's target is the full first-cell height, so Fluent reports about half of it.
 - **README:** the NACA 0012 section is now a comparison, with its limits stated (one section, one angle, one Reynolds number, inflation mesh only, viscosity ratio 100), and a scope note (low speed, far-field size at high Cl). The same note is in the help of the inlet radius.
 - Tests run automatically on GitHub for every push.
+- **Fixes from a code review:**
+  - In Mach mode, a temperature changed after choosing Mach did not reach the Fluent helper, so its speed of sound and far-field Mach number were computed at the old temperature (M 0.15 at 100 °C was shown as 0.171).
+  - An undashed NACA 6-series name ("64012", "63010") was drawn as a 5-digit section with design Cl 0.9. A 5-digit code starting with 6 is now refused with that reason, and the search shows only library sections for it.
+  - The mesh quality verdict now also counts the two averages: a bad average skewness or orthogonal quality no longer shows the green "good" box.
+  - A language switch kept most inputs but reset the Fluent free-stream speed and the y⁺ correction's "first cell height used"; both are kept now, and still follow a new Reynolds number or plan.
+  - Inputs hidden by a mode switch (Re ↔ speed, inflation ↔ mapped, search ↔ file, C-grid ↔ rectangle) came back at their defaults; they keep their values now.
+  - README: the DesignModeler unit is the output unit chosen in the sidebar, not always metres.
+  - The search buttons no longer use Streamlit's deprecated `use_container_width`.
 
 ## V0.6.5 Beta (Türkçe)
 
@@ -27,6 +35,14 @@ Mesh ve Fluent formüllerinin bağımsız denetiminde formül hatası çıkmadı
 - **y⁺ düzeltme aracı:** yardım metni, plandaki hedefin tam ilk hücre yüksekliği olduğunu ve Fluent'in bunun yaklaşık yarısını raporladığını söylüyor.
 - **README:** NACA 0012 bölümü artık bir karşılaştırma; sınırları yazılı (tek profil, tek açı, tek Reynolds sayısı, yalnızca inflation mesh, viskozite oranı 100) ve bir kapsam notu var (düşük hız, yüksek Cl'de uzak alan boyutu). Aynı not giriş yarıçapının yardım metninde de duruyor.
 - Testler her push'ta GitHub'da otomatik çalışıyor.
+- **Kod incelemesinden gelen düzeltmeler:**
+  - Mach modunda, Mach seçildikten sonra değiştirilen sıcaklık Fluent yardımcısına geçmiyordu; ses hızı ve far-field Mach sayısı eski sıcaklıkla hesaplanıyordu (100 °C'de M 0.15, 0.171 görünüyordu).
+  - Tiresiz yazılan NACA 6 serisi adı ("64012", "63010") tasarım Cl'si 0.9 olan 5 haneli profil olarak çiziliyordu. 6 ile başlayan 5 haneli kod artık bu gerekçeyle reddediliyor; arama yalnızca kütüphanedeki profilleri gösteriyor.
+  - Mesh kalite kararı artık iki ortalamayı da sayıyor: kötü ortalama skewness ya da orthogonal quality artık yeşil "iyi" kutusunu göstermiyor.
+  - Dil değişince girişlerin çoğu korunuyordu ama Fluent serbest akış hızı ve y⁺ düzeltmesindeki "kullanılan ilk hücre yüksekliği" sıfırlanıyordu; ikisi de artık korunuyor ve yeni bir Reynolds sayısını ya da planı yine izliyor.
+  - Mod değişince gizlenen girişler (Re ↔ hız, inflation ↔ mapped, arama ↔ dosya, C-grid ↔ dikdörtgen) varsayılana dönüyordu; artık değerlerini koruyor.
+  - README: DesignModeler birimi her zaman metre değil, kenar çubuğunda seçilen çıktı birimi.
+  - Arama düğmeleri Streamlit'in kaldırılacak `use_container_width` parametresini artık kullanmıyor.
 
 ## V0.6.4 Beta
 

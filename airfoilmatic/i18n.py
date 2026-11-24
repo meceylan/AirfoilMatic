@@ -852,6 +852,10 @@ STRINGS = {
         "tr": "Fluent sınırları sağlanıyor ama en kötü hücreler Ansys'in 'kötü' bandında. Az sayıdaysa ve kanattan uzaktaysa genelde sorun değildir; firar kenarı veya hücum kenarı gibi kritik bir yerdeyse düzeltin.",
         "en": "Fluent limits are met but the worst cells are in Ansys' 'bad' band. If they are few and away from the airfoil this is usually fine; fix them if they sit at a critical spot such as the TE or LE.",
     },
+    'q_verdict_avg': {
+        "tr": "Ortalama değer Ansys'in '{band}' bandında: sorun birkaç hücrede değil, mesh'in büyük bölümünde. Eleman boyutlarını, büyüme oranını ve inflation ayarlarını gözden geçirin.",
+        "en": "An average is in Ansys' '{band}' band: the problem is not a few cells but much of the mesh. Review the element sizes, growth rate and inflation settings.",
+    },
     'q_verdict_fail': {
         "tr": "Fluent'in önerdiği sınır aşılıyor (maks. skewness < 0.95, min. orthogonal quality > 0.01). Çözüm ıraksayabilir veya hatalı olabilir; bu hücreleri düzeltin.",
         "en": "Fluent's recommended limit is exceeded (max skewness < 0.95, min orthogonal quality > 0.01). The solution may diverge or be inaccurate; fix these cells.",
@@ -1143,6 +1147,7 @@ ERRORS_TR = {
     'Cambered NACA 4-digit needs a camber position (2nd digit) > 0': "Kamburlu NACA 4 haneli profilde kamburluk konumu (2. hane) 0'dan büyük olmalı",
     'Surface extends past the trailing edge (camber/thickness too large)': 'Yüzey firar kenarını aşıyor (kamburluk/kalınlık çok büyük)',
     'NACA 5-digit code must be 5 digits': 'NACA 5 haneli kod 5 rakamdan oluşmalı',
+    'A 5-digit code starting with 6 is a NACA 6-series name (e.g. 64-012), not a 5-digit section': '6 ile başlayan 5 haneli kod bir NACA 6 serisi adıdır (ör. 64-012), 5 haneli profil değildir',
     'Unsupported NACA 5-digit camber position (only standard, non-reflexed series: 2nd-3rd digits 10, 20, 30, 40, 50)': 'Desteklenmeyen NACA 5 haneli kamburluk konumu (yalnızca standart, refleks olmayan seri: 2.-3. haneler 10, 20, 30, 40, 50)',
     'NACA code must have 4 or 5 digits': 'NACA kodu 4 veya 5 haneli olmalı',
     'File does not contain enough coordinate rows': 'Dosyada yeterli koordinat satırı yok',
