@@ -59,3 +59,24 @@ def test_far_field_note_reports_the_tried_operating_pressure_and_time_scale(lang
     text = tr("fl_ff_note", lang)
     assert "denenmedi" not in text and "not tried" not in text
     assert "Operating Pressure 0" in text and "Time Scale Factor 1" in text
+
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+@pytest.mark.parametrize("lang", ["tr", "en"])
+def test_journal_note_says_a_far_field_sweep_was_tried(lang):
+    note = tr("jou_note", lang, expr="aoa", iterations=1000)
+    assert "M 0.3" in note and "2…8°" in note
+
+
+def test_journal_header_says_a_far_field_sweep_was_tried():
+    from airfoilmatic.fluent import sweep_journal
+    text = sweep_journal(2, 8, 2)
+    assert "pressure-far-field case, M 0.3" in text
+
+
+@pytest.mark.parametrize("name", ["README.md", "README.en.md", "CHANGELOG.md"])
+def test_docs_say_a_far_field_sweep_was_tried(name):
+    text = (ROOT / name).read_text(encoding="utf-8")
+    assert "M 0.3, 2…8°" in text
