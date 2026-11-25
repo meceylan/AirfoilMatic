@@ -186,6 +186,8 @@ def test_header_explains_save_interval_and_resume():
     header = " ".join(l for l in sweep_journal(-4, 16, 2, save_every=5).splitlines() if l.startswith(";"))
     assert "every 5 angles" in header
     assert "To continue a stopped sweep" in header
+    assert "one iteration by hand" in header and "create new file" in header and "Yes" in header
+    assert "not tried yet; the" not in header   # tried in Fluent 2024 R2 on 2026-11-25
     assert "upper limit" in header and "Convergence Conditions" in header
     assert "last value of each block" not in header
 
@@ -240,7 +242,7 @@ def test_iterations_in_every_block():
 def test_header_describes_case_requirements():
     header = " ".join(l for l in sweep_journal(-2, 2, 2).splitlines() if l.startswith(";"))
     for needle in ("named expression aoa", "cos(aoa)", "sin(aoa)", "expression report", "at least one iteration",
-                   "Ok to overwrite?", "standalone", "Workbench", "File > Read > Journal", "3-angle sweep", "not tried yet"):
+                   "Ok to overwrite?", "standalone", "Workbench", "File > Read > Journal", "3-angle sweep", "not been tried yet"):
         assert needle in header
 
 

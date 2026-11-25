@@ -341,3 +341,10 @@ def test_builder_quotas_add_up_to_the_target(target):
 
 def test_builder_wants_the_symmetric_six_series_classics():
     assert {"n64012", "n64015"} <= set(_builder().WANTED["naca"])
+
+
+@pytest.mark.parametrize("lang", ["tr", "en"])
+def test_save_help_gives_the_tried_resume_recipe(lang):
+    text = tr("jou_save_every_help", lang)
+    assert ("elle" in text) if lang == "tr" else ("by hand" in text)
+    assert "Yes" in text and "denenmedi" not in text and "not tried" not in text

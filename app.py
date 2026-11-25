@@ -26,7 +26,7 @@ from airfoilmatic.fluent import (AIR_DENSITY, AIR_VISCOSITY, air_density, alpha_
                                  sutherland_viscosity, sweep_journal, expression_setup,
                                  rarefaction, KNUDSEN_CONTINUUM)
 from airfoilmatic.polar import (CL_TOL, LAST_N, OSCILLATING, SHORT, STEADY, guess_columns, polar,
-                               polar_csv, read_report)
+                               polar_csv, read_report, merge_reports)
 from airfoilmatic.quality import (FLUENT_MAX_SKEWNESS, FLUENT_MIN_ORTHO, RATING_LEVEL,
                                   expected_wall_aspect_ratio, rate_orthogonal, rate_skewness)
 from airfoilmatic.i18n import LANGS, tr, tr_error
@@ -819,10 +819,11 @@ with tab_auto:
     # ---- polar from the report file written during the sweep
     st.markdown(f"**{t('polar_title')}**")
     st.caption(t("polar_note"))
-    rep_file = st.file_uploader(t("polar_upload"), type=["out", "txt", "csv"], key="polar_file")
-    if rep_file is not None:
+    rep_files = st.file_uploader(t("polar_upload"), type=["out", "txt", "csv"], key="polar_file",
+                                 accept_multiple_files=True, help=t("polar_upload_help"))
+    if rep_files:
         try:
-            report = read_report(rep_file.getvalue())
+            report = merge_reports([read_report(f.getvalue()) for f in rep_files])
         except ValueError as e:
             st.error(t("polar_error", msg=te(e)))
             report = None
@@ -835,7 +836,7 @@ with tab_auto:
                                                ("cd", "polar_col_cd"))):
                 default = names.index(guess[role]) if guess[role] in names else 0
                 # the key follows the file, so a new file starts from its own guess
-                pick[role] = col.selectbox(t(label), names, index=default, key=f"polar_{role}_{rep_file.file_id}")
+                pick[role] = col.selectbox(t(label), names, index=default, key=f"polar_{role}_{'_'.join(f.file_id for f in rep_files)}")
             pc2 = st.columns(3)
             unit = pc2[0].radio(t("polar_unit"), ["rad", "deg"], horizontal=True, key="polar_unit",
                                 help=t("polar_unit_help"))
@@ -900,5 +901,5 @@ with tab_auto:
                 fig_p.update_yaxes(gridcolor=PLOT["grid"], zerolinecolor=PLOT["zero"])
                 st.plotly_chart(fig_p, width="stretch", config={"scrollZoom": False}, key="polar_chart")
                 st.download_button(t("polar_csv"), data=polar_csv(prow),
-                                   file_name=f"{safe_file_stem(rep_file.name)}_polar.csv", mime="text/csv",
+                                   file_name=f"{safe_file_stem(rep_files[0].name)}_polar.csv", mime="text/csv",
                                    key="polar_csv")

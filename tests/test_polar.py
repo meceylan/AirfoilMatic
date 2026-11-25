@@ -4,7 +4,7 @@ import math
 import numpy as np
 import pytest
 
-from airfoilmatic.polar import guess_columns, polar, polar_csv, read_report
+from airfoilmatic.polar import guess_columns, merge_reports, polar, polar_csv, read_report
 
 
 def report_text(blocks, columns=("alfa", "cd", "cl"), start=1000, name="ladson-b-rfile"):
@@ -143,3 +143,57 @@ def test_error_messages_are_translated():
     with pytest.raises(ValueError) as exc:
         polar(rep, "alpha", "cl", "cd")
     assert tr_error(exc.value, "tr") != str(exc.value)
+
+
+# ---- a sweep continued from a saved case: Fluent puts the rest into a new file <name>_<iteration>.out
+def resumed_pair():
+    """Like the 2026-11-25 test: the old file runs to 1964 (2 deg cut after 36 iterations), the case
+    saved at 1928 (0 deg) is read again and the new file starts at 1928."""
+    old = report_text([(-2, steady(-0.21, 0.0055, 100)), (0, steady(0.0001, 0.0051, 105)),
+                       (2, steady(0.20, 0.0058, 36))], start=1724)          # 1724 ... 1964
+    new = report_text([(0, steady(0.0001, 0.0051, 2)), (2, steady(0.211, 0.0054, 200)),
+                       (4, steady(0.422, 0.0063, 150))], start=1928)        # 1928 ... 2279
+    return read_report(old), read_report(new)
+
+
+def test_merged_files_use_the_resumed_run_for_the_overlap():
+    old, new = resumed_pair()
+    rows = polar(merge_reports([old, new]), "alfa", "cl", "cd", last_n=50)
+    by = {round(r.aoa): r for r in rows}
+    assert sorted(by) == [-2, 0, 2, 4]
+    assert by[2].first == 1930 and by[2].iterations == 200     # the cut 36 iterations are gone
+    assert by[2].cl == pytest.approx(0.211)
+    assert by[0].last == 1929 and by[0].status == "steady"
+    assert all(r.status == "steady" for r in rows)
+
+
+def test_merge_does_not_depend_on_upload_order():
+    old, new = resumed_pair()
+    a = polar(merge_reports([old, new]), "alfa", "cl", "cd")
+    b = polar(merge_reports([new, old]), "alfa", "cl", "cd")
+    assert [(r.aoa, r.cl, r.iterations) for r in a] == [(r.aoa, r.cl, r.iterations) for r in b]
+
+
+def test_merge_matches_columns_by_name():
+    old = read_report(report_text([(0, steady(0.0001, 0.0051, 60))], start=100))
+    new = read_report(report_text([(2, steady(0.21, 0.0054, 60))], columns=("cl", "alfa", "cd"), start=160))
+    rows = polar(merge_reports([old, new]), "alfa", "cl", "cd")
+    assert rows[1].cl == pytest.approx(0.21) and rows[1].cd == pytest.approx(0.0054)
+
+
+def test_merge_of_one_file_is_that_file():
+    rep = read_report(report_text([(0, steady(0.0001, 0.0051, 60))]))
+    m = merge_reports([rep])
+    assert m.columns == rep.columns and (m.rows == rep.rows).all()
+
+
+def test_files_without_the_same_columns_are_refused():
+    a = read_report(report_text([(0, steady(0.0, 0.005, 3))]))
+    b = read_report(report_text([(2, steady(0.2, 0.005, 3))], columns=("alfa", "cl")))
+    with pytest.raises(ValueError, match="same columns"):
+        merge_reports([a, b])
+    from airfoilmatic.i18n import tr_error
+    try:
+        merge_reports([a, b])
+    except ValueError as e:
+        assert tr_error(e, "tr") != str(e)

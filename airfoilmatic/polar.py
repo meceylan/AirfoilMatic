@@ -81,6 +81,29 @@ def read_report(data):
     return Report(name=name, columns=columns, rows=np.array(rows, dtype=float))
 
 
+def merge_reports(reports):
+    """One report from several files of the same report definition.
+
+    When a sweep is continued from a saved case, Fluent 2024 R2 refuses to append to a report file
+    that already holds later iterations ("Report data in file must be lower than current
+    iteration ... Do you want to create new file?") and with Yes writes the rest to
+    ``<name>_<iteration>.out`` (tried 2026-11-25). Where the files share iteration numbers, the file
+    that starts later (the continued run) wins, whatever the upload order. Columns are matched by name."""
+    reports = list(reports)
+    if len(reports) == 1:
+        return reports[0]
+    columns = reports[0].columns
+    if any(sorted(r.columns) != sorted(columns) for r in reports):
+        raise ValueError("The report files do not have the same columns")
+    by_iter = {}
+    for rep in sorted(reports, key=lambda r: r.rows[0, 0]):
+        order = [rep.columns.index(c) for c in columns]
+        for row in rep.rows[:, order]:
+            by_iter[int(round(row[0]))] = row
+    rows = np.array([by_iter[k] for k in sorted(by_iter)])
+    return Report(name=reports[0].name, columns=list(columns), rows=rows)
+
+
 def guess_columns(columns):
     """Most likely angle, Cl and Cd column names (None when not found)."""
     low = {c: c.lower() for c in columns[1:]}

@@ -81,3 +81,23 @@ def test_sidebar_upload_still_works_with_the_polar_uploader_on_the_page():
     at = at.run()
     upload = [u for u in at.file_uploader if u.key == "upload"]
     assert len(upload) == 1
+
+
+def test_two_report_files_of_a_continued_sweep_are_read_together():
+    """Fluent writes the continued part of a sweep to <name>_<iteration>.out."""
+    head = ['"polar-rfile"', '"Iteration" "alfa etc.."', '("Iteration" "alfa" "cd" "cl")']
+
+    def text(rows):
+        lines = head + [f"{i} {math.radians(a)!r} {cd!r} {cl!r}" for i, a, cl, cd in rows]
+        return ("\n".join(lines) + "\n").encode()
+
+    old = text([(100 + i, 0, 0.0001, 0.0051) for i in range(80)] + [(180 + i, 2, 0.15, 0.007) for i in range(30)])
+    new = text([(179, 0, 0.0001, 0.0051), (180, 0, 0.0001, 0.0051)] + [(181 + i, 2, 0.211, 0.0054) for i in range(80)])
+    at = start()
+    up = [u for u in at.file_uploader if u.key == "polar_file"][0]
+    up.upload("polar.out", old, "text/plain")
+    up.upload("polar_180.out", new, "text/plain")
+    at = at.run()
+    assert not at.exception and not at.error
+    page = " ".join(str(d.value) for d in at.dataframe) + " ".join(m.value for m in at.markdown)
+    assert "0.21100" in page and "0.15000" not in page

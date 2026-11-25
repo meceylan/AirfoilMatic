@@ -45,8 +45,12 @@ STRINGS = {
         "en": "Upload the report file (.out) Fluent wrote during the sweep; it needs an angle column (an expression report, e.g. alfa = aoa), Cl and Cd. Each angle is the block of iterations in which the angle stays the same; the value is the mean of the block's last N iterations and Δ the max – min over the same iterations. If an angle was run again later the latest block is used; iterations written twice by a sweep continued from a saved case use the later lines. Tried with the report file format of Fluent 2024 R2 (11-angle NACA 0012 sweep).",
     },
     'polar_upload': {
-        "tr": 'Report file (.out)',
-        "en": 'Report file (.out)',
+        "tr": "Report file (.out); kayıttan sürdürülen taramada hepsi",
+        "en": 'Report file (.out); for a sweep continued from a saved case, all of them',
+    },
+    'polar_upload_help': {
+        "tr": "Kayıttan sürdürülen bir taramada Fluent kalan kısmı <ad>_<iterasyon>.out adlı yeni bir dosyaya yazar (ör. surdurme.out + surdurme_1929.out). İkisini birlikte seçin; aynı iterasyon iki dosyada varsa daha geç başlayan dosyanınki kullanılır. Yalnızca aynı report definition'ın dosyalarını seçin.",
+        "en": 'For a sweep continued from a saved case Fluent writes the rest to a new file <name>_<iteration>.out (e.g. surdurme.out + surdurme_1929.out). Select both; where both hold the same iteration, the file that starts later is used. Select files of the same report definition only.',
     },
     'polar_error': {
         "tr": 'Polar çıkarılamadı: {msg}',
@@ -1170,8 +1174,8 @@ STRINGS = {
         "en": 'Case & data: every how many angles',
     },
     'jou_save_every_help': {
-        "tr": "1 = her açıdan sonra, 5 = her 5 açıda bir; son açı her zaman kaydedilir. 0 = yalnızca son açı. Kayıt başına yaklaşık 7–9 MB (50 bin hücre). Uzun süren açılarda 1 seçin. Tarama yarıda kalırsa: son kaydedilen case & data'yı açın, burada ilk açıyı bir sonraki açı yapın, yeni journal indirip okutun (denenmedi; report file'da bazı iterasyonlar iki kez yazılabilir, sonraki satırlar geçerlidir).",
-        "en": 'Every k-th angle (1 = every angle, 5 = every 5 angles); the last angle is always saved. 0 = only the last angle. About 7–9 MB per save (50k cells). Use 1 when each angle takes long. If the sweep stops midway: read the last saved case & data, set the first angle here to the next angle, download a new journal and read it (not tried; the report file may then hold some iterations twice, the later lines are the valid ones).',
+        "tr": "1 = her açıdan sonra, 5 = her 5 açıda bir; son açı her zaman kaydedilir. 0 = yalnızca son açı. Kayıt başına yaklaşık 7–9 MB (50 bin hücre). Uzun süren açılarda 1 seçin. Tarama yarıda kalırsa: son kaydedilen case & data'yı açın ve journal'dan önce 1 iterasyonu elle koşun; Fluent her report file için \"Do you want to create new file?\" diye sorar (dosyada daha ileri iterasyonlar var), Yes deyin, kalan kısım <ad>_<iterasyon>.out dosyasına yazılır. Sonra burada ilk açıyı bir sonraki açı yapın, yeni journal indirip okutun. Polar aracına eski ve yeni report file'ı birlikte yükleyin. Fluent 2024 R2'de denendi (2026-11-25).",
+        "en": 'Every k-th angle (1 = every angle, 5 = every 5 angles); the last angle is always saved. 0 = only the last angle. About 7–9 MB per save (50k cells). Use 1 when each angle takes long. If the sweep stops midway: read the last saved case & data and run one iteration by hand before the journal; Fluent asks "Do you want to create new file?" for every report file (it holds later iterations), answer Yes, and the rest goes to <name>_<iteration>.out. Then set the first angle here to the next angle, download a new journal and read it. Give the polar tool the old and the new report file together. Tried in Fluent 2024 R2 (2026-11-25).',
     },
     'jou_folder': {
         "tr": 'Kayıt klasörü',
@@ -1290,6 +1294,7 @@ ERRORS_TR = {
     'Not a Fluent report file: no header line with the column names': 'Fluent report file değil: sütun adlarını içeren başlık satırı yok',
     'The report file has no data rows': 'Report file\'da veri satırı yok',
     'Column not in the report file': 'Bu sütun report file\'da yok',
+    'The report files do not have the same columns': "Report file'ların sütunları aynı değil (aynı report definition'dan olmalılar)",
     'Folder must not contain a double quote': 'Klasör yolunda çift tırnak olamaz',
     'Folder must contain only ASCII characters (Fluent may not handle others)': 'Klasör yolunda yalnızca ASCII karakterler olmalı (Fluent diğerlerini işleyemeyebilir)',
     'Angle step too small: two angles get the same file name': 'Açı adımı çok küçük: iki açı aynı dosya adını alıyor',
