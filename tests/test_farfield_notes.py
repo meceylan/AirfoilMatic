@@ -52,3 +52,10 @@ def test_far_field_note_asks_for_the_whole_outer_boundary(lang):
 @pytest.mark.parametrize("lang", ["tr", "en"])
 def test_named_selection_text_covers_far_field(lang):
     assert "pressure-far-field" in tr("named_sel", lang)
+
+
+@pytest.mark.parametrize("lang", ["tr", "en"])
+def test_far_field_note_reports_the_tried_operating_pressure_and_time_scale(lang):
+    text = tr("fl_ff_note", lang)
+    assert "denenmedi" not in text and "not tried" not in text
+    assert "Operating Pressure 0" in text and "Time Scale Factor 1" in text
