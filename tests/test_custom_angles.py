@@ -133,3 +133,22 @@ def test_range_inputs_kept_after_trying_the_list():
     widget(at, "radio", "sweep_mode").set_value("list")
     at = at.run()
     assert widget(at, "text_input", "sweep_list").value == "1.3"
+
+
+# ---------------------------------------------------------------- tried in Fluent (2026-11-25)
+ROOT = Path(__file__).resolve().parents[1]
+
+
+@pytest.mark.parametrize("lang", ["tr", "en"])
+def test_list_help_says_it_was_tried(lang):
+    assert "1.99, 4.01, 6.11, 8.08" in tr("sweep_list_help", lang)
+
+
+@pytest.mark.parametrize("lang", ["tr", "en"])
+def test_setup_note_says_the_inlet_lines_were_tried(lang):
+    assert "[m s^-1]" in tr("jou_setup_note", lang) and "2024 R2" in tr("jou_setup_note", lang).split("Velocity-inlet" if lang == "tr" else "velocity-inlet")[-1]
+
+
+@pytest.mark.parametrize("name", ["README.md", "README.en.md", "CHANGELOG.md"])
+def test_docs_say_the_list_was_tried(name):
+    assert "1.99, 4.01, 6.11, 8.08" in (ROOT / name).read_text(encoding="utf-8")
