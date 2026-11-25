@@ -1,4 +1,5 @@
 """Findings of the November 2026 code review (H1-H6 and the deprecated button argument)."""
+import re
 from pathlib import Path
 
 import numpy as np
@@ -236,7 +237,14 @@ def test_readme_feature_list_is_complete(name, words):
 def test_ci_runs_windows_and_the_lowest_streamlit():
     wf = (ROOT / ".github" / "workflows" / "tests.yml").read_text(encoding="utf-8")
     assert "windows-latest" in wf and "ubuntu-latest" in wf
-    assert "streamlit==1.55" in wf
+    lowest = re.search(r"streamlit>=([\d.]+)", (ROOT / "requirements.txt").read_text(encoding="utf-8")).group(1)
+    assert f'streamlit=={lowest}.*' in wf   # CI tests the lowest version requirements.txt allows
+
+
+def test_lowest_streamlit_has_the_apptest_upload_accessor():
+    # AppTest.file_uploader, used by the upload tests, came with Streamlit 1.56
+    lowest = re.search(r"streamlit>=([\d.]+)", (ROOT / "requirements.txt").read_text(encoding="utf-8")).group(1)
+    assert tuple(int(x) for x in lowest.split(".")) >= (1, 56)
 
 
 # ---- tilt and camber measured from the true chord line

@@ -20,7 +20,7 @@ An angle-of-attack sweep journal for Fluent, tried on an 11-angle NACA 0012 swee
   - Mach mode warns when the Mach and Reynolds numbers give a near-vacuum (Knudsen number above 1e-3), where Fluent's no-slip continuum model no longer holds.
   - The journal file-name prefix no longer accepts ':' (not allowed in Windows file names); wall zone names still may contain it.
   - README: the feature list now includes the SpaceClaim TXT, the profile-only files, the m/mm unit, the Mach input and the velocity-inlet journal lines; the scope note says what the Mach input does above 0.3.
-  - CI runs on Linux and Windows, each with the newest and the lowest Streamlit that requirements.txt allows.
+  - CI runs on Linux and Windows, each with the newest and the lowest Streamlit that requirements.txt allows. Its first run showed that Streamlit 1.55's test tool has no file-upload accessor (it came with 1.56), so the lowest supported Streamlit is now 1.56.
 
 ## V0.6.6 Beta (Türkçe)
 
@@ -42,7 +42,7 @@ Fluent için hücum açısı taraması journal'ı (Ladson verisine karşı 11 a�
   - Mach modu, Mach ve Reynolds sayısı neredeyse vakum verdiğinde (Knudsen sayısı 1e-3'ün üzerinde) uyarıyor; orada Fluent'in kaymasız sürekli ortam modeli geçerli değil.
   - Journal dosya adı öneki artık ':' kabul etmiyor (Windows dosya adlarında geçersiz); duvar bölgesi adlarında hâlâ olabilir.
   - README: özellik listesine SpaceClaim TXT, yalnız profil dosyaları, m/mm birimi, Mach girişi ve velocity-inlet journal satırları eklendi; kapsam notu Mach girişinin 0.3 üzerinde ne yaptığını söylüyor.
-  - CI, Linux ve Windows'ta, requirements.txt'in izin verdiği en yeni ve en eski Streamlit ile çalışıyor.
+  - CI, Linux ve Windows'ta, requirements.txt'in izin verdiği en yeni ve en eski Streamlit ile çalışıyor. İlk çalışması Streamlit 1.55'in test aracında dosya yükleme erişimi olmadığını gösterdi (1.56 ile geldi); desteklenen en düşük Streamlit artık 1.56.
 
 ## V0.6.5 Beta
 
