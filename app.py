@@ -21,10 +21,10 @@ from airfoilmatic.export import (UNIT_SCALE, profile_dm_txt, profile_solidworks_
                                  safe_file_stem, to_ansys_txt, to_spaceclaim_txt)
 from airfoilmatic import library as lib
 from airfoilmatic.mesh import DEFAULTS, MAX_GOOD_GROWTH, plan_inflation, plan_mesh, plan_wake_axis, reynolds
-from airfoilmatic.fluent import (AIR_DENSITY, AIR_VISCOSITY, air_density, alpha_sweep, decayed_tu, freestream,
+from airfoilmatic.fluent import (AIR_DENSITY, AIR_VISCOSITY, air_density, alpha_sweep, angle_rows, decayed_tu, freestream,
                                  inlet_tu_for, mach_state, max_reachable_tu, speed_for_reynolds, speed_of_sound,
                                  sutherland_viscosity, sweep_journal, expression_setup,
-                                 rarefaction, KNUDSEN_CONTINUUM)
+                                 rarefaction, parse_angles, KNUDSEN_CONTINUUM)
 from airfoilmatic.polar import (CL_TOL, LAST_N, OSCILLATING, SHORT, STEADY, guess_columns, polar,
                                polar_csv, read_report, merge_reports)
 from airfoilmatic.quality import (FLUENT_MAX_SKEWNESS, FLUENT_MIN_ORTHO, RATING_LEVEL,
@@ -59,7 +59,8 @@ st.markdown(ui.header_html(APP_VERSION, APP_STAGE, t("subtitle")), unsafe_allow_
 # default. Writing the value back at the top of every run keeps it until the widget is shown again.
 KEPT_WHEN_HIDDEN = ("re", "mach_in", "mach_temp", "velocity", "density", "viscosity", "fl_temp",
                     "g_infl", "coverage", "g_map", "wake_growth", "af_query", "f_thick", "f_camber",
-                    "f_family", "as_is", "r_inlet_c", "l_inlet_c", "l_top_c", "l_bottom_c")
+                    "f_family", "as_is", "r_inlet_c", "l_inlet_c", "l_top_c", "l_bottom_c",
+                    "sweep_from", "sweep_to", "sweep_step", "sweep_list")
 for _k in KEPT_WHEN_HIDDEN:
     if _k in st.session_state:
         st.session_state[_k] = st.session_state[_k]
@@ -759,16 +760,33 @@ with tab_auto:
     else:
         # ---- angle-of-attack sweep: one row per angle, for a polar
         st.markdown(f"**{t('sweep_title')}**")
-        sc = st.columns(3)
-        a0 = sc[0].number_input(t("sweep_from"), value=-4.0, step=1.0, format="%.2f", key="sweep_from")
-        a1 = sc[1].number_input(t("sweep_to"), value=16.0, step=1.0, format="%.2f", key="sweep_to")
-        da = sc[2].number_input(t("sweep_step"), value=2.0, min_value=0.05, step=0.5, format="%.2f",
-                                key="sweep_step")
-        try:
-            sweep = alpha_sweep(a0, a1, da, fs.speed)
-        except ValueError as e:
-            st.error(te(e))
-            sweep = []
+        sweep_mode = st.radio(t("sweep_mode"), ["range", "list"], horizontal=True, key="sweep_mode",
+                              format_func=lambda k: t("sweep_mode_range") if k == "range" else t("sweep_mode_list"))
+        own_angles = None          # the user's own list; None = even steps
+        a0 = a1 = da = None
+        sweep = []
+        if sweep_mode == "range":
+            sc = st.columns(3)
+            a0 = sc[0].number_input(t("sweep_from"), value=-4.0, step=1.0, format="%.2f", key="sweep_from")
+            a1 = sc[1].number_input(t("sweep_to"), value=16.0, step=1.0, format="%.2f", key="sweep_to")
+            da = sc[2].number_input(t("sweep_step"), value=2.0, min_value=0.05, step=0.5, format="%.2f",
+                                    key="sweep_step")
+            try:
+                sweep = alpha_sweep(a0, a1, da, fs.speed)
+            except ValueError as e:
+                st.error(te(e))
+        else:
+            list_text = st.text_input(t("sweep_list"), value="", placeholder="1.3, 2.8, 6.8",
+                                      help=t("sweep_list_help"), key="sweep_list")
+            if not list_text.strip():
+                st.info(t("sweep_list_empty"))
+            else:
+                try:
+                    own_angles = parse_angles(list_text)
+                except ValueError as e:
+                    st.error(te(e))
+                else:
+                    sweep = angle_rows(own_angles, fs.speed)
         if sweep:
             rows_s = [{"α [°]": f"{r['aoa']:g}", "X-Velocity [m/s]": f"{r['ux']:.6g}",
                        "Y-Velocity [m/s]": f"{r['uy']:.6g}",
@@ -787,7 +805,7 @@ with tab_auto:
             except ValueError:
                 pass   # the same name error is shown once, below, by sweep_journal
             else:
-                first_txt = f"{a0:.4f}".rstrip("0").rstrip(".")
+                first_txt = f"{sweep[0]['aoa']:.4f}".rstrip("0").rstrip(".")
                 first_txt = "0" if first_txt in ("-0", "") else first_txt
                 st.markdown(t("jou_setup_title"))
                 st.code("\n".join([
@@ -811,7 +829,7 @@ with tab_auto:
             try:
                 jou_text = sweep_journal(a0, a1, da, iterations=int(jou_iter), expression=jou_expr.strip(),
                                          save_every=int(jou_save), folder=jou_folder.strip(), prefix=file_prefix,
-                                         version=APP_VERSION)
+                                         version=APP_VERSION, angles=own_angles)
             except ValueError as e:
                 st.error(t("jou_error", msg=te(e)))
             else:

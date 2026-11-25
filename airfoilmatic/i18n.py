@@ -1109,6 +1109,30 @@ STRINGS = {
         "tr": 'Adım [°]',
         "en": 'Step [°]',
     },
+    'sweep_mode': {
+        "tr": 'Açılar',
+        "en": 'Angles',
+    },
+    'sweep_mode_range': {
+        "tr": 'Eşit aralıklı',
+        "en": 'Even steps',
+    },
+    'sweep_mode_list': {
+        "tr": 'Kendi açılarım',
+        "en": 'My own angles',
+    },
+    'sweep_list': {
+        "tr": 'Açı listesi [°]',
+        "en": 'List of angles [°]',
+    },
+    'sweep_list_help': {
+        "tr": 'Örnek: 1.3, 2.8, 6.8. Ondalık için nokta; açıları boşluk, ; ya da virgül ve boşlukla ayırın. Açılar küçükten büyüğe sıralanır, tekrar edenler bir kez alınır. Dosya adları açıyı iki ondalıkla tutar, bu yüzden açılar arasında en az 0.01° fark olmalı.',
+        "en": 'Example: 1.3, 2.8, 6.8. Use a dot for decimals; separate angles with a space, ; or a comma and a space. Angles are sorted from smallest to largest and repeats are taken once. File names hold the angle to 2 decimals, so angles must be at least 0.01° apart.',
+    },
+    'sweep_list_empty': {
+        "tr": 'Taramak istediğiniz açıları yazın (ör. 1.3, 2.8, 6.8).',
+        "en": 'Enter the angles to sweep (e.g. 1.3, 2.8, 6.8).',
+    },
     'sweep_csv': {
         "tr": 'Taramayı CSV olarak indir',
         "en": 'Download the sweep as CSV',
@@ -1255,6 +1279,11 @@ ERRORS_TR = {
     'Angle step must be positive': 'Açı adımı pozitif olmalı',
     'Last angle must not be below the first one': 'Son açı ilk açıdan küçük olamaz',
     'Too many angles (more than 361)': 'Çok fazla açı (361’den fazla)',
+    'Use a dot for decimals (1.5) and separate angles with a space, ; or a comma and a space': 'Ondalık için nokta kullanın (1.5); açıları boşluk, ; ya da virgül ve boşlukla ayırın ("1,3" gibi virgüllü sayı kabul edilmez)',
+    'Angles must be numbers, separated by a space, ; or a comma': 'Açılar sayı olmalı; boşluk, ; ya da virgülle ayrılmalı',
+    'Enter at least one angle': 'En az bir açı yazın',
+    'Angles must be between -180 and 180 degrees': 'Açılar −180 ile 180 derece arasında olmalı',
+    'Two angles get the same file name: keep angles at least 0.01° apart': 'İki açı aynı dosya adını alıyor: açılar arasında en az 0.01° fark olsun',
     'Speed, chord, density and viscosity must be positive': 'Hız, veter, yoğunluk ve viskozite pozitif olmalı',
     'Reynolds number must be at least 1000': 'Reynolds sayısı en az 1000 olmalı',
     'Edge is shorter than the requested cell size': 'Kenar, istenen hücre boyundan kısa; hücre boylarını küçültün',

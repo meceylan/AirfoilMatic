@@ -163,15 +163,49 @@ def alpha_sweep(start, stop, step, speed):
     if stop < start:
         raise ValueError("Last angle must not be below the first one")
     n = int(math.floor((stop - start) / step + 1e-9)) + 1
-    if n > 361:
+    if n > MAX_ANGLES:
         raise ValueError("Too many angles (more than 361)")
+    return angle_rows([round(start + i * step, 10) for i in range(n)], speed)
+
+
+def angle_rows(angles, speed):
+    """Inlet components and force vectors for each angle of ``angles`` (degrees), in that order."""
     out = []
-    for i in range(n):
-        a = round(start + i * step, 10)
+    for a in angles:
         r = math.radians(a)
         c, s = math.cos(r), math.sin(r)
         out.append(dict(aoa=a, ux=speed * c, uy=speed * s, drag=(c, s), lift=(0.0 - s, c)))   # 0.0 - s: no "-0" at 0°
     return out
+
+
+MAX_ANGLES = 361
+
+
+def parse_angles(text):
+    """The user's own angles from text such as "1.3, 2.8, 6.8": sorted, repeats dropped.
+
+    Angles are separated by spaces, ';' or commas; the decimal mark is a dot. A comma between two
+    digits ("1,3") is refused, because it may be a Turkish decimal comma or two angles."""
+    text = str(text or "")
+    if re.search(r"\d,\d", text):
+        raise ValueError("Use a dot for decimals (1.5) and separate angles with a space, ; or a comma and a space")
+    parts = [p for p in re.split(r"[\s,;]+", text) if p]
+    if not parts:
+        raise ValueError("Enter at least one angle")
+    angles = set()
+    for p in parts:
+        try:
+            a = float(p)
+        except ValueError:
+            a = math.nan
+        if not math.isfinite(a):
+            raise ValueError("Angles must be numbers, separated by a space, ; or a comma")
+        if abs(a) > 180:
+            raise ValueError("Angles must be between -180 and 180 degrees")
+        angles.add(a + 0.0)          # + 0.0: "-0" becomes 0
+    if len(angles) > MAX_ANGLES:
+        raise ValueError("Too many angles (more than 361)")
+    return sorted(angles)
 
 
 # ----------------------------------------------------------------------------- sweep journal
@@ -257,7 +291,7 @@ def expression_setup(expression="aoa", density=1.225, speed=1.0, chord=1.0, dept
 
 
 def sweep_journal(start, stop, step, iterations=1000, expression="aoa", save_every=0, folder="",
-                  prefix="airfoilmatic", version=""):
+                  prefix="airfoilmatic", version="", angles=None):
     """Return the text of a Fluent TUI journal (.jou) for an angle-of-attack sweep.
 
     At each angle (smallest to largest) only the named expression ``expression`` changes and the
@@ -266,7 +300,9 @@ def sweep_journal(start, stop, step, iterations=1000, expression="aoa", save_eve
     ``expression_setup``). Tried in Ansys Fluent 2024 R2 (standalone, TUI version 24.2).
 
     ``save_every`` = k writes case & data after every k-th angle (1 = every angle); the last angle
-    is always written. 0 (default) writes only the last angle."""
+    is always written. 0 (default) writes only the last angle.
+
+    ``angles``: the user's own list (from ``parse_angles``); then start, stop and step are not used."""
     if isinstance(iterations, bool) or not isinstance(iterations, int) or iterations < 1:
         raise ValueError("Iterations must be an integer of at least 1")
     if isinstance(save_every, bool) or not isinstance(save_every, int) or save_every < 0:
@@ -279,9 +315,18 @@ def sweep_journal(start, stop, step, iterations=1000, expression="aoa", save_eve
     if '"' in folder:
         raise ValueError("Folder must not contain a double quote")
     folder = folder.replace("\\", "/").rstrip("/")
-    rows = alpha_sweep(start, stop, step, 1.0)
+    if angles is not None:
+        rows = angle_rows(sorted(set(float(a) + 0.0 for a in angles)), 1.0)
+        if not rows:
+            raise ValueError("Enter at least one angle")
+        if len(rows) > MAX_ANGLES:
+            raise ValueError("Too many angles (more than 361)")
+    else:
+        rows = alpha_sweep(start, stop, step, 1.0)
     n = len(rows)
     if len({_case_name(prefix, r["aoa"]) for r in rows}) != n:
+        if angles is not None:
+            raise ValueError("Two angles get the same file name: keep angles at least 0.01° apart")
         raise ValueError("Angle step too small: two angles get the same file name")
 
     def path(aoa):
@@ -311,7 +356,8 @@ def sweep_journal(start, stop, step, iterations=1000, expression="aoa", save_eve
         "; report files, and inside a journal the next line would become the answer.",
         f"; At each angle the journal only changes {e} and iterates; every angle continues from the",
         "; previous solution (no initialisation).",
-        f"; Angles: first {first:g}, last {last:g}, step {step:g}, count {n}.",
+        (f"; Angles: {', '.join(_angle_text(r['aoa']) for r in rows)} (own list), count {n}." if angles is not None
+         else f"; Angles: first {first:g}, last {last:g}, step {step:g}, count {n}."),
         f"; Iterations per angle: {iterations} = upper limit. If the case has Convergence Conditions",
         "; (Solution > Report Definitions), Fluent stops an angle early when they are met and the journal",
         "; goes on to the next angle (seen in Fluent 2024 R2, 11-angle sweep).",
