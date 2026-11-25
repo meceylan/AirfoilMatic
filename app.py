@@ -8,6 +8,7 @@ import numpy as np
 # and fails with "AttributeError: ... Series". This import waits until pandas is ready.
 import pandas  # noqa: F401  (installed with Streamlit)
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import streamlit as st
 
 from airfoilmatic import __version__ as APP_VERSION, APP_STAGE
@@ -24,6 +25,8 @@ from airfoilmatic.fluent import (AIR_DENSITY, AIR_VISCOSITY, air_density, alpha_
                                  inlet_tu_for, mach_state, max_reachable_tu, speed_for_reynolds, speed_of_sound,
                                  sutherland_viscosity, sweep_journal, expression_setup,
                                  rarefaction, KNUDSEN_CONTINUUM)
+from airfoilmatic.polar import (CL_TOL, LAST_N, OSCILLATING, SHORT, STEADY, guess_columns, polar,
+                               polar_csv, read_report)
 from airfoilmatic.quality import (FLUENT_MAX_SKEWNESS, FLUENT_MIN_ORTHO, RATING_LEVEL,
                                   expected_wall_aspect_ratio, rate_orthogonal, rate_skewness)
 from airfoilmatic.i18n import LANGS, tr, tr_error
@@ -324,7 +327,7 @@ def rows_to_csv(rows):
     return buf.getvalue().encode("utf-8-sig")  # BOM so Excel shows Turkish characters
 
 
-tab_geo, tab_mesh = st.tabs([t("tab_geometry"), t("tab_mesh")])
+tab_geo, tab_mesh, tab_auto = st.tabs([t("tab_geometry"), t("tab_mesh"), t("tab_auto")])
 
 # ================================================================ geometry tab
 with tab_geo:
@@ -743,63 +746,159 @@ with tab_mesh:
             st.markdown(ui.table_html(rows_t), unsafe_allow_html=True)
             st.caption(t("tu_note"))
 
-            # ---- angle-of-attack sweep: one row per angle, for a polar
-            st.markdown(f"**{t('sweep_title')}**")
-            sc = st.columns(3)
-            a0 = sc[0].number_input(t("sweep_from"), value=-4.0, step=1.0, format="%.2f", key="sweep_from")
-            a1 = sc[1].number_input(t("sweep_to"), value=16.0, step=1.0, format="%.2f", key="sweep_to")
-            da = sc[2].number_input(t("sweep_step"), value=2.0, min_value=0.05, step=0.5, format="%.2f",
-                                    key="sweep_step")
-            try:
-                sweep = alpha_sweep(a0, a1, da, fs.speed)
-            except ValueError as e:
-                st.error(te(e))
-                sweep = []
-            if sweep:
-                rows_s = [{"α [°]": f"{r['aoa']:g}", "X-Velocity [m/s]": f"{r['ux']:.6g}",
-                           "Y-Velocity [m/s]": f"{r['uy']:.6g}",
-                           "Drag X": f"{r['drag'][0]:.6f}", "Drag Y": f"{r['drag'][1]:.6f}",
-                           "Lift X": f"{r['lift'][0]:.6f}", "Lift Y": f"{r['lift'][1]:.6f}"} for r in sweep]
-                wide_table(rows_s, "sweep")
-                st.download_button(t("sweep_csv"), data=rows_to_csv(rows_s),
-                                   file_name=f"{file_prefix}_aoa_sweep.csv", mime="text/csv", key="sweep_csv")
 
-                # ---- Fluent journal: steps a named expression (the angle) through the same angles
-                st.markdown(f"**{t('jou_title')}**")
-                expr_now = str(st.session_state.get("jou_expr", "aoa")).strip()
-                iter_now = int(st.session_state.get("jou_iter", 1000))
-                try:
-                    setup = expression_setup(expr_now, rho_f, fs.speed, chord)
-                except ValueError:
-                    pass   # the same name error is shown once, below, by sweep_journal
-                else:
-                    first_txt = f"{a0:.4f}".rstrip("0").rstrip(".")
-                    first_txt = "0" if first_txt in ("-0", "") else first_txt
-                    st.markdown(t("jou_setup_title"))
-                    st.code("\n".join([
-                        f"{t('jou_setup_aoa', expr=expr_now, first=first_txt)}",
-                        f"{t('jou_setup_flow_x')}: {setup['flow_x']}",
-                        f"{t('jou_setup_flow_y')}: {setup['flow_y']}",
-                        f"{t('jou_setup_inlet_x')}: {setup['inlet_x']}",
-                        f"{t('jou_setup_inlet_y')}: {setup['inlet_y']}",
-                        f"{t('jou_setup_cl')}: {setup['cl']}",
-                        f"{t('jou_setup_cd')}: {setup['cd']}",
-                        f"{t('jou_setup_clconv')}: {setup['clconv']}",
-                    ]), language=None)
-                    st.caption(t("jou_setup_note"))
-                st.caption(t("jou_note", iterations=iter_now, expr=expr_now))
-                jc = st.columns(3)
-                jou_iter = jc[0].number_input(t("jou_iter"), value=1000, min_value=1, step=100, key="jou_iter")
-                jou_expr = jc[1].text_input(t("jou_expr"), value="aoa", help=t("jou_expr_help"), key="jou_expr")
-                jou_save = jc[2].number_input(t("jou_save_every"), value=0, min_value=0, step=1,
-                                              help=t("jou_save_every_help"), key="jou_save_every")
-                jou_folder = st.text_input(t("jou_folder"), value="", help=t("jou_folder_help"), key="jou_folder")
-                try:
-                    jou_text = sweep_journal(a0, a1, da, iterations=int(jou_iter), expression=jou_expr.strip(),
-                                             save_every=int(jou_save), folder=jou_folder.strip(), prefix=file_prefix,
-                                             version=APP_VERSION)
-                except ValueError as e:
-                    st.error(t("jou_error", msg=te(e)))
-                else:
-                    st.download_button(t("jou_download"), data=jou_text, file_name=f"{file_prefix}_aoa_sweep.jou",
-                                       mime="text/plain", key="jou_download")
+# ================================================================ automation tab
+# Everything for running many angles in Fluent: the sweep table, the journal that steps the angle
+# and the polar read back from the report file. The single-angle Fluent helper stays on Mesh / y+.
+with tab_auto:
+    st.caption(t("auto_intro"))
+    if fs is None:
+        st.info(t("auto_need_speed"))
+    else:
+        # ---- angle-of-attack sweep: one row per angle, for a polar
+        st.markdown(f"**{t('sweep_title')}**")
+        sc = st.columns(3)
+        a0 = sc[0].number_input(t("sweep_from"), value=-4.0, step=1.0, format="%.2f", key="sweep_from")
+        a1 = sc[1].number_input(t("sweep_to"), value=16.0, step=1.0, format="%.2f", key="sweep_to")
+        da = sc[2].number_input(t("sweep_step"), value=2.0, min_value=0.05, step=0.5, format="%.2f",
+                                key="sweep_step")
+        try:
+            sweep = alpha_sweep(a0, a1, da, fs.speed)
+        except ValueError as e:
+            st.error(te(e))
+            sweep = []
+        if sweep:
+            rows_s = [{"α [°]": f"{r['aoa']:g}", "X-Velocity [m/s]": f"{r['ux']:.6g}",
+                       "Y-Velocity [m/s]": f"{r['uy']:.6g}",
+                       "Drag X": f"{r['drag'][0]:.6f}", "Drag Y": f"{r['drag'][1]:.6f}",
+                       "Lift X": f"{r['lift'][0]:.6f}", "Lift Y": f"{r['lift'][1]:.6f}"} for r in sweep]
+            wide_table(rows_s, "sweep")
+            st.download_button(t("sweep_csv"), data=rows_to_csv(rows_s),
+                               file_name=f"{file_prefix}_aoa_sweep.csv", mime="text/csv", key="sweep_csv")
+
+            # ---- Fluent journal: steps a named expression (the angle) through the same angles
+            st.markdown(f"**{t('jou_title')}**")
+            expr_now = str(st.session_state.get("jou_expr", "aoa")).strip()
+            iter_now = int(st.session_state.get("jou_iter", 1000))
+            try:
+                setup = expression_setup(expr_now, rho_f, fs.speed, chord)
+            except ValueError:
+                pass   # the same name error is shown once, below, by sweep_journal
+            else:
+                first_txt = f"{a0:.4f}".rstrip("0").rstrip(".")
+                first_txt = "0" if first_txt in ("-0", "") else first_txt
+                st.markdown(t("jou_setup_title"))
+                st.code("\n".join([
+                    f"{t('jou_setup_aoa', expr=expr_now, first=first_txt)}",
+                    f"{t('jou_setup_flow_x')}: {setup['flow_x']}",
+                    f"{t('jou_setup_flow_y')}: {setup['flow_y']}",
+                    f"{t('jou_setup_inlet_x')}: {setup['inlet_x']}",
+                    f"{t('jou_setup_inlet_y')}: {setup['inlet_y']}",
+                    f"{t('jou_setup_cl')}: {setup['cl']}",
+                    f"{t('jou_setup_cd')}: {setup['cd']}",
+                    f"{t('jou_setup_clconv')}: {setup['clconv']}",
+                ]), language=None)
+                st.caption(t("jou_setup_note"))
+            st.caption(t("jou_note", iterations=iter_now, expr=expr_now))
+            jc = st.columns(3)
+            jou_iter = jc[0].number_input(t("jou_iter"), value=1000, min_value=1, step=100, key="jou_iter")
+            jou_expr = jc[1].text_input(t("jou_expr"), value="aoa", help=t("jou_expr_help"), key="jou_expr")
+            jou_save = jc[2].number_input(t("jou_save_every"), value=0, min_value=0, step=1,
+                                          help=t("jou_save_every_help"), key="jou_save_every")
+            jou_folder = st.text_input(t("jou_folder"), value="", help=t("jou_folder_help"), key="jou_folder")
+            try:
+                jou_text = sweep_journal(a0, a1, da, iterations=int(jou_iter), expression=jou_expr.strip(),
+                                         save_every=int(jou_save), folder=jou_folder.strip(), prefix=file_prefix,
+                                         version=APP_VERSION)
+            except ValueError as e:
+                st.error(t("jou_error", msg=te(e)))
+            else:
+                st.download_button(t("jou_download"), data=jou_text, file_name=f"{file_prefix}_aoa_sweep.jou",
+                                   mime="text/plain", key="jou_download")
+
+    # ---- polar from the report file written during the sweep
+    st.markdown(f"**{t('polar_title')}**")
+    st.caption(t("polar_note"))
+    rep_file = st.file_uploader(t("polar_upload"), type=["out", "txt", "csv"], key="polar_file")
+    if rep_file is not None:
+        try:
+            report = read_report(rep_file.getvalue())
+        except ValueError as e:
+            st.error(t("polar_error", msg=te(e)))
+            report = None
+        if report is not None:
+            names = report.columns[1:]
+            guess = guess_columns(report.columns)
+            pc = st.columns(3)
+            pick = {}
+            for col, (role, label) in zip(pc, (("angle", "polar_col_angle"), ("cl", "polar_col_cl"),
+                                               ("cd", "polar_col_cd"))):
+                default = names.index(guess[role]) if guess[role] in names else 0
+                # the key follows the file, so a new file starts from its own guess
+                pick[role] = col.selectbox(t(label), names, index=default, key=f"polar_{role}_{rep_file.file_id}")
+            pc2 = st.columns(3)
+            unit = pc2[0].radio(t("polar_unit"), ["rad", "deg"], horizontal=True, key="polar_unit",
+                                help=t("polar_unit_help"))
+            last_n = pc2[1].number_input(t("polar_last_n"), value=LAST_N, min_value=1, step=10, key="polar_n",
+                                         help=t("polar_last_n_help"))
+            cl_tol = pc2[2].number_input(t("polar_cl_tol"), value=CL_TOL, min_value=0.0, format="%.0e",
+                                         step=1e-4, key="polar_cl_tol", help=t("polar_cl_tol_help"))
+            try:
+                prow = polar(report, pick["angle"], pick["cl"], pick["cd"], angle_unit=unit,
+                             last_n=int(last_n), cl_tol=cl_tol)
+            except ValueError as e:
+                st.error(t("polar_error", msg=te(e)))
+                prow = []
+            if prow:
+                status_txt = {STEADY: t("polar_steady"), OSCILLATING: t("polar_osc"), SHORT: t("polar_short")}
+                rows_p = [{"α [°]": f"{r.aoa:.4g}", "Cl": f"{r.cl:.5f}", "Cd": f"{r.cd:.6f}",
+                           "Cl/Cd": f"{r.ld:.4g}", t("polar_status"): status_txt[r.status],
+                           "ΔCl": f"{r.cl_range:.1e}", "ΔCd": f"{r.cd_range:.1e}",
+                           t("polar_iters"): f"{r.iterations} ({r.first}–{r.last})"} for r in prow]
+                wide_table(rows_p, "polar")
+                osc = [f"{r.aoa:g}" for r in prow if r.status == OSCILLATING]
+                if osc:
+                    st.warning(t("polar_warn_osc", angles=", ".join(osc)))
+                short_ = [f"{r.aoa:g}" for r in prow if r.status == SHORT]
+                if short_:
+                    st.info(t("polar_warn_short", angles=", ".join(short_), n=int(last_n)))
+                if any(r.repeats > 1 for r in prow):
+                    st.caption(t("polar_repeats"))
+                fig_p = make_subplots(rows=1, cols=3, subplot_titles=("Cl – α", "Cd – α", "Cl – Cd"),
+                                      horizontal_spacing=0.08)
+                for status, color, symbol in ((STEADY, PLOT["line"], "circle"),
+                                              (OSCILLATING, PLOT["split"], "circle-open"),
+                                              (SHORT, PLOT["boundary"], "x")):
+                    sel = [r for r in prow if r.status == status]
+                    if not sel:
+                        continue
+                    a = [r.aoa for r in sel]
+                    common = dict(mode="markers", marker=dict(color=color, symbol=symbol, size=9),
+                                  legendgroup=status, name=status_txt[status])
+                    fig_p.add_trace(go.Scatter(x=a, y=[r.cl for r in sel], error_y=dict(
+                        array=[r.cl_range / 2 for r in sel], color=color), **common), row=1, col=1)
+                    fig_p.add_trace(go.Scatter(x=a, y=[r.cd for r in sel], error_y=dict(
+                        array=[r.cd_range / 2 for r in sel], color=color), showlegend=False,
+                        **{k: v for k, v in common.items() if k != "name"}), row=1, col=2)
+                    fig_p.add_trace(go.Scatter(x=[r.cd for r in sel], y=[r.cl for r in sel], showlegend=False,
+                                               **{k: v for k, v in common.items() if k != "name"}), row=1, col=3)
+                line = [r for r in prow if r.status != SHORT]
+                for x, y, col in (([r.aoa for r in line], [r.cl for r in line], 1),
+                                  ([r.aoa for r in line], [r.cd for r in line], 2),
+                                  ([r.cd for r in line], [r.cl for r in line], 3)):
+                    fig_p.add_trace(go.Scatter(x=x, y=y, mode="lines", line=dict(color=PLOT["line"], width=1),
+                                               showlegend=False, hoverinfo="skip"), row=1, col=col)
+                fig_p.update_xaxes(title_text="α [°]", row=1, col=1)
+                fig_p.update_xaxes(title_text="α [°]", row=1, col=2)
+                fig_p.update_xaxes(title_text="Cd", row=1, col=3)
+                for col, name in ((1, "Cl"), (2, "Cd"), (3, "Cl")):
+                    fig_p.update_yaxes(title_text=name, row=1, col=col)
+                fig_p.update_layout(height=380, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                                    font=dict(family=ui.FONT), margin=dict(l=10, r=10, t=40, b=10),
+                                    legend=dict(orientation="h", y=-0.2, x=0))
+                fig_p.update_xaxes(gridcolor=PLOT["grid"], zerolinecolor=PLOT["zero"])
+                fig_p.update_yaxes(gridcolor=PLOT["grid"], zerolinecolor=PLOT["zero"])
+                st.plotly_chart(fig_p, width="stretch", config={"scrollZoom": False}, key="polar_chart")
+                st.download_button(t("polar_csv"), data=polar_csv(prow),
+                                   file_name=f"{safe_file_stem(rep_file.name)}_polar.csv", mime="text/csv",
+                                   key="polar_csv")

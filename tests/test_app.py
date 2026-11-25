@@ -108,7 +108,7 @@ def upload(name, data, lang="tr"):
     at = start(lang)
     widget(at, "radio", tr("source", lang)).set_value("file")
     at = at.run()
-    at.file_uploader[0].upload(name, data, "application/octet-stream")
+    [u for u in at.file_uploader if u.key == "upload"][0].upload(name, data, "application/octet-stream")
     return at.run()
 
 

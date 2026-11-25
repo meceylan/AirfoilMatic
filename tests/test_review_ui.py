@@ -102,7 +102,7 @@ def test_reupload_with_the_same_name_and_size_checks_the_direction_again():
     assert len(reversed_data) == len(fixed_data)
     at = upload("wing.dat", reversed_data)
     assert widget(at, "checkbox", tr("mirror_x", "tr")).value
-    at.file_uploader[0].upload("wing.dat", fixed_data, "application/octet-stream")
+    [u for u in at.file_uploader if u.key == "upload"][0].upload("wing.dat", fixed_data, "application/octet-stream")
     at = at.run()
     assert not at.exception and not at.error
     assert not widget(at, "checkbox", tr("mirror_x", "tr")).value

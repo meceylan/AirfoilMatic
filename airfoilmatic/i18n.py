@@ -24,6 +24,106 @@ STRINGS = {
         "tr": 'Mesh / y⁺',
         "en": 'Mesh / y⁺',
     },
+    'tab_auto': {
+        "tr": 'Otomasyon',
+        "en": 'Automation',
+    },
+    'auto_intro': {
+        "tr": "Fluent'te çok açıyı art arda koşmak için: açı taraması tablosu, açıyı adım adım değiştiren journal ve tarama bitince report file'dan polar. Hız, yoğunluk ve veter Mesh / y⁺ sekmesindeki Fluent yardımcısından gelir.",
+        "en": "For running many angles in a row in Fluent: the angle sweep table, the journal that steps the angle, and the polar from the report file once the sweep is done. Speed, density and chord come from the Fluent helper on the Mesh / y⁺ tab.",
+    },
+    'auto_need_speed': {
+        "tr": "Tarama ve journal için Mesh / y⁺ sekmesindeki Fluent yardımcısında geçerli bir serbest akış hızı gerekir.",
+        "en": "The sweep and the journal need a valid free-stream speed in the Fluent helper on the Mesh / y⁺ tab.",
+    },
+    'polar_title': {
+        "tr": "Polar (report file'dan)",
+        "en": 'Polar (from the report file)',
+    },
+    'polar_note': {
+        "tr": "Taramada Fluent'in yazdığı report file'ı (.out) yükleyin; içinde açı (expression report, ör. alfa = aoa), Cl ve Cd sütunları olmalı. Her açı, açının sabit kaldığı iterasyon bloğudur; değer bloğun son N iterasyonunun ortalamasıdır, Δ ise aynı iterasyonlardaki en büyük – en küçük farkıdır. Aynı açı sonradan yeniden koşulduysa en son blok, kayıttan sürdürülen taramada tekrar yazılan iterasyonlarda sonraki satırlar kullanılır. Fluent 2024 R2'nin report file biçimiyle (11 açılı NACA 0012 taraması) denendi.",
+        "en": "Upload the report file (.out) Fluent wrote during the sweep; it needs an angle column (an expression report, e.g. alfa = aoa), Cl and Cd. Each angle is the block of iterations in which the angle stays the same; the value is the mean of the block's last N iterations and Δ the max – min over the same iterations. If an angle was run again later the latest block is used; iterations written twice by a sweep continued from a saved case use the later lines. Tried with the report file format of Fluent 2024 R2 (11-angle NACA 0012 sweep).",
+    },
+    'polar_upload': {
+        "tr": 'Report file (.out)',
+        "en": 'Report file (.out)',
+    },
+    'polar_error': {
+        "tr": 'Polar çıkarılamadı: {msg}',
+        "en": 'Could not build the polar: {msg}',
+    },
+    'polar_col_angle': {
+        "tr": 'Açı sütunu',
+        "en": 'Angle column',
+    },
+    'polar_col_cl': {
+        "tr": 'Cl sütunu',
+        "en": 'Cl column',
+    },
+    'polar_col_cd': {
+        "tr": 'Cd sütunu',
+        "en": 'Cd column',
+    },
+    'polar_unit': {
+        "tr": 'Açı sütununun birimi',
+        "en": 'Unit of the angle column',
+    },
+    'polar_unit_help': {
+        "tr": "[deg] birimli bir named expression'ın expression report'u Fluent'te radyan olarak yazılır (−4° → −0.0698).",
+        "en": 'An expression report of a named expression in [deg] is written in radians by Fluent (−4° → −0.0698).',
+    },
+    'polar_last_n': {
+        "tr": 'Ortalama: son N iterasyon',
+        "en": 'Mean over the last N iterations',
+    },
+    'polar_last_n_help': {
+        "tr": 'Her açının son N iterasyonunun ortalaması alınır. Bundan kısa bloklar "az iterasyon" olarak işaretlenir.',
+        "en": 'Each angle uses the mean of its last N iterations. Shorter blocks are marked "few iterations".',
+    },
+    'polar_cl_tol': {
+        "tr": 'Salınım sınırı ΔCl',
+        "en": 'Oscillation limit ΔCl',
+    },
+    'polar_cl_tol_help': {
+        "tr": "Son N iterasyonda Cl bundan fazla oynuyorsa (ya da Cd ortalamasının %1'inden fazla) açı \"salınıyor\" sayılır.",
+        "en": 'An angle counts as "oscillating" if Cl moves more than this over the last N iterations (or Cd more than 1 % of its mean).',
+    },
+    'polar_steady': {
+        "tr": 'oturdu',
+        "en": 'steady',
+    },
+    'polar_osc': {
+        "tr": 'salınıyor',
+        "en": 'oscillating',
+    },
+    'polar_short': {
+        "tr": 'az iterasyon',
+        "en": 'few iterations',
+    },
+    'polar_iters': {
+        "tr": 'İterasyon (aralık)',
+        "en": 'Iterations (range)',
+    },
+    'polar_status': {
+        "tr": 'Durum',
+        "en": 'Status',
+    },
+    'polar_warn_osc': {
+        "tr": "Salınan açılar: {angles}°. Steady çözüm oturmamış; değer son iterasyonların ortalamasıdır ve güvenilirliği düşüktür (ayrılma / stall bölgesinde transient çözüm gerekebilir).",
+        "en": 'Oscillating angles: {angles}°. The steady solution has not settled; the value is the mean of the last iterations and is less reliable (separation / stall may need a transient solution).',
+    },
+    'polar_warn_short': {
+        "tr": "{angles}° açılarında {n} iterasyondan az veri var; ortalama eldeki iterasyonlardan alındı.",
+        "en": 'Angles {angles}° have fewer than {n} iterations; the mean uses the iterations there are.',
+    },
+    'polar_repeats': {
+        "tr": 'Bazı açılar dosyada birden fazla kez koşulmuş; her biri için en son blok kullanıldı.',
+        "en": 'Some angles were run more than once in the file; the latest block of each is used.',
+    },
+    'polar_csv': {
+        "tr": 'Poları CSV olarak indir',
+        "en": 'Download the polar as CSV',
+    },
     'source': {
         "tr": 'Kanat Veri Kaynağı',
         "en": 'Airfoil Source',
@@ -1187,6 +1287,9 @@ ERRORS_TR = {
     'Depth must be a positive number': 'Derinlik pozitif bir sayı olmalı',
     'File name prefix may only contain letters, digits and _ . -': 'Dosya adı öneki yalnızca harf, rakam ve _ . - içerebilir',
     'Mach number, Reynolds number and chord must be positive': 'Mach sayısı, Reynolds sayısı ve veter pozitif olmalı',
+    'Not a Fluent report file: no header line with the column names': 'Fluent report file değil: sütun adlarını içeren başlık satırı yok',
+    'The report file has no data rows': 'Report file\'da veri satırı yok',
+    'Column not in the report file': 'Bu sütun report file\'da yok',
     'Folder must not contain a double quote': 'Klasör yolunda çift tırnak olamaz',
     'Folder must contain only ASCII characters (Fluent may not handle others)': 'Klasör yolunda yalnızca ASCII karakterler olmalı (Fluent diğerlerini işleyemeyebilir)',
     'Angle step too small: two angles get the same file name': 'Açı adımı çok küçük: iki açı aynı dosya adını alıyor',
