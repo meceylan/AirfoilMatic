@@ -58,6 +58,12 @@ def _quoted(line):
     return re.findall(r'"([^"]*)"', line)
 
 
+def is_transient(report):
+    """True for a report file of a transient run: Fluent writes "Time Step" instead of "Iteration"
+    as the first column, so each row is a time step."""
+    return str(report.columns[0]).strip().lower() == "time step"
+
+
 def read_report(data):
     """Columns and rows of a Fluent report file (bytes or str)."""
     text = data.decode("utf-8", errors="replace") if isinstance(data, (bytes, bytearray)) else str(data)

@@ -25,7 +25,7 @@ from airfoilmatic.fluent import (AIR_DENSITY, AIR_VISCOSITY, air_density, alpha_
                                  inlet_tu_for, mach_state, max_reachable_tu, speed_for_reynolds, speed_of_sound,
                                  sutherland_viscosity, sweep_journal, expression_setup,
                                  rarefaction, parse_angles, KNUDSEN_CONTINUUM)
-from airfoilmatic.polar import (CL_TOL, LAST_N, OSCILLATING, SHORT, STEADY, guess_columns, polar,
+from airfoilmatic.polar import (CL_TOL, LAST_N, OSCILLATING, SHORT, STEADY, guess_columns, is_transient, polar,
                                polar_csv, read_report, merge_reports)
 from airfoilmatic.quality import (FLUENT_MAX_SKEWNESS, FLUENT_MIN_ORTHO, RATING_LEVEL,
                                   expected_wall_aspect_ratio, rate_orthogonal, rate_skewness)
@@ -875,8 +875,11 @@ with tab_auto:
                 rows_p = [{"α [°]": f"{r.aoa:.4g}", "Cl": f"{r.cl:.5f}", "Cd": f"{r.cd:.6f}",
                            "Cl/Cd": f"{r.ld:.4g}", t("polar_status"): status_txt[r.status],
                            "ΔCl": f"{r.cl_range:.1e}", "ΔCd": f"{r.cd_range:.1e}",
-                           t("polar_iters"): f"{r.iterations} ({r.first}–{r.last})"} for r in prow]
+                           t("polar_steps" if is_transient(report) else "polar_iters"):
+                               f"{r.iterations} ({r.first}–{r.last})"} for r in prow]
                 wide_table(rows_p, "polar")
+                if is_transient(report):
+                    st.caption(t("polar_transient"))
                 osc = [f"{r.aoa:g}" for r in prow if r.status == OSCILLATING]
                 if osc:
                     st.warning(t("polar_warn_osc", angles=", ".join(osc)))
@@ -885,6 +888,7 @@ with tab_auto:
                     st.info(t("polar_warn_short", angles=", ".join(short_), n=int(last_n)))
                 if any(r.repeats > 1 for r in prow):
                     st.caption(t("polar_repeats"))
+                st.caption(t("polar_model_note"))
                 fig_p = make_subplots(rows=1, cols=3, subplot_titles=("Cl – α", "Cd – α", "Cl – Cd"),
                                       horizontal_spacing=0.08)
                 for status, color, symbol in ((STEADY, PLOT["line"], "circle"),

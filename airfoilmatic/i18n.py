@@ -112,9 +112,21 @@ STRINGS = {
         "tr": 'Durum',
         "en": 'Status',
     },
+    'polar_steps': {
+        "tr": 'Zaman adımı (aralık)',
+        "en": 'Time steps (range)',
+    },
+    'polar_transient': {
+        "tr": "Transient report file (ilk sütun Time Step): satırlar zaman adımıdır; \"son N\" son N zaman adımıdır. Salınan bir çözümde N'yi birkaç tam periyodu kapsayacak kadar seçin (yarım periyot ortalamayı kaydırır).",
+        "en": 'Transient report file (first column Time Step): rows are time steps and "last N" means the last N time steps. For an oscillating solution choose N to cover several whole periods (half a period shifts the mean).',
+    },
+    'polar_model_note': {
+        "tr": "Model notu (Fluent 2024 R2, NACA 0012, Re 2×10⁶, Ladson NASA TM-4074 ile): tam türbülanslı SST k-ω 15°'ye kadar oturdu ve Cl'yi deneyden %2.5–3.5 yüksek verdi; stall'u geç verdi: 16.02°'de akış bağlı (Cl 1.45), 16.99°'de URANS ile de bağlı (Cl 1.46; deneyde stall, Cl 1.09). Transition SST 8°'den sonra steady çözümde salındı. Stall yakınındaki değerleri deneyle doğrulamadan kullanmayın.",
+        "en": 'Model note (Fluent 2024 R2, NACA 0012, Re 2×10⁶, against Ladson NASA TM-4074): fully turbulent SST k-ω settled up to 15° with Cl 2.5–3.5 % above the experiment, and gave stall late: attached flow at 16.02° (Cl 1.45) and at 16.99° also with URANS (Cl 1.46; the experiment has stalled, Cl 1.09). Transition SST oscillated in the steady solution above 8°. Do not use values near stall without checking them against experiment.',
+    },
     'polar_warn_osc': {
-        "tr": "Salınan açılar: {angles}°. Steady çözüm oturmamış; değer son iterasyonların ortalamasıdır ve güvenilirliği düşüktür (ayrılma / stall bölgesinde transient çözüm gerekebilir).",
-        "en": 'Oscillating angles: {angles}°. The steady solution has not settled; the value is the mean of the last iterations and is less reliable (separation / stall may need a transient solution).',
+        "tr": "Salınan açılar: {angles}°. Steady çözüm oturmamış; değer son iterasyonların ortalamasıdır ve güvenilirliği düşüktür. Steady çözümde salınım her zaman stall demek değildir: iterasyonların fiziksel zaman karşılığı yoktur. Salınan açıyı URANS (transient) ile kontrol edin. Fluent 2024 R2'de (NACA 0012, SST k-ω) 16.99°'de steady Cl 0.30–1.35 arasında salındı, URANS'ta akış bağlı akışa oturdu (Cl 1.46).",
+        "en": "Oscillating angles: {angles}°. The steady solution has not settled; the value is the mean of the last iterations and is less reliable. An oscillating steady solution is not always stall: iterations have no physical time. Check an oscillating angle with URANS (transient). In Fluent 2024 R2 (NACA 0012, SST k-ω) the steady Cl at 16.99° swung between 0.30 and 1.35, while URANS settled to attached flow (Cl 1.46).",
     },
     'polar_warn_short': {
         "tr": "{angles}° açılarında {n} iterasyondan az veri var; ortalama eldeki iterasyonlardan alındı.",
