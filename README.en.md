@@ -59,7 +59,7 @@ Cl is within 1% of the experiment and Cd within 2–3.5%; the scatter between di
 **Limits:** Only one section, one angle, one Reynolds number and the inflation mesh were tried; there is no result for the mapped mesh. The turbulence level of Ladson's tunnel is not known and a viscosity ratio of 100 was chosen at the inlet (about 0.43% Tu reaches the leading edge); how close Cd is to the experiment may depend partly on that choice. Read the result as "consistent with the experiment", not as a firm validation.
 
 ## Scope
-* The mesh plan is built for low speed (Mach < 0.3). The Mach input accepts up to 1.0 and suggests a pressure far field above Mach 0.3, but gives no mesh settings specific to compressible flow. Transonic sections in the library such as RAE and NASA SC(2) get the same plan, but there is no separate route for the shock region.
+* The mesh plan is built for low speed (Mach < 0.3). The Mach input accepts up to 1.0 and suggests a pressure far field above Mach 0.3, but gives no mesh settings specific to compressible flow. In Fluent 2024 R2 (NACA 0012, 15c C-grid) a pressure far field did not converge at M 0.15 at a non-zero angle, and converged cleanly at M 0.3 and 0.5 (whole outer boundary far-field, Time Scale Factor 0.2); use a velocity inlet at low Mach. Transonic sections in the library such as RAE and NASA SC(2) get the same plan, but there is no separate route for the shock region.
 * Domain size (default 15c): at high Cl the far-field boundary affects the lift. As Cl grows, enlarge the radius and check that the result does not change.
 
 ## Why split at X = 0.3c?

@@ -441,6 +441,8 @@ with tab_mesh:
             mach_flow = mach_state(mach_in, re, mach_temp, chord)
             u_inf, rho, mu = mach_flow["speed"], mach_flow["density"], mach_flow["viscosity"]
             st.caption(t("mach_state", u=u_inf, rho=rho, mu=mu, p=mach_flow["pressure"]))
+            if mach_in < 0.3:   # pressure far field did not converge at M 0.15 (Fluent 2024 R2, 2026-11-25)
+                st.warning(t("warn_ff_low_mach", m=mach_in))
             kn = rarefaction(mach_flow, mach_temp, chord)
             if kn > KNUDSEN_CONTINUUM:
                 st.warning(t("warn_rarefied", p=mach_flow["pressure"], kn=kn))

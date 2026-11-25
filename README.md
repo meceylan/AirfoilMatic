@@ -59,7 +59,7 @@ Cl deneyden %1'den az, Cd %2–3.5 sapıyor; NACA 0012 için farklı rüzgar tü
 **Sınırlar:** Yalnızca tek profil, tek açı, tek Reynolds sayısı ve inflation mesh'i denendi; mapped mesh için sonuç yok. Ladson'ın tünelindeki türbülans seviyesi bilinmiyor ve girişte viskozite oranı 100 seçildi (hücum kenarına yaklaşık %0.43 Tu ulaşıyor); Cd'nin deneye yakınlığı kısmen bu seçime bağlı olabilir. Bu yüzden sonuç "deneyle uyumlu" olarak okunmalı, kesin bir doğrulama sayılmamalı.
 
 ## Kapsam
-* Mesh planı düşük hız için kurulmuştur (Mach < 0.3). Mach girişi 1.0'a kadar değer alır ve Mach > 0.3'te pressure-far-field önerir, ama sıkıştırılabilir akışa özel bir mesh ayarı vermez. Seçkideki RAE ve NASA SC(2) gibi transonik profiller de aynı planla verilir ama şok bölgesi için ayrı bir yol yoktur.
+* Mesh planı düşük hız için kurulmuştur (Mach < 0.3). Mach girişi 1.0'a kadar değer alır ve Mach > 0.3'te pressure-far-field önerir, ama sıkıştırılabilir akışa özel bir mesh ayarı vermez. Fluent 2024 R2'de (NACA 0012, 15c C-Grid) pressure-far-field M 0.15'te sıfırdan farklı açıda oturmadı, M 0.3 ve 0.5'te (dış sınırın tamamı far-field, Time Scale Factor 0.2) temiz yakınsadı; düşük Mach'ta velocity-inlet kullanın. Seçkideki RAE ve NASA SC(2) gibi transonik profiller de aynı planla verilir ama şok bölgesi için ayrı bir yol yoktur.
 * Domain boyutu (varsayılan 15c): yüksek Cl'de uzak alan sınırı taşıma kuvvetini etkiler. Cl arttıkça yarıçapı büyütüp sonucun değişmediğini kontrol edin.
 
 ## Neden X = 0.3c?
