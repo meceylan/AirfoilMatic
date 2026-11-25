@@ -14,9 +14,9 @@ from test_database_findings import crossings
 SECTIONS = lib.library()
 
 
-def test_selection_has_200_distinct_sections_with_a_source():
-    assert len(SECTIONS) == 200
-    assert len({s.id for s in SECTIONS}) == 200
+def test_selection_has_300_distinct_sections_with_a_source():
+    assert len(SECTIONS) == 300
+    assert len({s.id for s in SECTIONS}) == 300
     assert all(s.source == lib.UIUC and s.data and s.title and s.family_name for s in SECTIONS)
     assert len(lib.families()) >= 10
 

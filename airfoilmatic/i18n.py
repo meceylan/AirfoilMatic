@@ -137,8 +137,8 @@ STRINGS = {
         "en": 'Section name',
     },
     'search_help': {
-        "tr": '4 ya da 5 haneli NACA kodları NACA denklemlerinden çizilir (201 nokta, keskin firar kenarı). Diğer profiller UIUC veritabanından seçilmiş 200 profilden gelir. Boşluk, tire ve parantez önemli değil: "63-215", "n63215" ve "NACA 63-215" aynı profili bulur.',
-        "en": '4- and 5-digit NACA codes are drawn from the NACA equations (201 points, sharp trailing edge). Every other section comes from 200 sections selected from the UIUC database. Spaces, dashes and brackets do not matter: "63-215", "n63215" and "NACA 63-215" find the same section.',
+        "tr": '4 ya da 5 haneli NACA kodları NACA denklemlerinden çizilir (201 nokta, keskin firar kenarı). Diğer profiller UIUC veritabanından seçilmiş 300 profilden gelir. Boşluk, tire ve parantez önemli değil: "63-215", "n63215" ve "NACA 63-215" aynı profili bulur.',
+        "en": '4- and 5-digit NACA codes are drawn from the NACA equations (201 points, sharp trailing edge). Every other section comes from 300 sections selected from the UIUC database. Spaces, dashes and brackets do not matter: "63-215", "n63215" and "NACA 63-215" find the same section.',
     },
     'search_placeholder': {
         "tr": 'ör. 4412, e387, clark y, 63-215',

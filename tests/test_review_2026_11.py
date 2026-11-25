@@ -318,3 +318,26 @@ def test_mach_state_error_is_translated():
     with pytest.raises(ValueError) as exc:
         mach_state(0.0, 2e6, 15.0, 1.0)
     assert tr_error(exc.value, "tr") != str(exc.value)
+
+
+# ---- library builder: selection size and the symmetric 6-series classics
+def _builder():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("build_lib2", ROOT / "tools" / "build_airfoil_library.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+@pytest.mark.parametrize("target", [200, 300, 500, 137])
+def test_builder_quotas_add_up_to_the_target(target):
+    b = _builder()
+    q = b.quotas(target)
+    assert sum(q.values()) == target
+    assert set(q) == {k for k, *_ in b.FAMILIES}
+    if target == 200:
+        assert q == {k: n for k, _, _, n in b.FAMILIES}
+
+
+def test_builder_wants_the_symmetric_six_series_classics():
+    assert {"n64012", "n64015"} <= set(_builder().WANTED["naca"])

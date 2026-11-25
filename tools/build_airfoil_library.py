@@ -1,11 +1,13 @@
 """Build the airfoil library shipped with the app from the UIUC coordinate database.
 
-    python tools/build_airfoil_library.py path/to/coord_seligFmt
+    python tools/build_airfoil_library.py path/to/coord_seligFmt [--target N]
+    python tools/build_airfoil_library.py --restat
 
 Download the database from https://m-selig.ae.illinois.edu/ads/coord_database.html
 (coord_seligFmt.zip). The script reads every file with the app's own reader, drops files
-that would make a poor CFD outline, picks about 200 sections spread over the families
-below and writes them to airfoilmatic/data/uiuc_library.json.gz.
+that would make a poor CFD outline, picks sections spread over the families
+below (300 by default, --target N for another size; the family quotas are given for 200 and scaled) and writes them to
+airfoilmatic/data/uiuc_library.json.gz.
 
 NACA 4- and 5-digit sections are left out on purpose: the app draws those from the NACA
 equations with 201 points and a sharp trailing edge, while the database copies have 18
@@ -26,7 +28,7 @@ from airfoilmatic.geometry import naca  # noqa: E402
 from airfoilmatic.topology import C_GRID, build_domain  # noqa: E402
 
 OUT = Path(__file__).resolve().parents[1] / "airfoilmatic" / "data" / "uiuc_library.json.gz"
-TARGET = 200
+TARGET = 300   # sections in the library (300 since 2026-11-25; 200 before)
 
 # Quality limits for a file to be considered at all.
 MIN_POINTS = 25      # per surface; DesignModeler's curve through fewer points is visibly coarse
@@ -54,9 +56,9 @@ FAMILIES = [
 
 # Sections people look for by name; taken first when they pass the quality limits.
 WANTED = {
-    "naca": ["n63215", "n64215", "naca642415", "naca64a010", "naca64a210", "naca65410", "naca652415",
+    "naca": ["n64012", "n64015", "n63215", "n64215", "naca642415", "naca64a010", "naca64a210", "naca65410", "naca652415",
              "naca63a210", "naca66210", "naca16012"],
-    "nasa": ["sc20714", "sc20410", "sc20412", "sc20012", "sc20610", "nlf0215f", "nlf416", "nlf0115", "ls417",
+    "nasa": ["sc20714", "sc20712", "sc20410", "sc20412", "sc20012", "sc20610", "nlf0215f", "nlf416", "nlf0115", "ls417",
              "ls413", "ls421", "ms0313"],
     "eppler": ["e387", "e423", "e374", "e205", "e214", "e216", "e231", "e335", "e392", "e395", "e420", "e422",
                "e61", "e63", "e174", "e169", "e471", "e472", "e473", "e474", "e591", "e325", "e176", "e186"],
@@ -64,7 +66,7 @@ WANTED = {
               "s4083", "s2027", "s2048", "s4061", "s9000", "s1091", "s3010", "s7012", "s8037"],
     "wortmann": ["fx63137", "fx74modsm", "fx60126", "fx61147", "fx66s196", "fx38153", "fx60100", "fx63100"],
     "hepperle": ["mh32", "mh60", "mh45", "mh114", "mh43", "mh49", "mh30", "mh81", "mh104"],
-    "drela": ["ag25", "ag35", "ag24", "ag26", "ag16", "ag03", "ht14", "ht13", "ht12"],
+    "drela": ["ag25", "ag38", "ag04", "ag35", "ag24", "ag26", "ag16", "ag03", "ht14", "ht13", "ht12"],
     "rae": ["rae2822", "rae5212", "rae5214", "rae101"],
     "du": ["du84132v", "du-80-141", "du-80-176-v1"],
     "classic": ["clarky", "clarkysm", "dae11", "dae21", "dae31", "davis"],
@@ -173,7 +175,18 @@ def title_of(text, stem):
     return first or stem.upper()
 
 
-def main(folder):
+def quotas(target):
+    """Sections per family for a library of ``target`` sections: the FAMILIES quotas (which add up
+    to 200) scaled, rounded so that they add up to ``target`` exactly (largest remainders first)."""
+    base = sum(q for *_, q in FAMILIES)
+    raw = {k: q * target / base for k, _, _, q in FAMILIES}
+    out = {k: int(v) for k, v in raw.items()}
+    for k in sorted(raw, key=lambda k: raw[k] - out[k], reverse=True)[: target - sum(out.values())]:
+        out[k] += 1
+    return out
+
+
+def main(folder, target=TARGET):
     files = sorted(Path(folder).glob("*.dat"))
     if not files:
         sys.exit(f"No .dat files in {folder}")
@@ -189,7 +202,9 @@ def main(folder):
     print(f"{len(files)} files, {len(shapes)} good enough")
 
     library, taken = [], set()
-    for key, label, pattern, quota in FAMILIES:
+    want = quotas(target)
+    for key, label, pattern, _ in FAMILIES:
+        quota = want[key]
         pool = {n: s for n, s in shapes.items() if re.match(pattern, n, re.I) and n not in taken}
         picked = [n for n in WANTED.get(key, []) if n in pool][:quota]
         rest = {n: s for n, s in pool.items() if n not in picked}
@@ -203,10 +218,10 @@ def main(folder):
                                 **shapes[n], data=texts[n]))
     # Top up to TARGET from the two largest low-Reynolds families.
     for key, label, pattern, _ in FAMILIES:
-        if len(library) >= TARGET or key not in ("eppler", "selig"):
+        if len(library) >= target or key not in ("eppler", "selig"):
             continue
         pool = {n: s for n, s in shapes.items() if re.match(pattern, n, re.I) and n not in taken}
-        for n in spread(pool, (TARGET - len(library) + 1) // 2 if key == "eppler" else TARGET - len(library)):
+        for n in spread(pool, (target - len(library) + 1) // 2 if key == "eppler" else target - len(library)):
             taken.add(n)
             library.append(dict(id=n, title=title_of(texts[n], n), family=key, family_name=label,
                                 **shapes[n], data=texts[n]))
@@ -221,9 +236,12 @@ def main(folder):
 
 
 if __name__ == "__main__":
-    if sys.argv[1:] == ["--restat"]:
+    args = sys.argv[1:]
+    if args == ["--restat"]:
         restat()
-    elif len(sys.argv) != 2:
-        sys.exit(__doc__)
+    elif len(args) == 1:
+        main(args[0])
+    elif len(args) == 3 and args[1] == "--target" and args[2].isdigit():
+        main(args[0], int(args[2]))
     else:
-        main(sys.argv[1])
+        sys.exit(__doc__)

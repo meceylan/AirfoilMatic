@@ -31,6 +31,7 @@ def test_six_series_dash_name_is_not_drawn_as_a_5_digit_section():
     """"64-012" is a symmetric 6-series section; it used to come out as a cambered
     NACA 64012 5-digit section (design Cl 0.9) drawn from the equations."""
     assert lib.naca_section("NACA 64-012") is None
-    assert lib.search("64-012") == []
+    # never drawn from the 5-digit equations; the library's real 64-012 (n64012) may be found
+    assert all(s.source != lib.NACA_FORMULA for s in lib.search("64-012"))
     assert lib.search("63-010")[0].id == "n63010a"
     assert lib.search("NACA 63-215")[0].id == "n63215"
