@@ -736,6 +736,10 @@ STRINGS = {
         "tr": '— (eşit aralık)',
         "en": '— (uniform)',
     },
+    'end_corners': {
+        "tr": 'İki uç (köşeler); Bias Type iki yönlü, ortası büyük',
+        "en": 'Both ends (corners); two-way bias, largest in the middle',
+    },
     'end_airfoil': {
         "tr": 'Kanat tarafı',
         "en": 'Airfoil side',

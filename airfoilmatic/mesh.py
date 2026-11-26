@@ -155,13 +155,20 @@ class EdgeSizing:
     n: int                # Number of Divisions
     ratio: float          # geometric growth ratio, first cell -> last cell
     small_end: str        # translation key: where the smallest cell is
+    two_sided: bool = False   # small cells at both ends, largest in the middle (Ansys two-way bias)
+
+    @property
+    def _run(self):
+        """Cells and length of one geometric run (half of a two-sided edge)."""
+        return (self.n // 2, 0.5 * self.length) if self.two_sided else (self.n, self.length)
 
     @property
     def bias(self):
-        if self.n <= 1:
+        n, _ = self._run
+        if n <= 1:
             return 1.0
         r = self.ratio if self.ratio >= 1 else 1.0 / self.ratio
-        return r ** (self.n - 1)
+        return r ** (n - 1)
 
     @property
     def growth(self):
@@ -170,9 +177,10 @@ class EdgeSizing:
     @property
     def ds_min(self):
         r = self.growth
+        n, length = self._run
         if abs(r - 1.0) < 1e-12:
-            return self.length / self.n
-        return self.length * (r - 1.0) / (r**self.n - 1.0)
+            return length / n
+        return length * (r - 1.0) / (r**n - 1.0)
 
     @property
     def ds_max(self):
@@ -323,13 +331,19 @@ def plan_mesh(domain, af, re, refine=1.0, max_wake_cell=None, **kwargs):
                              ratio_for(L, dy1, n_normal), end, "end_outer"))
 
     # Blunt TE: closure edge is split in two by the wake axis; each half adds
-    # its divisions to the outlet side of the wake blocks.
+    # its divisions to the outlet side of the wake blocks. Each half starts at its corner with
+    # the first-cell height and grows at the wall-normal ratio towards the axis: equal cells
+    # (0.9 mm next to a 0.012 mm first cell) made a 72-fold size jump along the wake from the
+    # corner, and Fluent 2024 R2 diverged on such a mesh (GA(W)-1, 2026-11-26).
     n_closure = 0
     if d.blunt_te:
         gap = af.te_gap
-        n_half = max(2, math.ceil(0.5 * gap / max(ds_te, dy1)))
+        half = 0.5 * gap
+        n_half = max(2, n_for_growth(half, dy1, growth))
+        r_half = ratio_for(half, dy1, n_half) if half > dy1 else 1.0
         n_closure = 2 * n_half
-        edges.append(EdgeSizing("g_te_closure", ["te_closure"], gap, n_closure, 1.0, "end_uniform"))
+        edges.append(EdgeSizing("g_te_closure", ["te_closure"], gap, n_closure, r_half, "end_corners",
+                                two_sided=True))
 
     n_out = n_normal + n_closure // 2
     for key, L in (("outlet_up", d.y_top - wake_y), ("outlet_low", d.y_bottom + wake_y)):

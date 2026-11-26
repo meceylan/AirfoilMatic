@@ -210,3 +210,38 @@ def test_blunt_library_sections_mesh_well(sid):
     skew, oq = quality(m)
     # worst cell at the nose (flat-bottomed Clark Y: 0.43), far above Fluent's 0.01 limit
     assert m.n_cells == plan.cells and skew.max() < 0.6 and oq.min() > 0.4
+
+
+def _near_ratio(m, centre=(1.0, 0.0), radius=0.1):
+    """Largest area ratio of two neighbouring cells within ``radius`` of ``centre`` (the TE)."""
+    xy = m.nodes[m.cells]
+    x, y = xy[..., 0], xy[..., 1]
+    area = 0.5 * (x * np.roll(y, -1, 1) - np.roll(x, -1, 1) * y).sum(1)
+    f = m.faces[m.faces[:, 3] >= 0]
+    mid = 0.5 * (m.nodes[f[:, 0]] + m.nodes[f[:, 1]])
+    near = np.hypot(mid[:, 0] - centre[0], mid[:, 1] - centre[1]) < radius
+    a0, a1 = area[f[near, 2]], area[f[near, 3]]
+    return np.maximum(a0 / a1, a1 / a0).max()
+
+
+@pytest.mark.parametrize("sid", ["ls417", "clarky"])
+def test_blunt_te_has_no_jump_in_cell_size(sid):
+    """Fluent 2024 R2 diverged on the GA(W)-1 (ls417) mesh: the TE closure had 4 equal cells of
+    0.9 mm next to the 0.012 mm first cell of the TE line, a 72-fold jump along the whole wake.
+    The closure now starts with the first-cell height at both corners."""
+    from airfoilmatic import library as lib
+    from airfoilmatic.geometry import close_small_te_gap, parse_airfoil_file
+    s = [x for x in lib.library() if x.id == sid][0]
+    af = split_at(close_small_te_gap(parse_airfoil_file(s.data)))
+    d = build_domain(af, "c_grid", r_inlet=15.0, l_wake=20.0)
+    plan = plan_mesh(d, af, RE)
+    closure = [e for e in plan.edges if e.group == "g_te_closure"][0]
+    assert closure.ds_min == pytest.approx(plan.dy1, rel=0.05)
+    assert closure.small_end == "end_corners"
+    m = build_cgrid(d, af, plan)
+    assert m.n_cells == plan.cells
+    assert _near_ratio(m) < 3.0
+
+
+def test_sharp_te_has_no_jump_near_the_te():
+    assert _near_ratio(make("4412")[3]) < 3.0

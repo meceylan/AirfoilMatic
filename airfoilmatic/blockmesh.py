@@ -171,8 +171,10 @@ def build_cgrid(domain, af, plan):
             e_wake_left = e_te
             e_out = outlet("outlet_up" if side == "upper" else "outlet_low", exm, ex)
         else:   # blunt TE: half of the closure below the vertical TE line
+            closure = _edge(plan, "g_te_closure")
             n_half = plan.n_closure // 2
-            e_close = _line(tm, te, np.linspace(0.0, 1.0, n_half + 1))
+            t_half = _fractions(n_half, closure.ratio)          # small at the corner
+            e_close = _line(tm, te, 1.0 - t_half[::-1])
             wall_edges.append(e_close)
             e_wake_left = np.vstack([e_close, e_te[1:]])
             # The outlet copies the spacing at the TE (base rows, then the shear layer from the TE
