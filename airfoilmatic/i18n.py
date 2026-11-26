@@ -1121,6 +1121,34 @@ STRINGS = {
         "tr": 'Adım [°]',
         "en": 'Step [°]',
     },
+    'msh_title': {
+        "tr": 'Fluent mesh dosyası (.msh)',
+        "en": 'Fluent mesh file (.msh)',
+    },
+    'msh_download': {
+        "tr": 'Fluent mesh (.msh) indir',
+        "en": 'Download the Fluent mesh (.msh)',
+    },
+    'msh_cells': {
+        "tr": 'Hücre',
+        "en": 'Cells',
+    },
+    'msh_skew': {
+        "tr": 'Skewness (maks.)',
+        "en": 'Skewness (max.)',
+    },
+    'msh_oq': {
+        "tr": 'Orthogonal Quality (min.)',
+        "en": 'Orthogonal Quality (min.)',
+    },
+    'msh_rect': {
+        "tr": 'Mesh dosyası şimdilik yalnızca C-Grid domain için üretilir.',
+        "en": 'The mesh file is made for the C-grid domain only, for now.',
+    },
+    'msh_note': {
+        "tr": "Uygulamanın kendi ürettiği mapped C-Grid mesh'i: yukarıdaki Edge Sizing tablosunun bölüm sayıları ve bias'larıyla 6 blok; blokların içi transfinite interpolasyonla doldurulur. DesignModeler ve Meshing gerekmez: Fluent'te File → Read → Mesh ile açın (birim metre). Sınırlar hazır gelir: inlet (velocity-inlet; giriş yayı + üst + alt sınır), outlet (pressure-outlet), wall (kanat). Kurulu bir case'iniz varsa konsolda /mesh/replace yazıp dosya adını uzantısıyla verin. Kalite değerleri Fluent'in tanımlarıyla burada hesaplandı. Henüz Fluent'te denenmedi.",
+        "en": "The app's own mapped C-grid mesh: 6 blocks with the divisions and bias factors of the Edge Sizing table above; the inside of each block is filled by transfinite interpolation. No DesignModeler or Meshing needed: open it in Fluent with File → Read → Mesh (units: metres). The boundaries come named: inlet (velocity-inlet; inlet arc + top + bottom boundary), outlet (pressure-outlet), wall (airfoil). With a set-up case, type /mesh/replace in the console and give the file name with its extension. The quality values were computed here with Fluent's definitions. Not tried in Fluent yet.",
+    },
     'sweep_mode': {
         "tr": 'Açılar',
         "en": 'Angles',
@@ -1294,6 +1322,8 @@ ERRORS_TR = {
     'Use a dot for decimals (1.5) and separate angles with a space, ; or a comma and a space': 'Ondalık için nokta kullanın (1.5); açıları boşluk, ; ya da virgül ve boşlukla ayırın ("1,3" gibi virgüllü sayı kabul edilmez)',
     'Angles must be numbers, separated by a space, ; or a comma': 'Açılar sayı olmalı; boşluk, ; ya da virgülle ayrılmalı',
     'Enter at least one angle': 'En az bir açı yazın',
+    'The mesh file is only available for the C-grid domain': 'Mesh dosyası yalnızca C-Grid domain için üretilir',
+    'Mesh topology error: an edge is shared by more than two cells': 'Mesh topoloji hatası: bir kenar ikiden fazla hücreye ait',
     'Angles must be between -180 and 180 degrees': 'Açılar −180 ile 180 derece arasında olmalı',
     'Two angles get the same file name: keep angles at least 0.01° apart': 'İki açı aynı dosya adını alıyor: açılar arasında en az 0.01° fark olsun',
     'Speed, chord, density and viscosity must be positive': 'Hız, veter, yoğunluk ve viskozite pozitif olmalı',

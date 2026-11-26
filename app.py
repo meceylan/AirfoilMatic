@@ -20,6 +20,7 @@ from airfoilmatic.topology import AS_IS_LINES, build_domain_as_is
 from airfoilmatic.export import (UNIT_SCALE, profile_dm_txt, profile_solidworks_zip, profile_spaceclaim_txt,
                                  safe_file_stem, to_ansys_txt, to_spaceclaim_txt)
 from airfoilmatic import library as lib
+from airfoilmatic.blockmesh import build_cgrid, quality as mesh_quality, to_fluent_msh
 from airfoilmatic.mesh import DEFAULTS, MAX_GOOD_GROWTH, plan_inflation, plan_mesh, plan_wake_axis, reynolds
 from airfoilmatic.fluent import (AIR_DENSITY, AIR_VISCOSITY, air_density, alpha_sweep, angle_rows, decayed_tu, freestream,
                                  inlet_tu_for, mach_state, max_reachable_tu, speed_for_reynolds, speed_of_sound,
@@ -294,6 +295,22 @@ def fitted_chart(fig, key, xr, yr, max_h=780):
     fig.update_layout(legend=dict(orientation="h", x=0, y=1.03, yanchor="bottom"), margin=dict(t=70, b=10))
     with st.container(key=key):
         st.plotly_chart(fig, width="stretch", height="stretch", config={"scrollZoom": False})
+
+
+def mesh_key(af, domain, plan):
+    """Fingerprint of everything the mesh depends on (geometry, domain, edge plan)."""
+    import hashlib
+    import pickle
+    return hashlib.md5(pickle.dumps((af, domain, plan))).hexdigest()
+
+
+@st.cache_data(show_spinner=False, max_entries=4)
+def fluent_mesh_file(_domain, _af, _plan, key):
+    """Fluent .msh text and quality of the mapped C-grid (cached per ``key``)."""
+    m = build_cgrid(_domain, _af, _plan)
+    skew, oq = mesh_quality(m)
+    return dict(text=to_fluent_msh(m, title=f"AirfoilMatic {APP_VERSION}"), cells=m.n_cells,
+                skew=float(skew.max()), oq=float(oq.min()))
 
 
 def plan_rows(plan):
@@ -605,6 +622,25 @@ with tab_mesh:
             st.markdown(t("named_sel"))
             st.markdown(t("howto"))
             st.caption(t("delta_note", lam=m_mm(plan.delta_lam)))
+
+        # ---- the app's own mapped mesh, written for Fluent
+        st.subheader(t("msh_title"))
+        if domain_kind != C_GRID:
+            st.info(t("msh_rect"))
+        else:
+            try:
+                msh = fluent_mesh_file(domain, split_af, plan, mesh_key(split_af, domain, plan))
+            except ValueError as e:
+                st.error(te(e))
+            else:
+                st.markdown(ui.cards_html([
+                    (t("msh_cells"), f"{msh['cells']:,}", "", True),
+                    (t("msh_skew"), f"{msh['skew']:.3f}", "", False),
+                    (t("msh_oq"), f"{msh['oq']:.3f}", "", False),
+                ]), unsafe_allow_html=True)
+                st.download_button(t("msh_download"), data=msh["text"], file_name=f"{file_prefix}_mapped.msh",
+                                   mime="text/plain", key="msh_download")
+                st.caption(t("msh_note"))
 
     # First cell height of the plan above; None when the plan failed (e.g. Re below the valid range).
     dy_ref = infl.first_layer if infl is not None else (plan.dy1 if plan is not None else None)

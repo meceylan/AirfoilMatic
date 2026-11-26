@@ -15,7 +15,8 @@ AirfoilMatic, bir kanat profili (NACA 4/5 haneli, UIUC veritabanından seçilmi�
 * Altı bölme çizgisinden hangilerinin dışa aktarılacağını seçme (mapped mesh için altısı da gerekir; quad-dominant + inflation ile altısı ve ön eksen + iz ekseni denendi), çalışmayan tek çizgi seçimi için uyarı
 * Domain dışa aktarma: Ansys DesignModeler TXT ve SpaceClaim TXT (ikisi de kullanıcı tarafından denendi; SolidWorks profil çıktısı da)
 * **Sadece kanat profili:** domain olmadan üst ve alt yüzey; DesignModeler TXT, SolidWorks ZIP (Curve Through XYZ Points için iki dosya) ve SpaceClaim TXT
-* Kenar çubuğunda **m / mm** çıktı birimi (tüm indirilen dosyalar)
+* Kenar çubuğunda **m / mm** çıktı birimi (TXT ve profil dosyaları; Fluent mesh dosyası her zaman metre)
+* **Fluent mesh dosyası (.msh):** Mapped seçiliyken uygulama C-Grid mesh'i kendisi üretir (Edge Sizing tablosunun bölüm sayıları ve bias'larıyla 6 blok, içleri transfinite interpolasyonla dolu; sınırlar `inlet`, `outlet`, `wall` adlarıyla hazır). DesignModeler ve Meshing gerekmez: Fluent'te File → Read → Mesh. Hücre sayısı ve kalite (skewness, orthogonal quality) uygulamada gösterilir. NACA 4412'de Ansys'in aynı tabloyla ürettiği mesh'e yakın kalite (max skewness 0.52 / Ansys 0.45, min orthogonal quality 0.69 / Ansys 0.58). Henüz Fluent'te denenmedi
 * Akış girişi: Reynolds, **Mach + Reynolds + sıcaklık** (pressure-far-field değerleriyle; Sutherland viskozitesi) ya da hız + yoğunluk + viskozite
 * **Mesh / y⁺ asistanı:** hedef y⁺ için ilk hücre yüksekliği ve sınır tabaka tahmini; iki çıktı seçeneği: Ansys **Inflation** ayarları (ilk katman, büyüme oranı, maksimum katman sayısı) ya da mapped mesh için **Edge Sizing** tablosu (Number of Divisions + Bias Factor) ve tahmini hücre sayısı
 * Ansys bantlarına ve Fluent sınırlarına göre **mesh kalite kontrolü** (skewness, orthogonal quality, aspect ratio)

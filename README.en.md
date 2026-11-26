@@ -15,7 +15,8 @@ AirfoilMatic builds the geometry of a 2D CFD flow domain around an airfoil (NACA
 * Choose which of the six split lines to export (all six are needed for mapped meshing; all six and front axis + wake axis were tested with quad-dominant + inflation), with a warning for a single line, which cannot work
 * Domain export: Ansys DesignModeler TXT and SpaceClaim TXT (both tried by users; the SolidWorks section output too)
 * **Profile only:** upper and lower surface without a domain; DesignModeler TXT, SolidWorks ZIP (two files for Curve Through XYZ Points) and SpaceClaim TXT
-* **m / mm** output unit in the sidebar (all downloaded files)
+* **m / mm** output unit in the sidebar (TXT and section files; the Fluent mesh file is always in metres)
+* **Fluent mesh file (.msh):** with Mapped selected the app builds the C-grid mesh itself (6 blocks with the divisions and bias factors of the Edge Sizing table, filled by transfinite interpolation; boundaries already named `inlet`, `outlet`, `wall`). No DesignModeler or Meshing needed: File → Read → Mesh in Fluent. The cell count and quality (skewness, orthogonal quality) are shown in the app. For NACA 4412 the quality is close to the mesh Ansys made from the same table (max skewness 0.52 / Ansys 0.45, min orthogonal quality 0.69 / Ansys 0.58). Not tried in Fluent yet
 * Flow input: Reynolds, **Mach + Reynolds + temperature** (with the pressure-far-field values; Sutherland viscosity) or speed + density + viscosity
 * **Mesh / y⁺ assistant:** first-cell height for a target y⁺ and boundary-layer estimate, with two outputs: Ansys **Inflation** settings (first layer, growth rate, maximum layers) or a mapped-mesh **Edge Sizing** table (Number of Divisions + Bias Factor) with the expected cell count
 * **Mesh quality check** (skewness, orthogonal quality, aspect ratio) against Ansys bands and Fluent limits
