@@ -245,3 +245,9 @@ def test_blunt_te_has_no_jump_in_cell_size(sid):
 
 def test_sharp_te_has_no_jump_near_the_te():
     assert _near_ratio(make("4412")[3]) < 3.0
+
+
+@pytest.mark.parametrize("name", ["README.md", "README.en.md", "CHANGELOG.md"])
+def test_docs_hold_the_blunt_te_run(name):
+    text = (Path(APP).parent / name).read_text(encoding="utf-8")
+    assert "GA(W)-1" in text and "−3.87°" in text
