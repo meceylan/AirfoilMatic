@@ -188,3 +188,25 @@ def test_mesh_note_says_the_solution_was_tried(lang):
 def test_docs_hold_the_fluent_solution_on_the_app_mesh(name):
     text = (Path(APP).parent / name).read_text(encoding="utf-8")
     assert "0.41739" in text
+
+
+def test_blunt_te_wake_rows_stay_parallel_to_the_outlet():
+    """Blunt TE (NACA 0012 with its open TE): the rows behind the base and the TE shear layer run
+    straight to the outlet, so no cell there is distorted (orthogonal quality was ~0 before)."""
+    _, oq = quality(make("0012", blunt=True)[3])
+    assert oq.min() > 0.45
+
+
+@pytest.mark.parametrize("sid", ["ls417", "clarky"])
+def test_blunt_library_sections_mesh_well(sid):
+    from airfoilmatic import library as lib
+    from airfoilmatic.geometry import close_small_te_gap, parse_airfoil_file
+    s = [x for x in lib.library() if x.id == sid][0]
+    af = split_at(close_small_te_gap(parse_airfoil_file(s.data)))
+    d = build_domain(af, "c_grid", r_inlet=15.0, l_wake=20.0)
+    assert d.blunt_te
+    plan = plan_mesh(d, af, RE)
+    m = build_cgrid(d, af, plan)
+    skew, oq = quality(m)
+    # worst cell at the nose (flat-bottomed Clark Y: 0.43), far above Fluent's 0.01 limit
+    assert m.n_cells == plan.cells and skew.max() < 0.6 and oq.min() > 0.4

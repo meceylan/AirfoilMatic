@@ -167,14 +167,19 @@ def build_cgrid(domain, af, plan):
         e_top_mid = _line(at, tt, t_rear)
         e_top_wake = _line(tt, ex, t_wake)
         e_wake = _line(tm, exm, t_wake)
-        e_out = outlet("outlet_up" if side == "upper" else "outlet_low", exm, ex)
         if not d.blunt_te:
             e_wake_left = e_te
+            e_out = outlet("outlet_up" if side == "upper" else "outlet_low", exm, ex)
         else:   # blunt TE: half of the closure below the vertical TE line
             n_half = plan.n_closure // 2
             e_close = _line(tm, te, np.linspace(0.0, 1.0, n_half + 1))
             wall_edges.append(e_close)
             e_wake_left = np.vstack([e_close, e_te[1:]])
+            # The outlet copies the spacing at the TE (base rows, then the shear layer from the TE
+            # corner): with the table's single bias from the axis the rows crossed the wake and
+            # the cells at the outlet were badly distorted (orthogonal quality ~0).
+            e_out = np.column_stack([np.full(len(e_wake_left), x_exit), e_wake_left[:, 1]])
+            e_out[0], e_out[-1] = exm, ex
         blocks += [tfi(e_af_f, e_arc, e_axis, e_split),
                    tfi(e_af_r, e_top_mid, e_split, e_te),
                    tfi(e_wake, e_top_wake, e_wake_left, e_out)]
