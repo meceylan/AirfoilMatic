@@ -175,3 +175,16 @@ def test_orthogonal_quality_matches_fluent():
     assert oq.min() == pytest.approx(0.492886, abs=2e-4)
     xy = m.nodes[m.cells[np.argmin(oq)]]
     assert np.allclose(xy.mean(0), (0.03577, -0.02228), atol=2e-3)
+
+
+@pytest.mark.parametrize("lang", ["tr", "en"])
+def test_mesh_note_says_the_solution_was_tried(lang):
+    text = tr("msh_note", lang)
+    assert "denenmedi" not in text and "not tried" not in text
+    assert "0.01 %" in text or "%0.01" in text
+
+
+@pytest.mark.parametrize("name", ["README.md", "README.en.md", "CHANGELOG.md"])
+def test_docs_hold_the_fluent_solution_on_the_app_mesh(name):
+    text = (Path(APP).parent / name).read_text(encoding="utf-8")
+    assert "0.41739" in text
