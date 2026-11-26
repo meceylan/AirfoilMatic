@@ -90,9 +90,10 @@ def test_wall_cells_are_about_the_planned_first_height(code):
 
 @pytest.mark.parametrize("code", ["4412", "0012"])
 def test_quality_close_to_the_ansys_mapped_mesh(code):
-    """Ansys Meshing 2024 R2, NACA 4412, same table: max skewness 0.445, min orthogonal quality 0.577."""
+    """Ansys Meshing 2024 R2, NACA 4412, same table: max skewness 0.445 (Meshing's own orthogonal
+    quality 0.577). Fluent measured 0.493 on the app's NACA 4412 file."""
     skew, oq = quality(make(code)[3])
-    assert skew.max() < 0.6 and oq.min() > 0.5
+    assert skew.max() < 0.6 and oq.min() > 0.45
     assert skew.mean() < 0.1 and oq.mean() > 0.95
 
 
@@ -164,3 +165,13 @@ def test_mesh_file_texts_exist(lang):
 def test_docs_describe_the_mesh_file(name):
     text = (Path(APP).parent / name).read_text(encoding="utf-8")
     assert "Fluent mesh" in text and ".msh" in text and "transfinite" in text
+
+
+def test_orthogonal_quality_matches_fluent():
+    """Fluent 2024 R2, Domain > Mesh > Quality on the app's NACA 4412 file (2026-11-26):
+    minimum orthogonal quality 0.492886 at (0.0357699, -0.0222836)."""
+    m = make("4412")[3]
+    _, oq = quality(m)
+    assert oq.min() == pytest.approx(0.492886, abs=2e-4)
+    xy = m.nodes[m.cells[np.argmin(oq)]]
+    assert np.allclose(xy.mean(0), (0.03577, -0.02228), atol=2e-3)

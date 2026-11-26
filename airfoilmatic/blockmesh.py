@@ -250,7 +250,12 @@ def quality(mesh):
     ang = np.degrees(np.arccos(np.clip(cosang, -1, 1)))
     skew = np.maximum((ang.max(1) - 90.0) / 90.0, (90.0 - ang.min(1)) / 90.0)
 
-    centre = xy.mean(1)
+    # area centroid (as Fluent; the node average gave 0.69 instead of Fluent's 0.49 near the LE)
+    x, y = xy[..., 0], xy[..., 1]
+    x1, y1 = np.roll(x, -1, 1), np.roll(y, -1, 1)
+    cross = x * y1 - x1 * y
+    a6 = 3.0 * cross.sum(1)
+    centre = np.column_stack([((x + x1) * cross).sum(1) / a6, ((y + y1) * cross).sum(1) / a6])
     f = mesh.faces
     p0, p1 = mesh.nodes[f[:, 0]], mesh.nodes[f[:, 1]]
     fc = 0.5 * (p0 + p1)
