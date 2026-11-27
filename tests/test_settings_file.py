@@ -44,7 +44,14 @@ def test_app_saves_and_loads_the_inputs():
     [w for w in at.number_input if w.key == "chord"][0].set_value(0.75)
     at = at.run()
     assert any(b.proto.id.endswith("settings_download") for b in at.get("download_button"))
-    saved = to_json(dict(at.session_state.filtered_state))
+    state = {}
+    for k in SAVED_KEYS:                       # filtered_state is gone in newer Streamlit; read key by key
+        try:
+            state[k] = at.session_state[k]
+        except (KeyError, AttributeError):
+            pass
+    saved = to_json(state)
+    assert json.loads(saved)["inputs"]["chord"] == 0.75
     at = AppTest.from_file(APP, default_timeout=240).run()
     up = [u for u in at.file_uploader if u.key == "settings_file"][0]
     up.upload("airfoilmatic_settings.json", saved.encode(), "application/json")
