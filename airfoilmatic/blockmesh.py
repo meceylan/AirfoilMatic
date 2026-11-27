@@ -327,3 +327,38 @@ def read_fluent_msh(text):
         faces[int(m.group(1), 16)] = (int(m.group(4), 16), rows)
     names = dict((int(i), (k, n)) for i, k, n in re.findall(r"\(45 \((\d+) (\S+) (\S+)\)\(\)\)", text))
     return xy, faces, names
+
+
+# ---------------------------------------------------------------- grid family (mesh independence)
+@dataclass
+class FamilyMember:
+    label: str          # "coarse" | "medium" | "fine"
+    refine: float       # cell sizes / refine, growth ratios ** (1 / refine)
+    plan: object
+    mesh: BlockMesh
+
+
+# Cell size ratio sqrt(2) between neighbours: about 2x the cells per step in 2D (Celik et al. 2008
+# ask for a ratio above 1.3). The medium mesh is the one the app shows.
+FAMILY = (("coarse", 2 ** -0.5), ("medium", 1.0), ("fine", 2 ** 0.5))
+
+
+def mesh_family(domain, af, re, **sizing):
+    """Coarse, medium and fine mapped C-grids from the same inputs (``mesh.plan_mesh`` refine)."""
+    from .mesh import plan_mesh
+    out = []
+    for label, k in FAMILY:
+        plan = plan_mesh(domain, af, re, refine=k, **sizing)
+        out.append(FamilyMember(label, k, plan, build_cgrid(domain, af, plan)))
+    return out
+
+
+def family_zip(family, prefix, title="AirfoilMatic"):
+    """ZIP (bytes) with one Fluent .msh per family member: <prefix>_<label>.msh."""
+    import io
+    import zipfile
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        for f in family:
+            z.writestr(f"{prefix}_{f.label}.msh", to_fluent_msh(f.mesh, title=f"{title} ({f.label})"))
+    return buf.getvalue()

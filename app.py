@@ -20,7 +20,8 @@ from airfoilmatic.topology import AS_IS_LINES, build_domain_as_is
 from airfoilmatic.export import (UNIT_SCALE, profile_dm_txt, profile_solidworks_zip, profile_spaceclaim_txt,
                                  safe_file_stem, to_ansys_txt, to_spaceclaim_txt)
 from airfoilmatic import library as lib
-from airfoilmatic.blockmesh import build_cgrid, quality as mesh_quality, to_fluent_msh
+from airfoilmatic.blockmesh import build_cgrid, family_zip, mesh_family, quality as mesh_quality, to_fluent_msh
+from airfoilmatic.gci import gci
 from airfoilmatic.mesh import DEFAULTS, MAX_GOOD_GROWTH, plan_inflation, plan_mesh, plan_wake_axis, reynolds
 from airfoilmatic.fluent import (AIR_DENSITY, AIR_VISCOSITY, air_density, alpha_sweep, angle_rows, decayed_tu, freestream,
                                  inlet_tu_for, mach_state, max_reachable_tu, speed_for_reynolds, speed_of_sound,
@@ -311,6 +312,17 @@ def fluent_mesh_file(_domain, _af, _plan, key):
     skew, oq = mesh_quality(m)
     return dict(text=to_fluent_msh(m, title=f"AirfoilMatic {APP_VERSION}"), cells=m.n_cells,
                 skew=float(skew.max()), oq=float(oq.min()))
+
+
+@st.cache_data(show_spinner=False, max_entries=2)
+def fluent_family_file(_domain, _af, _re, _sizing, prefix, key):
+    """ZIP of the coarse / medium / fine .msh files and their size and quality (cached per ``key``)."""
+    fam = mesh_family(_domain, _af, _re, **_sizing)
+    rows = []
+    for f in fam:
+        skew, oq = mesh_quality(f.mesh)
+        rows.append(dict(label=f.label, cells=f.mesh.n_cells, skew=float(skew.max()), oq=float(oq.min())))
+    return dict(zip=family_zip(fam, prefix, title=f"AirfoilMatic {APP_VERSION}"), rows=rows)
 
 
 def plan_rows(plan):
@@ -641,6 +653,21 @@ with tab_mesh:
                 st.download_button(t("msh_download"), data=msh["text"], file_name=f"{file_prefix}_mapped.msh",
                                    mime="text/plain", key="msh_download")
                 st.caption(t("msh_note"))
+                # Mesh independence: the same inputs refined by sqrt(2) up and down (about 2x cells per step)
+                if st.checkbox(t("msh_family"), key="msh_family", help=t("msh_family_help")):
+                    try:
+                        fam = fluent_family_file(domain, split_af, re, sizing, file_prefix,
+                                                 mesh_key(split_af, domain, (re, sizing)))
+                    except (ValueError, OverflowError) as e:
+                        st.error(te(e))
+                    else:
+                        wide_table([{"": t(f"gci_{r['label']}"), t("msh_cells"): f"{r['cells']:,}",
+                                     t("msh_skew"): f"{r['skew']:.3f}", t("msh_oq"): f"{r['oq']:.3f}"}
+                                    for r in fam["rows"]], "msh_family")
+                        st.download_button(t("msh_family_download"), data=fam["zip"],
+                                           file_name=f"{file_prefix}_mesh_family.zip", mime="application/zip",
+                                           key="msh_family_download")
+                        st.caption(t("msh_family_cells"))
 
     # First cell height of the plan above; None when the plan failed (e.g. Re below the valid range).
     dy_ref = infl.first_layer if infl is not None else (plan.dy1 if plan is not None else None)
@@ -791,6 +818,7 @@ with tab_mesh:
 # and the polar read back from the report file. The single-angle Fluent helper stays on Mesh / y+.
 with tab_auto:
     st.caption(t("auto_intro"))
+    st.markdown(t("auto_steps"))
     if fs is None:
         st.info(t("auto_need_speed"))
     else:
@@ -963,3 +991,31 @@ with tab_auto:
                 st.download_button(t("polar_csv"), data=polar_csv(prow),
                                    file_name=f"{safe_file_stem(rep_files[0].name)}_polar.csv", mime="text/csv",
                                    key="polar_csv")
+
+    # ---- mesh independence: grid convergence index of three meshes (Celik et al. 2008)
+    st.markdown(f"**{t('gci_title')}**")
+    st.caption(t("gci_note"))
+    gcols = st.columns(3)
+    gin = {}
+    for col, i, lab in zip(gcols, (1, 2, 3), ("gci_fine", "gci_medium", "gci_coarse")):
+        col.markdown(f"*{t(lab)}*")
+        gin[f"n{i}"] = col.number_input(t("gci_cells"), value=None, min_value=1, step=1000, key=f"gci_n{i}")
+        gin[f"cl{i}"] = col.number_input("Cl", value=None, format="%.6f", key=f"gci_cl{i}")
+        gin[f"cd{i}"] = col.number_input("Cd", value=None, format="%.6f", key=f"gci_cd{i}")
+    cells_in = [gin[f"n{i}"] for i in (1, 2, 3)]
+    g_rows = []
+    if all(n is not None for n in cells_in):
+        for name in ("Cl", "Cd"):
+            vals = [gin[f"{name.lower()}{i}"] for i in (1, 2, 3)]
+            if any(v is None for v in vals):
+                continue
+            try:
+                g = gci([int(n) for n in cells_in], vals)
+            except ValueError as e:
+                st.error(te(e))
+                continue
+            g_rows.append({"": name, "p": "—" if g.p != g.p else f"{g.p:.3g}", t("gci_ext"): f"{g.phi_ext:.6g}",
+                           "GCI (%)": f"{100 * g.gci_fine:.3g}",
+                           t("gci_conv"): t("gci_mono") if g.monotonic else t("gci_osc")})
+    if g_rows:
+        wide_table(g_rows, "gci")

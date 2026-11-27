@@ -1125,6 +1125,66 @@ STRINGS = {
         "tr": 'Adım [°]',
         "en": 'Step [°]',
     },
+    'msh_family': {
+        "tr": 'Mesh bağımsızlığı için 3 mesh hazırla (kaba / orta / ince)',
+        "en": 'Make 3 meshes for a mesh independence study (coarse / medium / fine)',
+    },
+    'msh_family_help': {
+        "tr": 'Aynı girişlerden üç mesh: hücre boyları √2 oranıyla küçülür (kademe başına yaklaşık 2 kat hücre); orta mesh yukarıdaki mesh ile aynıdır. Üçünü aynı Fluent kurulumuyla (ör. /mesh/replace ile) çözüp Cl ve Cd değerlerini Otomasyon sekmesindeki GCI hesabına girin.',
+        "en": 'Three meshes from the same inputs: cell sizes shrink by √2 (about 2x the cells per step); the medium mesh is the one above. Solve all three with the same Fluent setup (e.g. with /mesh/replace) and enter Cl and Cd in the GCI section on the Automation tab.',
+    },
+    'msh_family_download': {
+        "tr": '3 mesh (ZIP) indir',
+        "en": 'Download the 3 meshes (ZIP)',
+    },
+    'msh_family_cells': {
+        "tr": "İlk hücre yüksekliği de aileyle birlikte değişir: hedef y⁺ kaba mesh'te yaklaşık 1.4, ince mesh'te 0.7 katı olur (ailenin doğru tanımı: tüm boyutlar birlikte küçülür). Fluent'te üç mesh'le çözüm henüz denenmedi.",
+        "en": 'The first-cell height changes with the family as well: the target y⁺ becomes about 1.4 times on the coarse and 0.7 times on the fine mesh (a proper family refines every size together). Solving the three meshes in Fluent is not tried yet.',
+    },
+    'gci_title': {
+        "tr": 'Mesh bağımsızlığı (GCI)',
+        "en": 'Mesh independence (GCI)',
+    },
+    'gci_note': {
+        "tr": "Üç mesh'in (Mesh / y⁺ sekmesinden kaba / orta / ince) hücre sayısını ve aynı açıdaki Cl, Cd değerlerini girin. Hesap Celik vd. (2008, J. Fluids Eng. 130, 078001) yöntemidir: p yakınsama mertebesi, mesh'ten bağımsız tahmini değer (Richardson) ve ince mesh'in belirsizliği GCI (güvenlik katsayısı 1.25). Değerler salınıyorsa (orta mesh'in değeri diğer ikisinin arasında değilse) GCI daha az güvenilirdir.",
+        "en": 'Enter the cell counts of three meshes (coarse / medium / fine from the Mesh / y⁺ tab) and Cl, Cd at the same angle. The method is that of Celik et al. (2008, J. Fluids Eng. 130, 078001): p the order of convergence, the mesh-independent estimate (Richardson) and the uncertainty of the fine mesh, GCI (safety factor 1.25). If the values oscillate (the medium value is not between the other two) the GCI is less reliable.',
+    },
+    'gci_fine': {
+        "tr": 'İnce',
+        "en": 'Fine',
+    },
+    'gci_medium': {
+        "tr": 'Orta',
+        "en": 'Medium',
+    },
+    'gci_coarse': {
+        "tr": 'Kaba',
+        "en": 'Coarse',
+    },
+    'gci_cells': {
+        "tr": 'Hücre sayısı',
+        "en": 'Cell count',
+    },
+    'gci_ext': {
+        "tr": "Tahmini değer (mesh'ten bağımsız)",
+        "en": 'Extrapolated value (mesh independent)',
+    },
+    'gci_conv': {
+        "tr": 'Yakınsama',
+        "en": 'Convergence',
+    },
+    'gci_mono': {
+        "tr": 'tek yönlü',
+        "en": 'monotonic',
+    },
+    'gci_osc': {
+        "tr": 'salınımlı (GCI daha az güvenilir)',
+        "en": 'oscillatory (GCI less reliable)',
+    },
+    'auto_steps': {
+        "tr": "**Akış:** 1) Mesh / y⁺ → Mapped → Fluent mesh (.msh) indir (mesh bağımsızlığı için 3 mesh) → 2) aşağıda açı taraması ve journal → 3) Fluent'in report file'ından polar → 4) üç mesh'in sonuçlarıyla GCI.",
+        "en": "**Workflow:** 1) Mesh / y⁺ → Mapped → download the Fluent mesh (.msh) (3 meshes for mesh independence) → 2) the angle sweep and journal below → 3) the polar from Fluent's report file → 4) the GCI from the results of the three meshes.",
+    },
     'msh_title': {
         "tr": 'Fluent mesh dosyası (.msh)',
         "en": 'Fluent mesh file (.msh)',
@@ -1326,6 +1386,9 @@ ERRORS_TR = {
     'Use a dot for decimals (1.5) and separate angles with a space, ; or a comma and a space': 'Ondalık için nokta kullanın (1.5); açıları boşluk, ; ya da virgül ve boşlukla ayırın ("1,3" gibi virgüllü sayı kabul edilmez)',
     'Angles must be numbers, separated by a space, ; or a comma': 'Açılar sayı olmalı; boşluk, ; ya da virgülle ayrılmalı',
     'Enter at least one angle': 'En az bir açı yazın',
+    'Cell counts must be positive': 'Hücre sayıları pozitif olmalı',
+    'The three meshes need different cell counts': 'Üç mesh farklı hücre sayılarına sahip olmalı',
+    'Coarse and medium values are equal: the order of convergence is undefined': 'Kaba ve orta mesh değerleri aynı: yakınsama mertebesi tanımsız',
     'The mesh file is only available for the C-grid domain': 'Mesh dosyası yalnızca C-Grid domain için üretilir',
     'Mesh topology error: an edge is shared by more than two cells': 'Mesh topoloji hatası: bir kenar ikiden fazla hücreye ait',
     'Angles must be between -180 and 180 degrees': 'Açılar −180 ile 180 derece arasında olmalı',
