@@ -1,7 +1,7 @@
 """Airfoil sections the app can look up by name.
 
 NACA 4- and 5-digit sections are drawn from the NACA equations (``geometry.naca``). Every
-other section comes from a selection of 200 files of the UIUC Airfoil Coordinates Database
+other section comes from a selection of 300 files of the UIUC Airfoil Coordinates Database
 (``data/uiuc_library.json.gz``, built by ``tools/build_airfoil_library.py``); the app reads
 those files with the same reader as an uploaded file. A name that is in neither is not
 found: the app does not invent a section.

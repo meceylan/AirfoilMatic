@@ -26,7 +26,7 @@ from airfoilmatic.mesh import DEFAULTS, MAX_GOOD_GROWTH, plan_inflation, plan_me
 from airfoilmatic.fluent import (AIR_DENSITY, AIR_VISCOSITY, air_density, alpha_sweep, angle_rows, decayed_tu, freestream,
                                  inlet_tu_for, mach_state, max_reachable_tu, speed_for_reynolds, speed_of_sound,
                                  sutherland_viscosity, sweep_journal, expression_setup,
-                                 rarefaction, parse_angles, KNUDSEN_CONTINUUM)
+                                 rarefaction, parse_angles, angle_text, KNUDSEN_CONTINUUM)
 from airfoilmatic.polar import (CL_TOL, LAST_N, OSCILLATING, SHORT, STEADY, guess_columns, is_transient, polar,
                                polar_csv, read_report, merge_reports)
 from airfoilmatic.quality import (FLUENT_MAX_SKEWNESS, FLUENT_MIN_ORTHO, RATING_LEVEL,
@@ -103,6 +103,18 @@ def _step(d):
     st.session_state.af_query = st.session_state.af_history[st.session_state.af_hist_i]
 
 
+class KeptUpload:
+    """The last uploaded airfoil file. Streamlit empties a file uploader that is not drawn in a run,
+    so after search -> file the file had to be uploaded again."""
+    def __init__(self, f):
+        self.name, self.file_id, self._data = f.name, f.file_id, f.getvalue()
+
+    def getvalue(self):
+        return self._data
+
+
+prev_source = st.session_state.get("prev_source")
+st.session_state.prev_source = source
 section = None
 custom_file = None
 as_is = False   # uploaded outline used as drawn (VG, flap, kinked section): inflation workflow only
@@ -122,6 +134,7 @@ if source == "search":
         st.session_state.af_current = section.id
         hist, i = st.session_state.af_history, st.session_state.af_hist_i
         if not hist or hist[i] != section.id:   # a new section (typed, picked or rolled): remember it
+            st.session_state.pop("dice_empty", None)
             st.session_state.af_history = hist[: i + 1] + [section.id]
             st.session_state.af_hist_i = len(st.session_state.af_history) - 1
         # ".txt" so that safe_file_stem cuts only that: titles are not file names ("HQ 1.0/12", "E169 (14.4%)")
@@ -148,6 +161,16 @@ if source == "search":
         st.sidebar.warning(t("dice_empty"))
 else:
     custom_file = st.sidebar.file_uploader(t("upload"), type=["dat", "txt", "csv"], key="upload")
+    if custom_file is not None:
+        st.session_state.upload_kept = KeptUpload(custom_file)
+        st.session_state.upload_restored = False
+    elif prev_source == "search" or st.session_state.get("upload_restored"):
+        custom_file = st.session_state.get("upload_kept")      # back from the search: the same file
+        if custom_file is not None:
+            st.session_state.upload_restored = True
+            st.sidebar.caption(t("upload_kept", name=custom_file.name))
+    else:                                                       # the user removed the file
+        st.session_state.pop("upload_kept", None)
     mirror_slot = st.sidebar.empty()   # "mirror in x" box, filled once the file has been read
     as_is = st.sidebar.checkbox(t("as_is"), value=False, help=t("as_is_help"), key="as_is")
     file_prefix = "AirfoilMatic_" + (safe_file_stem(custom_file.name) if custom_file else "custom")
@@ -183,8 +206,8 @@ unit_tag = "" if out_unit == "m" else f"_{out_unit}"
 n_on = sum(st.session_state.get(f"line_{k}", True) for k in SPLIT_LINES)
 with st.sidebar.expander(t("split_mode")):
     st.caption(f"{n_on}/{len(SPLIT_LINES)}")
-    st.caption(t("split_mode_help"))
-    kept_lines = [k for k in SPLIT_LINES if st.checkbox(t(k), value=True, key=f"line_{k}")]
+    st.caption(t("split_asis") if as_is else t("split_mode_help"))
+    kept_lines = [k for k in SPLIT_LINES if st.checkbox(t(k), value=True, key=f"line_{k}", disabled=as_is)]
 all_lines = len(kept_lines) == len(SPLIT_LINES)
 
 sidebar_download = st.sidebar.empty()
@@ -308,24 +331,25 @@ def mesh_key(af, domain, plan):
     return hashlib.md5(pickle.dumps((af, domain, plan))).hexdigest()
 
 
-@st.cache_data(show_spinner=False, max_entries=4)
+# The mesh is cached, its file text is written only when the download button is clicked (a callable
+# for ``data``, on its own thread): the text of a large mesh is the slowest step and the largest object.
+@st.cache_data(show_spinner=False, max_entries=2)
 def fluent_mesh_file(_domain, _af, _plan, key):
-    """Fluent .msh text and quality of the mapped C-grid (cached per ``key``)."""
+    """Mapped C-grid and its quality (cached per ``key``)."""
     m = build_cgrid(_domain, _af, _plan)
     skew, oq = mesh_quality(m)
-    return dict(text=to_fluent_msh(m, title=f"AirfoilMatic {APP_VERSION}"), cells=m.n_cells,
-                skew=float(skew.max()), oq=float(oq.min()))
+    return dict(mesh=m, cells=m.n_cells, skew=float(skew.max()), oq=float(oq.min()))
 
 
-@st.cache_data(show_spinner=False, max_entries=2)
-def fluent_family_file(_domain, _af, _re, _sizing, prefix, key):
-    """ZIP of the coarse / medium / fine .msh files and their size and quality (cached per ``key``)."""
+@st.cache_data(show_spinner=False, max_entries=1)
+def fluent_family_file(_domain, _af, _re, _sizing, key):
+    """Coarse / medium / fine meshes and their size and quality (cached per ``key``)."""
     fam = mesh_family(_domain, _af, _re, **_sizing)
     rows = []
     for f in fam:
         skew, oq = mesh_quality(f.mesh)
         rows.append(dict(label=f.label, cells=f.mesh.n_cells, skew=float(skew.max()), oq=float(oq.min())))
-    return dict(zip=family_zip(fam, prefix, title=f"AirfoilMatic {APP_VERSION}"), rows=rows)
+    return dict(family=fam, rows=rows)
 
 
 @st.cache_data(show_spinner=False, max_entries=4)
@@ -337,9 +361,21 @@ def family_cells(_domain, _af, _re, _sizing, key):
 def gci_cells(g):
     """Table cells of one GCI result; a diverging mesh series has no order or GCI to show."""
     if g.diverging:
-        return {"p": "—", t("gci_ext"): "—", "GCI (%)": "—", t("gci_conv"): t("gci_div")}
+        return {"p": "—", t("gci_ext"): "—", "GCI (%)": "—", t("gci_band"): "—", t("gci_conv"): t("gci_div")}
+    pct = 100 * g.gci_fine
     return {"p": "—" if g.p != g.p else f"{g.p:.3g}", t("gci_ext"): f"{g.phi_ext:.6g}",
-            "GCI (%)": f"{100 * g.gci_fine:.3g}", t("gci_conv"): t("gci_mono") if g.monotonic else t("gci_osc")}
+            # a % of a value near zero (Cl at the zero-lift angle) says nothing; the band still does
+            "GCI (%)": f"{pct:.3g}" if np.isfinite(pct) else "—", t("gci_band"): f"±{g.band:.3g}",
+            t("gci_conv"): t("gci_mono") if g.monotonic else t("gci_osc")}
+
+
+def gci_ratio_warning(cells):
+    """Celik et al. (2008) ask for a refinement ratio above 1.3; closer meshes let noise set p."""
+    n = sorted((int(c) for c in cells), reverse=True)
+    if len(set(n)) == 3:
+        r = min((n[0] / n[1]) ** 0.5, (n[1] / n[2]) ** 0.5)
+        if r < 1.3:
+            st.warning(t("gci_ratio", r=r))
 
 
 def plan_rows(plan):
@@ -489,7 +525,9 @@ with tab_mesh:
             u_inf, rho, mu = mach_flow["speed"], mach_flow["density"], mach_flow["viscosity"]
             st.caption(t("mach_state", u=u_inf, rho=rho, mu=mu, p=mach_flow["pressure"]))
             if mach_in < 0.3:   # pressure far field did not converge at M 0.15 (Fluent 2024 R2, 2026-11-25)
-                st.warning(t("warn_ff_low_mach", m=mach_in))
+                st.warning(t("warn_ff_low_mach_short", m=mach_in))
+                with st.expander(t("warn_ff_why")):
+                    st.caption(t("warn_ff_low_mach", m=mach_in))
             kn = rarefaction(mach_flow, mach_temp, chord)
             if kn > KNUDSEN_CONTINUUM:
                 st.warning(t("warn_rarefied", p=mach_flow["pressure"], kn=kn))
@@ -658,7 +696,8 @@ with tab_mesh:
             st.info(t("msh_rect"))
         else:
             try:
-                msh = fluent_mesh_file(domain, split_af, plan, mesh_key(split_af, domain, plan))
+                with st.spinner(t("msh_building")):
+                    msh = fluent_mesh_file(domain, split_af, plan, mesh_key(split_af, domain, plan))
             except ValueError as e:
                 st.error(te(e))
             else:
@@ -667,23 +706,28 @@ with tab_mesh:
                     (t("msh_skew"), f"{msh['skew']:.3f}", "", False),
                     (t("msh_oq"), f"{msh['oq']:.3f}", "", False),
                 ]), unsafe_allow_html=True)
-                st.download_button(t("msh_download"), data=msh["text"], file_name=f"{file_prefix}_mapped.msh",
-                                   mime="text/plain", key="msh_download")
+                st.download_button(t("msh_download"),
+                                   data=lambda m=msh["mesh"]: to_fluent_msh(m, title=f"AirfoilMatic {APP_VERSION}"),
+                                   file_name=f"{file_prefix}_mapped.msh", mime="text/plain", key="msh_download",
+                                   on_click="ignore")
                 st.caption(t("msh_note"))
                 # Mesh independence: the same inputs refined by sqrt(2) up and down (about 2x cells per step)
                 if st.checkbox(t("msh_family"), key="msh_family", help=t("msh_family_help")):
                     try:
-                        fam = fluent_family_file(domain, split_af, re, sizing, file_prefix,
-                                                 mesh_key(split_af, domain, (re, sizing)))
+                        with st.spinner(t("msh_building")):
+                            fam = fluent_family_file(domain, split_af, re, sizing,
+                                                     mesh_key(split_af, domain, (re, sizing)))
                     except (ValueError, OverflowError) as e:
                         st.error(te(e))
                     else:
                         wide_table([{"": t(f"gci_{r['label']}"), t("msh_cells"): f"{r['cells']:,}",
                                      t("msh_skew"): f"{r['skew']:.3f}", t("msh_oq"): f"{r['oq']:.3f}"}
                                     for r in fam["rows"]], "msh_family")
-                        st.download_button(t("msh_family_download"), data=fam["zip"],
+                        st.download_button(t("msh_family_download"),
+                                           data=lambda f=fam["family"], p=file_prefix:
+                                           family_zip(f, p, title=f"AirfoilMatic {APP_VERSION}"),
                                            file_name=f"{file_prefix}_mesh_family.zip", mime="application/zip",
-                                           key="msh_family_download")
+                                           key="msh_family_download", on_click="ignore")
                         st.caption(t("msh_family_cells"))
 
     # First cell height of the plan above; None when the plan failed (e.g. Re below the valid range).
@@ -764,7 +808,7 @@ with tab_mesh:
         a_sound = speed_of_sound(temp_c)
         u0 = float(f"{u_default:.6g}" if mach_flow is not None else f"{u_default:.4g}")   # Re = 1000 on a long chord needs less than 1 mm/s
         u_fl = fc[1].number_input(t("fl_speed"), value=u0, min_value=min(0.001, u0),
-                                  format="%.3f", help=t("fl_speed_help"), key=f"fl_speed_{u0:.6g}")
+                                  format="%.4g", help=t("fl_speed_help"), key=f"fl_speed_{u0:.6g}")
         try:
             fs = freestream(aoa, u_fl, chord, rho_f, mu_f, speed_of_sound=a_sound)
         except ValueError as e:
@@ -886,8 +930,7 @@ with tab_auto:
             except ValueError:
                 pass   # the same name error is shown once, below, by sweep_journal
             else:
-                first_txt = f"{sweep[0]['aoa']:.4f}".rstrip("0").rstrip(".")
-                first_txt = "0" if first_txt in ("-0", "") else first_txt
+                first_txt = angle_text(sweep[0]["aoa"])
                 st.markdown(t("jou_setup_title"))
                 st.code("\n".join([
                     f"{t('jou_setup_aoa', expr=expr_now, first=first_txt)}",
@@ -1062,7 +1105,7 @@ with tab_auto:
                               help=t("polar_unit_help"))
         g_last = gc2[1].number_input(t("polar_last_n"), value=LAST_N, min_value=1, step=10, key="gci_last_n",
                                      help=t("polar_last_n_help"))
-        g_pols = []
+        g_pols, g_used = [], []
         for head, files in gci_meshes:
             try:
                 rep = merge_reports([read_report(f.getvalue()) for f in files])
@@ -1070,15 +1113,20 @@ with tab_auto:
                 if None in g.values():
                     raise ValueError("No angle, Cl or Cd column in the report file")
                 g_pols.append(polar(rep, g["angle"], g["cl"], g["cd"], angle_unit=g_unit, last_n=int(g_last)))
+                used = f"{g['angle']} / {g['cl']} / {g['cd']}"
+                if used not in g_used:
+                    g_used.append(used)
             except ValueError as e:
                 st.error(t("gci_file", name=", ".join(f.name for f in files), msg=te(e)))
                 g_pols = None
                 break
         if g_pols is not None:
+            st.caption(t("gci_cols", cols="; ".join(g_used)))
             if any(n is None for n in cells_in):
                 st.info(t("gci_need_cells"))
             else:
                 res = gci_by_angle(g_pols, [int(n) for n in cells_in])
+                gci_ratio_warning(cells_in)
                 if not res:
                     st.warning(t("gci_no_common"))
                 errors, unsteady = [], []
@@ -1089,7 +1137,8 @@ with tab_auto:
                     if r.result is None:
                         if r.error not in errors:
                             errors.append(r.error)
-                        row.update({"p": "—", t("gci_ext"): "—", "GCI (%)": "—", t("gci_conv"): "—"})
+                        row.update({"p": "—", t("gci_ext"): "—", "GCI (%)": "—", t("gci_band"): "—",
+                                    t("gci_conv"): "—"})
                     else:
                         row.update(gci_cells(r.result))
                     g_rows.append(row)
@@ -1100,6 +1149,7 @@ with tab_auto:
                 if unsteady:
                     st.warning(t("gci_warn_unsteady", angles="; ".join(unsteady)))
     elif all(n is not None for n in cells_in):
+        gci_ratio_warning(cells_in)
         for name in ("Cl", "Cd"):
             vals = [gin[f"{name.lower()}{i}"] for i in (1, 2, 3)]
             if any(v is None for v in vals):

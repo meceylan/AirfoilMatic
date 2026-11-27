@@ -1137,6 +1137,26 @@ STRINGS = {
         "tr": '3 mesh (ZIP) indir',
         "en": 'Download the 3 meshes (ZIP)',
     },
+    'upload_kept': {
+        "tr": "Önceki dosya kullanılıyor: {name} (başka bir dosya yükleyebilirsiniz)",
+        "en": 'Using the earlier file: {name} (you can upload another)',
+    },
+    'split_asis': {
+        "tr": "\"Olduğu gibi\" modunda yalnızca ön eksen ve iz ekseni kullanılır; bu kutular etkisizdir.",
+        "en": 'In the use-as-drawn mode only the front axis and the wake axis are used; these boxes have no effect.',
+    },
+    'warn_ff_low_mach_short': {
+        "tr": "Mach {m:.2f} < 0.3: bu hızda velocity-inlet + pressure-outlet kullanın (hız bileşenleri Fluent yardımcısında).",
+        "en": 'Mach {m:.2f} < 0.3: at this speed use velocity-inlet + pressure-outlet (velocity components in the Fluent helper).',
+    },
+    'warn_ff_why': {
+        "tr": "Neden? (Fluent denemesi)",
+        "en": 'Why? (Fluent run)',
+    },
+    'msh_building': {
+        "tr": "Mesh kuruluyor…",
+        "en": 'Building the mesh…',
+    },
     'msh_family_cells': {
         "tr": "İlk hücre yüksekliği de aileyle birlikte değişir: hedef y⁺ kaba mesh'te yaklaşık 1.4, ince mesh'te 0.7 katı olur (ailenin doğru tanımı: tüm boyutlar birlikte küçülür). Fluent 2024 R2'de denendi (NACA 4412, 4°, SST k-ω, Re 2×10⁶; 42 944 / 84 870 / 169 824 hücre): Cl 0.8355 / 0.8359 / 0.8353, Cd 0.012580 / 0.012567 / 0.012573; üç mesh arasındaki fark %0.1'in altında (salınımlı, yani çok küçük farklar).",
         "en": 'The first-cell height changes with the family as well: the target y⁺ becomes about 1.4 times on the coarse and 0.7 times on the fine mesh (a proper family refines every size together). Tried in Fluent 2024 R2 (NACA 4412, 4°, SST k-ω, Re 2×10⁶; 42 944 / 84 870 / 169 824 cells): Cl 0.8355 / 0.8359 / 0.8353, Cd 0.012580 / 0.012567 / 0.012573; the three meshes differ by less than 0.1 % (oscillatory, i.e. very small differences).',
@@ -1176,6 +1196,18 @@ STRINGS = {
     'gci_mono': {
         "tr": 'tek yönlü',
         "en": 'monotonic',
+    },
+    'gci_band': {
+        "tr": 'Belirsizlik (±, değerin biriminde)',
+        "en": "Uncertainty (±, in the value's units)",
+    },
+    'gci_ratio': {
+        "tr": "Mesh oranı {r:.2f} (h oranı); Celik vd. (2008) 1.3'ten büyük ister. Mesh'ler birbirine bu kadar yakınken p'yi yuvarlama ve yakınsama gürültüsü belirleyebilir.",
+        "en": 'Refinement ratio {r:.2f} (ratio of h); Celik et al. (2008) ask for more than 1.3. With meshes this close, round-off and iteration noise can set p.',
+    },
+    'gci_cols': {
+        "tr": "Okunan sütunlar (açı / Cl / Cd): {cols}. Başka sütun kullanılacaksa Polar bölümünde dosyaya bakın; Fluent'teki report definition adlarında cl, cd ve alpha / aoa geçmeli.",
+        "en": 'Columns read (angle / Cl / Cd): {cols}. To check another column, look at the file in the Polar section; the report definition names in Fluent should contain cl, cd and alpha / aoa.',
     },
     'gci_div': {
         "tr": "ıraksıyor: fark mesh inceldikçe büyüyor (GCI anlamsız)",
@@ -1430,6 +1462,8 @@ ERRORS_TR = {
     'The three meshes need different cell counts': 'Üç mesh farklı hücre sayılarına sahip olmalı',
     'No angle, Cl or Cd column in the report file': "Report file'da açı, Cl ya da Cd sütunu bulunamadı",
     'The order of convergence could not be determined': 'Yakınsama mertebesi (p) belirlenemedi; mesh oranlarını ya da değerleri kontrol edin',
+    'The report files have no iteration in common': "Report file'ların ortak iterasyonu yok",
+    'The first digit of a 5-digit code (design lift) must not be 0': '5 haneli kodun ilk hanesi (tasarım taşıma katsayısı) 0 olamaz',
     'Coarse and medium values are equal: the order of convergence is undefined': 'Kaba ve orta mesh değerleri aynı: yakınsama mertebesi tanımsız',
     'The mesh file is limited to 1 000 000 cells': 'Mesh dosyası en çok 1 000 000 hücre olabilir; hücre boylarını büyütün ya da hedef y⁺ / büyüme oranını artırın',
     'The mesh file is only available for the C-grid domain': 'Mesh dosyası yalnızca C-Grid domain için üretilir',

@@ -162,6 +162,8 @@ def alpha_sweep(start, stop, step, speed):
         raise ValueError("Angle step must be positive")
     if stop < start:
         raise ValueError("Last angle must not be below the first one")
+    if max(abs(start), abs(stop)) > 180:
+        raise ValueError("Angles must be between -180 and 180 degrees")
     n = int(math.floor((stop - start) / step + 1e-9)) + 1
     if n > MAX_ANGLES:
         raise ValueError("Too many angles (more than 361)")
@@ -202,7 +204,7 @@ def parse_angles(text):
             raise ValueError("Angles must be numbers, separated by a space, ; or a comma")
         if abs(a) > 180:
             raise ValueError("Angles must be between -180 and 180 degrees")
-        angles.add(a + 0.0)          # + 0.0: "-0" becomes 0
+        angles.add(round(a, 4) + 0.0)   # as the journal writes it (4 decimals); + 0.0: "-0" becomes 0
     if len(angles) > MAX_ANGLES:
         raise ValueError("Too many angles (more than 361)")
     return sorted(angles)
@@ -249,10 +251,13 @@ def _check_expression(value):
     return value
 
 
-def _angle_text(aoa):
+def angle_text(aoa):
     """Compact angle for a Fluent expression: up to 4 decimals, no trailing zeros, never "-0"."""
     s = f"{aoa:.4f}".rstrip("0").rstrip(".")
     return "0" if s in ("-0", "") else s
+
+
+_angle_text = angle_text
 
 
 def _positive(value, what):

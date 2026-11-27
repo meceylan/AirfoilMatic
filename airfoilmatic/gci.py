@@ -22,6 +22,7 @@ class GCI:
     gci_fine: float     # GCI of the fine mesh (fraction)
     monotonic: bool     # False: oscillatory convergence (the GCI is then less reliable)
     diverging: bool = False   # monotonic, but the difference grows as the mesh is refined
+    band: float = 0.0   # the same uncertainty in the quantity's own units: 1.25 |f1 - f2| / (r21^p - 1)
 
 
 P_MIN, P_MAX = 1e-4, 20.0
@@ -70,7 +71,7 @@ def gci(cells, values):
     r21, r32 = h2 / h1, h3 / h2
     e21, e32 = f2 - f1, f3 - f2
     if e21 == 0.0:
-        return GCI(r21, r32, math.nan, f1, 0.0, 0.0, 0.0, True)
+        return GCI(r21, r32, math.nan, f1, 0.0, 0.0, 0.0, True, False, 0.0)
     if e32 == 0.0:
         raise ValueError("Coarse and medium values are equal: the order of convergence is undefined")
     s = math.copysign(1.0, e32 / e21)
@@ -79,8 +80,9 @@ def gci(cells, values):
     e_a = abs((f1 - f2) / f1) if f1 else math.inf
     e_ext = abs((phi_ext - f1) / phi_ext) if phi_ext else math.inf
     # Stern et al. (2001): the difference grows as the mesh is refined -> divergence, no GCI
+    # the band stays meaningful where the value is near zero (Cl at the zero-lift angle), the % does not
     return GCI(r21, r32, p, phi_ext, e_a, e_ext, SAFETY * e_a / (r21 ** p - 1.0), s > 0,
-               s > 0 and abs(e21) > abs(e32))
+               s > 0 and abs(e21) > abs(e32), SAFETY * abs(f1 - f2) / (r21 ** p - 1.0))
 
 
 # ---------------------------------------------------------------- from report files

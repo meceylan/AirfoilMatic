@@ -158,6 +158,10 @@ def naca5(code, chord=1.0, n_points=201, blunt_te=False):
         # "64012", "63010": an undashed NACA 6-series name (64-012), not a 5-digit code with design Cl 0.9
         raise AirfoilError("A 5-digit code starting with 6 is a NACA 6-series name (e.g. 64-012), "
                            "not a 5-digit section")
+    if code[0] == "0":
+        # design lift 0 would draw a symmetric section under a 5-digit name (the 4-digit reader
+        # refuses "0312" for the same reason)
+        raise AirfoilError("The first digit of a 5-digit code (design lift) must not be 0")
     L = int(code[0])
     P = int(code[1:3])
     t = int(code[3:5]) / 100.0

@@ -110,7 +110,7 @@ def test_gci_section_in_automation_tab():
         widget(at, "number_input", k).set_value(v)
     at = at.run()
     assert not at.exception and not at.error
-    text = " ".join(str(d.value) for d in at.dataframe)
+    text = " ".join(d.value.to_string() for d in at.dataframe)
     assert "6.1685" in text or "6.168" in text
 
 

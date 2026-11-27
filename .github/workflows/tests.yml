@@ -9,12 +9,18 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
         streamlit: ["latest", "lowest"]
+        python: ["3.12"]
+        include:
+          # Streamlit Community Cloud runs Python 3.14 (app.py notes an import race seen there)
+          - os: ubuntu-latest
+            streamlit: latest
+            python: "3.14"
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python }}
       - run: pip install -r requirements.txt pytest
       - if: matrix.streamlit == 'lowest'
         run: pip install "streamlit==1.56.*"

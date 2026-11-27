@@ -79,9 +79,11 @@ def read_report(data):
         if len(parts) != len(columns):
             continue
         try:
-            rows.append([float(p) for p in parts])
+            vals = [float(p) for p in parts]
         except ValueError:
             continue
+        if all(math.isfinite(v) for v in vals):      # a "nan" row would make its angle's mean nan
+            rows.append(vals)
     if not rows:
         raise ValueError("The report file has no data rows")
     return Report(name=name, columns=columns, rows=np.array(rows, dtype=float))
@@ -101,10 +103,35 @@ def merge_reports(reports):
         return reports[0]
     columns = reports[0].columns
     if any(sorted(r.columns) != sorted(columns) for r in reports):
-        raise ValueError("The report files do not have the same columns")
+        joined = _join_definitions(reports)
+        if joined is None:
+            raise ValueError("The report files do not have the same columns")
+        return joined
     parts = [rep.rows[:, [rep.columns.index(c) for c in columns]]
              for rep in sorted(reports, key=lambda r: r.rows[0, 0])]
     return Report(name=reports[0].name, columns=list(columns), rows=_latest_rows(np.vstack(parts)))
+
+
+def _join_definitions(reports):
+    """One report from files that each hold other report definitions (Fluent can write one file
+    per definition: cl-rfile.out, cd-rfile.out, ...), joined on the iteration column. None when
+    the files share a column other than the iteration (then they are not separate definitions)."""
+    seen = set()
+    for rep in reports:
+        own = set(rep.columns[1:])
+        if own & seen:
+            return None
+        seen |= own
+    tables = []
+    for rep in reports:
+        rows = _latest_rows(rep.rows)
+        tables.append({int(round(r[0])): r[1:] for r in rows})
+    common = sorted(set.intersection(*(set(t) for t in tables)))
+    if not common:
+        raise ValueError("The report files have no iteration in common")
+    columns = [reports[0].columns[0]] + [c for rep in reports for c in rep.columns[1:]]
+    rows = np.array([[k] + [v for t in tables for v in t[k]] for k in common], dtype=float)
+    return Report(name=reports[0].name, columns=columns, rows=rows)
 
 
 def _latest_rows(rows):
@@ -124,17 +151,25 @@ def _latest_rows(rows):
     return np.array([by_iter[k] for k in sorted(by_iter)])
 
 
+_FORCE_WORDS = {"cl", "cd", "cm", "lift", "drag", "moment", "conv", "clconv", "cdconv"}
+
+
 def guess_columns(columns):
-    """Most likely angle, Cl and Cd column names (None when not found)."""
+    """Most likely angle, Cl and Cd column names (None when not found). A column whose name also
+    has a force word ("cl-alpha-report") is not taken for the angle, and convergence helpers
+    (clconv, cdconv) are never taken for Cl or Cd."""
     low = {c: c.lower() for c in columns[1:]}
+    words = {c: set(re.split(r"[^a-z0-9]+", l)) - {""} for c, l in low.items()}
 
     def first(match):
-        return next((c for c, l in low.items() if match(l)), None)
+        return next((c for c, l in low.items() if match(c, l)), None)
 
-    angle = first(lambda l: any(n in l for n in _ANGLE_NAMES))
-    cl = first(lambda l: l == "cl") or first(lambda l: l.startswith("cl") and "conv" not in l) \
-        or first(lambda l: "lift" in l)
-    cd = first(lambda l: l == "cd") or first(lambda l: l.startswith("cd")) or first(lambda l: "drag" in l)
+    angle = first(lambda c, l: bool(words[c] & set(_ANGLE_NAMES)) and not words[c] & _FORCE_WORDS) \
+        or first(lambda c, l: any(n in l for n in _ANGLE_NAMES) and not words[c] & _FORCE_WORDS)
+    cl = first(lambda c, l: l == "cl") or first(lambda c, l: l.startswith("cl") and "conv" not in l) \
+        or first(lambda c, l: "lift" in l)
+    cd = first(lambda c, l: l == "cd") or first(lambda c, l: l.startswith("cd") and "conv" not in l) \
+        or first(lambda c, l: "drag" in l)
     return dict(angle=angle, cl=cl, cd=cd)
 
 

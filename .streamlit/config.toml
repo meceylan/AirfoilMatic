@@ -1,3 +1,8 @@
+[global]
+# app.py writes hidden inputs back to session_state on purpose (KEPT_WHEN_HIDDEN), which also
+# sets widgets that have a default; Streamlit then logs a warning with a stack trace on every start.
+disableWidgetStateDuplicationWarning = true
+
 [server]
 # Coordinate files are a few KB, but Fluent report files grow ~60 bytes per iteration (an 11-angle
 # sweep wrote 0.93 MB; long sweeps and transient runs pass 2 MB).
