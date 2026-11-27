@@ -9,6 +9,7 @@ from streamlit.testing.v1 import AppTest
 
 from airfoilmatic.i18n import tr
 from airfoilmatic.polar import is_transient, read_report
+from _docs import doc_text
 
 ROOT = Path(__file__).resolve().parents[1]
 APP = str(ROOT / "app.py")
@@ -72,5 +73,5 @@ def test_model_note_shown_under_the_polar():
 
 @pytest.mark.parametrize("name", ["README.md", "README.en.md", "CHANGELOG.md"])
 def test_docs_hold_the_stall_result(name):
-    text = (ROOT / name).read_text(encoding="utf-8")
+    text = doc_text(name)
     assert "16.99°" in text and "URANS" in text

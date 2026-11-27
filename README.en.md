@@ -2,29 +2,68 @@
 
 [Türkçe](README.md) | **English**
 
-**[Run AirfoilMatic in your browser](https://airfoilmatic.streamlit.app/)**
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://airfoilmatic.streamlit.app/)
+[![tests](https://github.com/meceylan/AirfoilMatic/actions/workflows/tests.yml/badge.svg)](https://github.com/meceylan/AirfoilMatic/actions/workflows/tests.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-AirfoilMatic builds the geometry of a 2D CFD flow domain around an airfoil (NACA 4/5-digit, one of 300 sections selected from the UIUC database, or a custom `.dat` file) and exports it in the Ansys DesignModeler `3D Curve` text format. The domain is already split into six four-sided blocks, so Ansys Meshing can produce a structured (mapped) mesh. It also gives you matching mesh settings (Inflation, Edge Sizing) and Fluent setup values.
+Pick an airfoil; AirfoilMatic builds the flow domain around it for a 2D analysis in Ansys Fluent (C-grid or rectangular, six four-sided blocks), gives you the geometry for DesignModeler / SpaceClaim or a ready Fluent mesh file (.msh), and works out the mesh settings for your y⁺ and the values to enter in Fluent.
+
+**[Run it in your browser → airfoilmatic.streamlit.app](https://airfoilmatic.streamlit.app/)** (no installation)
+
+<!-- Screenshot: once docs/img/app.png is added, remove the comment markers around the next line.
+![AirfoilMatic interface](docs/img/app.png)
+-->
 
 ## Features
-* NACA 4-digit and 5-digit (standard, non-reflexed) airfoils, drawn from the NACA equations with 201 points and full-cosine spacing
-* **Section search and random section:** the search box lists suggestions while typing (sections whose name contains the text, e.g. "64" → the 64 series; for a NACA code that is not listed, type it and press Enter); 300 sections selected from the UIUC Airfoil Coordinates Database (NACA 6 and 16 series, NASA SC(2)/NLF/LS, Eppler, Selig, Wortmann, Hepperle, Drela, RAE, Delft DU and more). Type a name (`63-215`, `e387`, `clark y`); the 🎲 button picks a random section filtered by thickness, camber and family, and back/forward return to earlier ones. The app does not invent sections: a name that is not listed is reported as not in the database
-* Custom airfoil files (`.dat`, `.txt`, `.csv`; Selig and Lednicer formats), automatic blunt trailing-edge closing. Units, origin and point order do not matter: the profile is moved so its leading edge is at the origin and scaled to the chord. Decimal commas, `;` separators, touching Fortran columns, a point-number column or a constant third column are read too. A profile drawn backwards is mirrored; tilted, very coarse or broken files get a message
-* **Use-as-drawn mode:** the closed outline of an uploaded file is used in its own point order, so shapes that go back in x (a vortex generator, a flap, a kinked section) are kept (inflation workflow only: front axis + wake axis; tried with NACA 4412 in Fluent 2024 R2)
-* C-grid and rectangular (wind tunnel) domains, split into 6 four-sided blocks; domain sizes are entered in chords
-* Choose which of the six split lines to export (all six are needed for mapped meshing; all six and front axis + wake axis were tested with quad-dominant + inflation), with a warning for a single line, which cannot work
-* Domain export: Ansys DesignModeler TXT and SpaceClaim TXT (both tried by users; the SolidWorks section output too)
-* **Profile only:** upper and lower surface without a domain; DesignModeler TXT, SolidWorks ZIP (two files for Curve Through XYZ Points) and SpaceClaim TXT
-* **m / mm** output unit in the sidebar (TXT and section files; the Fluent mesh file is always in metres)
-* **Fluent mesh file (.msh):** with Mapped selected the app builds the mesh of the C-grid or rectangular domain itself (the rectangle was also tried in Fluent 2024 R2: NACA 4412 at −4…8°, Cl within 0.2 % of the C-grid, 8°: 1.22537; Cd 1.6 % lower at 8° because of the domain shape) (6 blocks with the divisions and bias factors of the Edge Sizing table, filled by transfinite interpolation, the grid lines leaving the wall at right angles on the front blocks, the front axis leaving the leading edge along the wall normal and bending to horizontal within one chord (for the leading-edge corner at high Re; tried in Fluent 2024 R2: NACA 4412 minimum orthogonal quality 0.895, Cl at −4…8° the same as on the earlier mesh, 8°: 1.22288), with vertical columns above and below the rear part (for the thin far-field cells of strongly cambered sections); boundaries already named `inlet`, `outlet`, `wall`). No DesignModeler or Meshing needed: File → Read → Mesh in Fluent. The cell count and quality (skewness, orthogonal quality) are shown in the app; the file is limited to 1 000 000 cells. For NACA 4412: max skewness 0.37, minimum orthogonal quality 0.84 (the mesh Ansys made from the same table: skewness 0.45). Starting the lines at right angles to the wall fixes the squeezed cells behind the nose of strongly cambered sections (S9104 at the nose: skewness 0.90 → 0.64, orthogonal quality 0.05 → 0.54; the worst cell of the whole mesh is now at the trailing edge, 0.73 / 0.41); tried in Fluent 2024 R2: for NACA 4412 the minimum orthogonal quality is 0.845 in Fluent too, and Cl at −4…8° is the same as on the earlier mesh (8°: 1.22287 / before 1.22338), Cd within 0.2 %. The first runs below were on the earlier mesh (max skewness 0.52, orthogonal quality 0.493). Fluent 2024 R2 read the file and passed Mesh Check without errors; minimum orthogonal quality 0.493 (earlier mesh; the same as the app computes). Solved in Fluent for NACA 4412 at −4…8° (SST k-ω, Re 2 × 10⁶): Cl and Cd match the Ansys mesh within 0.01 % / 0.05 % (0°: Cl 0.41739 on both). A UIUC section with a blunt trailing edge, GA(W)-1 (LS(1)-0417), was solved the same way: 91 122 cells, −4…8° converged without a question, zero-lift angle −3.87° (thin-airfoil theory −4.27°)
-* Flow input: Reynolds, **Mach + Reynolds + temperature** (with the pressure-far-field values; Sutherland viscosity) or speed + density + viscosity
-* **Mesh / y⁺ assistant:** first-cell height for a target y⁺ and boundary-layer estimate, with two outputs: Ansys **Inflation** settings (first layer, growth rate, maximum layers) or a mapped-mesh **Edge Sizing** table (Number of Divisions + Bias Factor) with the expected cell count
-* **Mesh independence:** coarse / medium / fine Fluent meshes from the same inputs in one ZIP (cell sizes by √2; about 2x the cells per step; the medium mesh is the one shown in the app) and, on the Automation tab, the **GCI** from the Cl / Cd of the three meshes (typed in, or read from the three report files (.out); with coarse / medium / fine in the file names the cell counts come from the mesh family, one row per angle common to the three files; Celik et al. 2008, J. Fluids Eng. 130, 078001: order of convergence, mesh-independent estimate, uncertainty of the fine mesh; same result as Celik's example). Tried in Fluent 2024 R2 with NACA 4412 at 4°: Cl 0.8355 / 0.8359 / 0.8353 (coarse / medium / fine), Cd within 0.1 %; the default mesh is mesh independent for this flow
-* **Mesh quality check** (skewness, orthogonal quality, aspect ratio) against Ansys bands and Fluent limits
-* **y⁺ correction** from a first Fluent result, and a **Fluent setup helper** that turns a free-stream speed and angle of attack into the inlet X/Y velocity components, the Lift/Drag vectors and the reference values, and checks Reynolds and Mach (speed of sound from the temperature); **free-stream turbulence decay** (SST) from the inlet to the airfoil
-* **Automation tab:** an **angle-of-attack sweep** (CSV; even steps or your own list of angles, e.g. 1.3, 2.8, 6.8; tried in Fluent 2024 R2 with the list 1.99, 4.01, 6.11, 8.08) for a polar, the Fluent journal and the **polar** from the report file (mean and range of the last N iterations per angle, oscillating / short angles flagged, Cl–α, Cd–α and Cl–Cd charts, CSV; tried with the Fluent 2024 R2 report file format)
-* **Fluent journal:** a TUI journal (`.jou`) that steps a named expression `aoa` through the angles of the sweep and runs the iterations (the case uses `aoa` in the pressure-far-field flow direction or the velocity-inlet components and in the Cl/Cd expression reports; the app prints these expressions and the `clconv` stop criterion for the angle where Cl ≈ 0). Case & data can be saved every k angles (the last angle always); a stopped sweep continues from the last save (first iteration by hand, Yes to Fluent's new-file question; the polar tool reads both report files). Tried in Ansys Fluent 2024 R2 (standalone) with a 3-angle sweep (50 iterations each) and an 11-angle sweep (−4…16°, with Convergence Conditions, velocity-inlet case) and a sweep with a pressure-far-field case (M 0.3, 2…8°); continuing a stopped sweep was tried too; inside Workbench it was tried and does not work (a "Settings have changed" question at every angle change); case overwriting has not been tried yet
-* Turkish / English interface
+* **Airfoil:** NACA 4 / 5-digit (from the equations), 300 sections selected from the UIUC database (suggestions while typing, 🎲 random section) or your own `.dat` / `.txt` / `.csv` file (Selig, Lednicer; units, origin and point order do not matter). The app does not invent sections: a name that is not listed is reported as not in the database.
+* **Domain and geometry:** C-grid or rectangular domain, 6 four-sided blocks; DesignModeler TXT and SpaceClaim TXT; SolidWorks ZIP for the section alone; **m / mm** output unit.
+* **Fluent mesh file (.msh):** the app builds the mapped mesh of the C-grid or rectangular domain itself (transfinite interpolation; boundaries `inlet`, `outlet`, `wall`); no DesignModeler or Meshing needed. Up to 1 000 000 cells.
+* **Mesh / y⁺:** first-cell height for a target y⁺; Ansys Inflation settings or an Edge Sizing table for a mapped mesh; mesh quality check; y⁺ correction from a first Fluent result.
+* **Mesh independence:** coarse / medium / fine meshes in one ZIP (cell sizes by √2), **GCI** from the report files (Celik et al. 2008).
+* **Flow and Fluent helper:** Reynolds, Mach + Reynolds + temperature, or speed + density + viscosity; inlet velocity components, Lift/Drag vectors, reference values, turbulence decay.
+* **Automation:** angle-of-attack sweep (even steps or your own list), a Fluent journal (`.jou`) that steps the `aoa` expression, polar from the report file (Cl–α, Cd–α, Cl–Cd).
+* **Use-as-drawn mode:** an uploaded outline is used in its own point order; for VGs, flaps or kinked sections (inflation only; tried in Fluent 2024 R2 with NACA 4412).
+* Save / load settings as a JSON file; Turkish / English interface.
+
+## How to use it
+1. **Pick an airfoil:** search box, 🎲 or your own file.
+2. **Enter the domain and flow:** domain type and size (in chords), Reynolds or Mach, target y⁺.
+3. **Get the mesh**, one of two ways:
+   * download the app's `.msh` file and open it in Fluent with `File → Read → Mesh`, or
+   * import the TXT into DesignModeler / SpaceClaim and mesh with Inflation or Mapped in Ansys Meshing (steps below).
+4. **Set up and run Fluent:** enter the values from the Fluent helper; run the angle sweep with the journal from the Automation tab, then upload the report file for the polar and the GCI.
+
+<details>
+<summary><b>Ansys DesignModeler / Meshing steps</b></summary>
+
+1. **Import:** In DesignModeler, first set `Units` to the output unit chosen in the sidebar (`Meter` for m, `Millimeter` for mm), then use `Concept > 3D Curve`, select the downloaded `.txt` file and click `Generate`.
+2. **Surface:** Use `Concept > Surfaces from Edges` with the outer boundary and airfoil edges to create the flow surface.
+3. **Split:** Use `Tools > Projection` with the exported split lines.
+4. **Mesh:** the **Mesh / y⁺** tab gives the settings for both workflows.
+   * **Inflation (quad-dominant):** export the front axis + wake axis (or all six lines); a single line, or the wake axis without the front axis, makes inflation fail. Add `Inflation` on all faces with the airfoil edges **and the wake axis** as boundary, set the global Element Size to about 0.5c and enter the Edge Sizings from the table. Use a sharp trailing edge; blunt TE + inflation failed in our tests.
+   * **Mapped:** export all six split lines, add `Face Meshing` (Mapped) to all faces and the `Edge Sizing` values from the table. One common bias on wall-normal edges with the same number of divisions changes the first cell by at most 2 %.
+   * Inflation and Mapped Face Meshing cannot be combined on the same face.
+5. **Check:** Fluent reports y⁺ at the cell centroid, so expect about half the target value.
+6. **Changing the mesh:** read the set-up case, type `/mesh/replace` in the console and give the file name with its extension (`name.msh`). With the same zone names (`inlet`, `outlet`, `wall`) the boundary conditions, expressions and reports are kept; then initialise. Tried in Fluent 2024 R2.
+
+Why split the airfoil at X = 0.3c? It separates the high-curvature leading-edge region, the vertical split lines meet the outer boundary at right angles (no sliver faces), and every block stays four-sided (for mapped meshing). Details: [docs/VALIDATION.en.md](docs/VALIDATION.en.md#why-split-at-x--03c).
+</details>
+
+## What was tried in Ansys?
+| What | Where | Result |
+|---|---|---|
+| The app's `.msh`, C-grid | Fluent 2024 R2, NACA 4412, −4…8° | Mesh Check without errors; Cl / Cd within 0.01 % / 0.05 % of the Ansys mesh |
+| The app's `.msh`, rectangle | Fluent 2024 R2, NACA 4412, −4…8° | Cl within 0.2 % of the C-grid; Cd 1.6 % lower at 8° |
+| NACA 0012 vs Ladson's experiment | Fluent 2024 R2, α = 4.25° | Cl within 1 %, Cd within 2–3.5 %; "consistent with the experiment", not a firm validation |
+| Mesh independence (GCI) | Fluent 2024 R2, NACA 4412, 4° | the three meshes within 0.1 % |
+| Fluent journal | Fluent 2024 R2 (standalone) | works; does not work inside Workbench |
+| Domain DesignModeler TXT and SpaceClaim TXT; section SolidWorks ZIP and SpaceClaim TXT | user | tried |
+| Section-only DesignModeler TXT | — | not tried yet |
+| Case overwriting in the journal | — | not tried yet |
+
+Setups, tables and all the numbers: **[docs/VALIDATION.en.md](docs/VALIDATION.en.md)**.
+
+**Limits:** the mesh plan is built for low speed (Mach < 0.3; no mesh settings specific to compressible flow). At high Cl, enlarge the domain radius and check that the result does not change.
 
 ## Local installation
 ```bash
@@ -33,65 +72,12 @@ cd AirfoilMatic
 pip install -r requirements.txt
 streamlit run app.py
 ```
-Run the tests with `pip install pytest` and `pytest`. `tests/test_app.py` runs the app itself headless (Streamlit AppTest); `tests/test_hard_files.py` reads 75 hard files written from a known profile and compares the result with the true outline; `tests/test_database_findings.py` covers the problems found by running the whole UIUC database (overlapping surfaces); `tests/test_library.py` checks that every section in the selection builds a clean domain, and the search.
-
-## Ansys workflow
-1. **Import:** In DesignModeler, first set `Units` to the output unit chosen in the sidebar (`Meter` for m, `Millimeter` for mm), then use `Concept > 3D Curve`, select the downloaded `.txt` file and click `Generate`.
-2. **Surface:** Use `Concept > Surfaces from Edges` with the outer boundary and airfoil edges to create the flow surface.
-3. **Split:** Use `Tools > Projection` with the exported split lines.
-4. **Mesh:** choose one of the two workflows; the **Mesh / y⁺** tab gives the settings for both.
-   * **Inflation (quad-dominant):** export the front axis + wake axis (or all six lines); a single line, or the wake axis without the front axis, makes inflation fail. Add `Inflation` on all faces with the airfoil edges **and the wake axis** as boundary, set the global Element Size to about 0.5c and enter the Edge Sizings from the table. The app keeps the trailing-edge element at least 1.5x the last inflation layer (and at least 0.003c); otherwise Ansys cannot build the inflation. Use a sharp trailing edge; blunt TE + inflation failed in our tests.
-   * **Mapped:** export all six split lines (6 blocks), add `Face Meshing` (Mapped) to all faces and the `Edge Sizing` values from the table. The wall-normal edges with the same number of divisions get slightly different bias factors because their lengths differ; one common value changes the first cell by at most 2 % (done this way in the NACA 4412 run).
-   * Inflation and Mapped Face Meshing cannot be combined on the same face.
-5. **Check:** Confirm the cell count and check y⁺ in Fluent. Fluent reports y⁺ at the cell centroid, so expect about half the target value.
-6. **Changing the mesh:** to move a set-up Fluent case to a new mesh, read the case, type `/mesh/replace` in the console and give the file name with its extension (`name.msh`). With the same zone names (`inlet`, `outlet`, `wall`) the boundary conditions, expressions and reports are kept; then initialise. Tried in Fluent 2024 R2.
-
-## Comparison with NACA 0012 data
-The domain and inflation mesh from the app were compared with Ladson's wind-tunnel data (NASA TM-4074, Table I: M = 0.15, Re = 2 × 10⁶, free transition, α = 4.25°).
-
-**Setup:** c = 1 m, C-grid (R = 15 m, wake 20 m), front axis + wake axis, target y⁺ = 1. Ansys Fluent 2024 R2, Transition SST, U = 51.04 m/s, ρ = 1.225 kg/m³, μ = 3.126 × 10⁻⁵ Pa·s, inlet Tu = 1% and viscosity ratio 100. All settings were taken from the app's Mesh / y⁺ tab.
-
-| Mesh | Elements | Max skewness | Min orth. quality | Cl | Cd |
-|---|---|---|---|---|---|
-| A (growth 1.15) | ~38,500 | 0.62 | 0.62 | 0.4469 | 0.00658 |
-| B (growth 1.10) | 53,314 | 0.73 | 0.65 | 0.4481 | 0.00647 |
-| Ladson (experiment) | | | | 0.4450 | 0.00670 |
-
-Cl is within 1% of the experiment and Cd within 2–3.5%; the scatter between different wind tunnels for the NACA 0012 is of the same order (McCroskey, NASA TM-100019). y⁺ on the airfoil is 0.14–1.14. Residuals fully converged in 1000 iterations.
-
-**Limits:** This comparison used one section, one angle and one Reynolds number (see the NACA 4412 run below for the mapped mesh and a cambered section). The turbulence level of Ladson's tunnel is not known and a viscosity ratio of 100 was chosen at the inlet (about 0.43% Tu reaches the leading edge); how close Cd is to the experiment may depend partly on that choice. Read the result as "consistent with the experiment", not as a firm validation.
-
-**Angle sweep and stall (SST k-ω, 2026-11):** The same mesh (B) and velocity-inlet case with fully turbulent SST k-ω were compared with Ladson's Table IX (No. 80 grit, transition fixed at 0.05c, Re 2 × 10⁶) at the same angles (the app's journal with its own list of angles). At 0° Cd is 2 % from the experiment; from 0 to 15° Cl is 2–3.5 % above it (Ladson writes that theory gives a lift-curve slope up to 7 % above the experiment and that the data carry a 2 % tunnel correction); from 6 to 14° Cd is 7–19 % high. In the experiment stall comes between 15 and 16°. SST gave attached flow at 16.02° (Cl 1.45; experiment 1.07), and at 16.99° URANS (Δt = 0.01 c/U, 3000 steps) also settled to attached flow (Cl 1.46, Cd 0.045; experiment 1.09 / 0.249). The oscillation of the steady solver at this angle (Cl 0.30–1.35) was not physical. So SST gives the stall angle and Cl_max too high; an oscillating steady solution is not always stall, check it with URANS. With Transition SST the steady sweep oscillated above 8°.
-
-**NACA 4412: mapped mesh and use-as-drawn mode (2026-11):** The cambered section was built along two independent paths and solved with the same Fluent setup (SST k-ω, Re 2 × 10⁶, velocity inlet, the app's journal) at −4, 0, 4 and 8°: (1) from the section search, a 6-block **mapped mesh** (84 501 quads; the app estimated 84 870; max skewness 0.445); (2) from a Selig `.dat` file, the **use-as-drawn mode** with inflation (47 674 elements; max skewness 0.658). The setup was moved to the second mesh with `/mesh/replace`. The two paths agree within 1.5 % in Cl and 2 % in Cd; the zero-lift angle is −3.90° and −3.98° (thin-airfoil theory −4.15°, experiment ≈ −4°).
-
-## Scope
-* The mesh plan is built for low speed (Mach < 0.3). The Mach input accepts up to 1.0 and suggests a pressure far field above Mach 0.3, but gives no mesh settings specific to compressible flow. In Fluent 2024 R2 (NACA 0012, 15c C-grid) a pressure far field did not converge at M 0.15 at a non-zero angle, and converged cleanly at M 0.3 and 0.5 (whole outer boundary far-field, Time Scale Factor 0.2); use a velocity inlet at low Mach. Transonic sections in the library such as RAE and NASA SC(2) get the same plan, but there is no separate route for the shock region.
-* Domain size (default 15c): at high Cl the far-field boundary affects the lift. As Cl grows, enlarge the radius and check that the result does not change.
-
-## Why split at X = 0.3c?
-If the airfoil goes into DesignModeler as a single curve, or as two curves split only at the LE and TE, surface creation can produce sliver faces near the leading edge. Those faces hurt mesh quality.
-
-AirfoilMatic cuts the airfoil vertically at **X = 0.3c** into four segments (upper-front, upper-rear, lower-front, lower-rear):
-1. **Curvature isolation:** The maximum thickness of many airfoils is near 0.3c. Splitting there separates the high-curvature leading-edge region.
-2. **No sliver faces:** The vertical split lines meet the outer boundaries at right angles, which avoids invalid topology at the junctions.
-3. **Mapped meshing:** Every block is four-sided (in the rectangular domain the front blocks need a Side vertex). For the C-grid, the inlet arc is centered on the split line, so the arc ends exactly where the vertical lines meet the outer boundary and no short straight piece is left in front of 0.3c.
-
-## Technology
-| Component | Technology |
-|---|---|
-| Framework | Streamlit |
-| Computation | NumPy |
-| Plots | Plotly |
-| Language | Python 3.11+ |
+Tests: `pip install pytest`, then `python -m pytest -q`. Python 3.11+, Streamlit, NumPy, Plotly.
 
 ## Developer
-**Muhammet Emin CEYLAN**, Iskenderun Technical University  
-[LinkedIn](https://www.linkedin.com/in/muhammet-emin-ceylan-b79847334) · [GitHub](https://github.com/meceylan)
+**Muhammet Emin CEYLAN**, Iskenderun Technical University · [LinkedIn](https://www.linkedin.com/in/muhammet-emin-ceylan-b79847334) · [GitHub](https://github.com/meceylan)
 
-Please use the [Issues](https://github.com/meceylan/AirfoilMatic/issues) page for bugs and suggestions.
+Please use the [Issues](https://github.com/meceylan/AirfoilMatic/issues) page for bugs and suggestions. Changes: [CHANGELOG.md](CHANGELOG.md).
 
 ## License
-MIT License. The interface font, Source Serif 4, is distributed under the SIL Open Font License 1.1 (`static/fonts/OFL-SourceSerif4.txt`).
-
-The coordinates in the section selection come from the [UIUC Airfoil Coordinates Database](https://m-selig.ae.illinois.edu/ads/coord_database.html) maintained by Prof. Michael S. Selig and are not covered by the app's MIT license. The selection can be rebuilt from the database with `tools/build_airfoil_library.py`.
+MIT License. The interface font, Source Serif 4, is distributed under the SIL Open Font License 1.1 (`static/fonts/OFL-SourceSerif4.txt`). The coordinates in the section selection come from the [UIUC Airfoil Coordinates Database](https://m-selig.ae.illinois.edu/ads/coord_database.html) maintained by Prof. Michael S. Selig and are not covered by the MIT license; the selection can be rebuilt with `tools/build_airfoil_library.py`.

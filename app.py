@@ -511,6 +511,12 @@ with tab_geo:
     y_half = max(0.3 * chord, 1.3 * t_half)
     # capped so the plots do not fill a desktop screen; on phones the width already keeps them short
     fitted_chart(fig_zoom, "plot_zoom", [-0.08 * chord, 1.08 * chord], [-y_half, y_half], max_h=430)
+    # the files most users came for, right under the first plot
+    st.download_button(t("download"), data=txt_data, file_name=f"{file_prefix}{unit_tag}.txt",
+                       mime="text/plain", width="stretch", key="dl_main",
+                       type="primary")
+    st.download_button(t("download_sc"), data=sc_data, file_name=f"{file_prefix}_SpaceClaim{unit_tag}.txt",
+                       mime="text/plain", width="stretch", key="dl_main_sc", help=t("download_sc_help"))
 
     st.subheader(t("full_title"))
     fig_full = go.Figure()
@@ -531,12 +537,6 @@ with tab_geo:
     fitted_chart(fig_full, "plot_full", [xs.min() - pad, xs.max() + pad], [ys.min() - pad, ys.max() + pad],
                  max_h=520)
 
-    st.download_button(t("download"), data=txt_data, file_name=f"{file_prefix}{unit_tag}.txt",
-                       mime="text/plain", width="stretch", key="dl_main",
-                       type="primary")
-    st.download_button(t("download_sc"), data=sc_data, file_name=f"{file_prefix}_SpaceClaim{unit_tag}.txt",
-                       mime="text/plain", width="stretch", key="dl_main_sc")
-    st.caption(t("download_sc_help"))
 
     st.subheader(t("profile_title"))
     st.caption(t("profile_help"))
@@ -544,13 +544,13 @@ with tab_geo:
     pc = st.columns(3)
     pc[0].download_button(t("profile_dm"), data=profile_dm_txt(airfoil, profile_unit),
                           file_name=f"{file_prefix}_profile_{profile_unit}.txt", mime="text/plain",
-                          width="stretch", key="dl_profile_dm")
+                          width="stretch", key="dl_profile_dm", help=t("profile_dm_help"))
     pc[1].download_button(t("profile_sw"), data=profile_solidworks_zip(airfoil, file_prefix, profile_unit),
                           file_name=f"{file_prefix}_profile_{profile_unit}_solidworks.zip", mime="application/zip",
-                          width="stretch", key="dl_profile_sw")
+                          width="stretch", key="dl_profile_sw", help=t("profile_sw_help"))
     pc[2].download_button(t("profile_sc"), data=profile_spaceclaim_txt(airfoil, profile_unit),
                           file_name=f"{file_prefix}_profile_{profile_unit}_spaceclaim.txt", mime="text/plain",
-                          width="stretch", key="dl_profile_sc")
+                          width="stretch", key="dl_profile_sc", help=t("profile_sc_help"))
 
 # ================================================================ mesh tab
 INFLATION, MAPPED = "inflation", "mapped"
@@ -572,6 +572,7 @@ with tab_mesh:
     with c1.container(key="card_flow"):
         st.markdown(ui.step_html(1, t("step_flow")), unsafe_allow_html=True)
         flow_mode = st.radio(t("flow_input"), ["re", "mach", "vel"], horizontal=True, key="flow_mode",
+                             help=t("flow_input_help"),
                              format_func=lambda k: t({"re": "flow_re", "mach": "flow_mach", "vel": "flow_vel"}[k]))
         u_inf = rho = mu = mach_flow = None
         if flow_mode == "re":
@@ -606,7 +607,7 @@ with tab_mesh:
             st.session_state.mesh_mode = INFLATION   # mapped blocks need the vertical split lines
         mesh_mode = st.radio(t("mesh_method"), [INFLATION, MAPPED],
                              format_func=lambda k: t("method_inflation") if k == INFLATION else t("method_mapped"),
-                             key="mesh_mode", disabled=as_is)
+                             key="mesh_mode", disabled=as_is, help=t("mesh_method_help"))
         if as_is:
             st.caption(t("asis_no_mapped"))
         y_plus = st.number_input(t("y_plus"), value=DEFAULTS["y_plus"], min_value=0.05, step=0.5, key="y_plus")
@@ -759,7 +760,7 @@ with tab_mesh:
             st.download_button(t("msh_download"),
                                data=lambda m=msh["mesh"]: to_fluent_msh(m, title=f"AirfoilMatic {APP_VERSION}"),
                                file_name=f"{file_prefix}_mapped.msh", mime="text/plain", key="msh_download",
-                               on_click="ignore")
+                               on_click="ignore", type="primary", width="stretch")
             st.caption(t("msh_note"))
             # Mesh independence: the same inputs refined by sqrt(2) up and down (about 2x cells per step)
             if st.checkbox(t("msh_family"), key="msh_family", help=t("msh_family_help")):
@@ -788,13 +789,13 @@ with tab_mesh:
         st.caption(t("quality_help"))
         qc = st.columns(4)
         sk_max = qc[0].number_input(t("q_sk_max"), value=None, min_value=0.0, max_value=1.0, format="%.4f",
-                                    placeholder="0.76", key="q_sk_max")
+                                    placeholder="0.76", key="q_sk_max", help=t("q_band_skew_help"))
         sk_avg = qc[1].number_input(t("q_sk_avg"), value=None, min_value=0.0, max_value=1.0, format="%.4f",
-                                    placeholder="0.016", key="q_sk_avg")
+                                    placeholder="0.016", key="q_sk_avg", help=t("q_band_skew_help"))
         oq_min = qc[2].number_input(t("q_oq_min"), value=None, min_value=0.0, max_value=1.0, format="%.4f",
-                                    placeholder="0.027", key="q_oq_min")
+                                    placeholder="0.027", key="q_oq_min", help=t("q_band_oq_help"))
         oq_avg = qc[3].number_input(t("q_oq_avg"), value=None, min_value=0.0, max_value=1.0, format="%.4f",
-                                    placeholder="0.995", key="q_oq_avg")
+                                    placeholder="0.995", key="q_oq_avg", help=t("q_band_oq_help"))
         q_rows = []
         worst = 0
         avg_worst = None   # rating key of the worse average: a bad average means much of the mesh, not a few cells
@@ -928,13 +929,12 @@ with tab_mesh:
 # Everything for running many angles in Fluent: the sweep table, the journal that steps the angle
 # and the polar read back from the report file. The single-angle Fluent helper stays on Mesh / y+.
 with tab_auto:
-    st.caption(t("auto_intro"))
     st.markdown(t("auto_steps"))
     if fs is None:
         st.info(t("auto_need_speed"))
     else:
         # ---- angle-of-attack sweep: one row per angle, for a polar
-        st.markdown(f"**{t('sweep_title')}**")
+        st.subheader(t("sweep_title"))
         sweep_mode = st.radio(t("sweep_mode"), ["range", "list"], horizontal=True, key="sweep_mode",
                               format_func=lambda k: t("sweep_mode_range") if k == "range" else t("sweep_mode_list"))
         own_angles = None          # the user's own list; None = even steps
@@ -972,9 +972,15 @@ with tab_auto:
                                file_name=f"{file_prefix}_aoa_sweep.csv", mime="text/csv", key="sweep_csv")
 
             # ---- Fluent journal: steps a named expression (the angle) through the same angles
-            st.markdown(f"**{t('jou_title')}**")
-            expr_now = str(st.session_state.get("jou_expr", "aoa")).strip()
-            iter_now = int(st.session_state.get("jou_iter", 1000))
+            st.subheader(t("jou_title"))
+            # inputs first: the expression name changes the setup lines shown below them
+            jc = st.columns(3)
+            jou_iter = jc[0].number_input(t("jou_iter"), value=1000, min_value=1, step=100, key="jou_iter")
+            jou_expr = jc[1].text_input(t("jou_expr"), value="aoa", help=t("jou_expr_help"), key="jou_expr")
+            jou_save = jc[2].number_input(t("jou_save_every"), value=0, min_value=0, step=1,
+                                          help=t("jou_save_every_help"), key="jou_save_every")
+            jou_folder = st.text_input(t("jou_folder"), value="", help=t("jou_folder_help"), key="jou_folder")
+            expr_now, iter_now = jou_expr.strip(), int(jou_iter)
             try:
                 setup = expression_setup(expr_now, rho_f, fs.speed, chord)
             except ValueError:
@@ -991,27 +997,21 @@ with tab_auto:
                     f"{t('jou_setup_cl')}: {setup['cl']}",
                     f"{t('jou_setup_cd')}: {setup['cd']}",
                     f"{t('jou_setup_clconv')}: {setup['clconv']}",
-                ]), language=None)
+                ]), language=None, wrap_lines=True)
                 st.caption(t("jou_setup_note"))
             st.caption(t("jou_note", iterations=iter_now, expr=expr_now))
-            jc = st.columns(3)
-            jou_iter = jc[0].number_input(t("jou_iter"), value=1000, min_value=1, step=100, key="jou_iter")
-            jou_expr = jc[1].text_input(t("jou_expr"), value="aoa", help=t("jou_expr_help"), key="jou_expr")
-            jou_save = jc[2].number_input(t("jou_save_every"), value=0, min_value=0, step=1,
-                                          help=t("jou_save_every_help"), key="jou_save_every")
-            jou_folder = st.text_input(t("jou_folder"), value="", help=t("jou_folder_help"), key="jou_folder")
             try:
-                jou_text = sweep_journal(a0, a1, da, iterations=int(jou_iter), expression=jou_expr.strip(),
+                jou_text = sweep_journal(a0, a1, da, iterations=iter_now, expression=expr_now,
                                          save_every=int(jou_save), folder=jou_folder.strip(), prefix=file_prefix,
                                          version=APP_VERSION, angles=own_angles)
             except ValueError as e:
                 st.error(t("jou_error", msg=te(e)))
             else:
                 st.download_button(t("jou_download"), data=jou_text, file_name=f"{file_prefix}_aoa_sweep.jou",
-                                   mime="text/plain", key="jou_download")
+                                   mime="text/plain", key="jou_download", type="primary", width="stretch")
 
     # ---- polar from the report file written during the sweep
-    st.markdown(f"**{t('polar_title')}**")
+    st.subheader(t("polar_title"))
     st.caption(t("polar_note"))
     rep_files = st.file_uploader(t("polar_upload"), type=["out", "txt", "csv"], key="polar_file",
                                  accept_multiple_files=True, help=t("polar_upload_help"))
@@ -1103,7 +1103,7 @@ with tab_auto:
                                    key="polar_csv")
 
     # ---- mesh independence: grid convergence index of three meshes (Celik et al. 2008)
-    st.markdown(f"**{t('gci_title')}**")
+    st.subheader(t("gci_title"))
     st.caption(t("gci_note"))
     gci_files = st.file_uploader(t("gci_upload"), type=["out", "txt", "csv"], key="gci_files",
                                  accept_multiple_files=True, help=t("gci_upload_help"))
@@ -1132,7 +1132,9 @@ with tab_auto:
                 st.session_state["gci_sig"] = sig
                 for i in (1, 2, 3):
                     st.session_state[f"gci_n{i}"] = fam_n[i - 1] if fam_n else None
-    gcols = st.columns(3)
+    # without files the nine boxes are for typing by hand: folded, so they do not look like a form to fill
+    grid = st.container() if gci_meshes else st.expander(t("gci_manual"))
+    gcols = grid.columns(3)
     gin = {}
     heads = [h for h, _ in gci_meshes] if gci_meshes else [t(k) for k in ("gci_fine", "gci_medium", "gci_coarse")]
     for col, i, head in zip(gcols, (1, 2, 3), heads):

@@ -13,6 +13,7 @@ from airfoilmatic.geometry import naca, split_at
 from airfoilmatic.i18n import ERRORS_TR, tr
 from airfoilmatic.mesh import plan_mesh, reynolds
 from airfoilmatic.topology import build_domain
+from _docs import doc_text
 
 APP = str(Path(__file__).resolve().parents[1] / "app.py")
 RE = reynolds(51.04, 1.225, 3.126e-5, 1.0)
@@ -128,7 +129,7 @@ def test_texts(lang):
 
 @pytest.mark.parametrize("name", ["README.md", "README.en.md", "CHANGELOG.md"])
 def test_docs_describe_mesh_independence(name):
-    text = (Path(APP).parent / name).read_text(encoding="utf-8")
+    text = doc_text(name)
     assert "GCI" in text and "Celik" in text and "√2" in text
 
 
@@ -140,5 +141,5 @@ def test_family_note_says_it_was_tried(lang):
 
 @pytest.mark.parametrize("name", ["README.md", "README.en.md", "CHANGELOG.md"])
 def test_docs_hold_the_family_run(name):
-    text = (Path(APP).parent / name).read_text(encoding="utf-8")
+    text = doc_text(name)
     assert "0.8355" in text and ("0.8353" in text or "0.83529" in text)

@@ -15,6 +15,7 @@ from airfoilmatic.blockmesh import _top_from_wall, build_cgrid, quality
 from airfoilmatic.geometry import close_small_te_gap, naca, parse_airfoil_file, split_at
 from airfoilmatic.mesh import plan_mesh
 from airfoilmatic.topology import build_domain
+from _docs import doc_text
 
 
 def section(sid):
@@ -79,6 +80,6 @@ def test_whole_library_has_no_poor_far_field_cell(library_sweep):
                                           ("README.md", ("dikey sütun",)), ("README.en.md", ("vertical columns",))])
 def test_docs_mention_the_far_field_columns(name, words):
     from pathlib import Path
-    text = (Path(__file__).resolve().parents[1] / name).read_text(encoding="utf-8")
+    text = doc_text(name)
     for w in words:
         assert w in text, w

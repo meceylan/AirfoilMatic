@@ -90,7 +90,7 @@ def test_invalid_expression_error_is_turkish_in_turkish_ui():
 def test_texts_render_in_both_languages(lang):
     at = start(lang)
     assert not at.exception and not at.error
-    html = " ".join(m.value for m in at.markdown)
+    html = " ".join(m.value for m in list(at.markdown) + list(at.subheader))   # the title is a heading now
     assert tr("jou_title", lang) in html
     assert tr("jou_note", lang, iterations=1000, expr="aoa") in " ".join(c.value for c in at.caption)
     assert by_key(at, "number_input", "jou_iter").label == tr("jou_iter", lang)

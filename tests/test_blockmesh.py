@@ -11,6 +11,7 @@ from airfoilmatic.geometry import naca, split_at
 from airfoilmatic.i18n import ERRORS_TR, tr
 from airfoilmatic.mesh import plan_mesh, reynolds
 from airfoilmatic.topology import RECT, build_domain
+from _docs import doc_text
 
 APP = str(Path(__file__).resolve().parents[1] / "app.py")
 RE = reynolds(51.04, 1.225, 3.126e-5, 1.0)       # the Ladson / NACA 4412 runs
@@ -155,7 +156,7 @@ def test_mesh_file_texts_exist(lang):
 
 @pytest.mark.parametrize("name", ["README.md", "README.en.md", "CHANGELOG.md"])
 def test_docs_describe_the_mesh_file(name):
-    text = (Path(APP).parent / name).read_text(encoding="utf-8")
+    text = doc_text(name)
     assert "Fluent mesh" in text and ".msh" in text and "transfinite" in text
 
 
@@ -173,13 +174,15 @@ def test_orthogonal_quality_matches_fluent():
 
 @pytest.mark.parametrize("lang", ["tr", "en"])
 def test_mesh_note_says_the_solution_was_tried(lang):
-    text = tr("msh_note", lang)
+    """The note says it was tried; the numbers are on the validation page (README + docs)."""
+    assert ("denendi" if lang == "tr" else "tried") in tr("msh_note", lang)
+    text = doc_text("README.md" if lang == "tr" else "README.en.md")
     assert "0.01 %" in text or "%0.01" in text
 
 
 @pytest.mark.parametrize("name", ["README.md", "README.en.md", "CHANGELOG.md"])
 def test_docs_hold_the_fluent_solution_on_the_app_mesh(name):
-    text = (Path(APP).parent / name).read_text(encoding="utf-8")
+    text = doc_text(name)
     assert "0.41739" in text
 
 
@@ -242,5 +245,5 @@ def test_sharp_te_has_no_jump_near_the_te():
 
 @pytest.mark.parametrize("name", ["README.md", "README.en.md", "CHANGELOG.md"])
 def test_docs_hold_the_blunt_te_run(name):
-    text = (Path(APP).parent / name).read_text(encoding="utf-8")
+    text = doc_text(name)
     assert "GA(W)-1" in text and "−3.87°" in text

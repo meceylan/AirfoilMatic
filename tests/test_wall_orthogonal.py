@@ -12,6 +12,7 @@ from airfoilmatic.blockmesh import WALL, build_cgrid, mesh_family, quality
 from airfoilmatic.geometry import close_small_te_gap, naca, parse_airfoil_file, split_at
 from airfoilmatic.mesh import plan_mesh, reynolds
 from airfoilmatic.topology import build_domain
+from _docs import doc_text
 
 RE = reynolds(51.04, 1.225, 3.126e-5, 1.0)
 
@@ -109,8 +110,7 @@ def test_orthogonal_quality_matches_fluent_on_the_new_mesh():
 @pytest.mark.parametrize("lang, words", [("tr", ("duvardan dik", "denendi", "0.37", "0.84", "1.22287")),
                                           ("en", ("right angles", "tried", "0.37", "0.84", "1.22287"))])
 def test_mesh_note_tells_the_new_start_was_tried(lang, words):
-    from airfoilmatic.i18n import tr
-    text = tr("msh_note", lang)
+    text = doc_text("README.md" if lang == "tr" else "README.en.md")
     for w in words:
         assert w in text or w.capitalize() in text, w
 
@@ -120,7 +120,7 @@ def test_mesh_note_tells_the_new_start_was_tried(lang, words):
                                           ("CHANGELOG.md", ("right angles", "duvardan dik", "S9104", "0.844962"))])
 def test_docs_describe_the_wall_orthogonal_start(name, words):
     from pathlib import Path
-    text = (Path(__file__).resolve().parents[1] / name).read_text(encoding="utf-8")
+    text = doc_text(name)
     # the paragraphs about the start at right angles (CHANGELOG: EN and TR entries)
     paras = [p for p in text.splitlines() if "right angles" in p or "duvardan dik" in p]
     assert paras

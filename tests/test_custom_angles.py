@@ -8,6 +8,7 @@ from streamlit.testing.v1 import AppTest
 
 from airfoilmatic.fluent import alpha_sweep, angle_rows, parse_angles, sweep_journal
 from airfoilmatic.i18n import ERRORS_TR, tr
+from _docs import doc_text
 
 APP = str(Path(__file__).resolve().parents[1] / "app.py")
 
@@ -151,4 +152,4 @@ def test_setup_note_says_the_inlet_lines_were_tried(lang):
 
 @pytest.mark.parametrize("name", ["README.md", "README.en.md", "CHANGELOG.md"])
 def test_docs_say_the_list_was_tried(name):
-    assert "1.99, 4.01, 6.11, 8.08" in (ROOT / name).read_text(encoding="utf-8")
+    assert "1.99, 4.01, 6.11, 8.08" in doc_text(name)

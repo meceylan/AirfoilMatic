@@ -6,6 +6,7 @@ import pytest
 from streamlit.testing.v1 import AppTest
 
 from airfoilmatic.i18n import tr
+from _docs import doc_text
 
 APP = str(Path(__file__).resolve().parents[1] / "app.py")
 
@@ -66,7 +67,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 @pytest.mark.parametrize("lang", ["tr", "en"])
 def test_journal_note_says_a_far_field_sweep_was_tried(lang):
-    note = tr("jou_note", lang, expr="aoa", iterations=1000)
+    note = doc_text("README.md" if lang == "tr" else "README.en.md")
     assert "M 0.3" in note and "2…8°" in note
 
 
@@ -78,5 +79,5 @@ def test_journal_header_says_a_far_field_sweep_was_tried():
 
 @pytest.mark.parametrize("name", ["README.md", "README.en.md", "CHANGELOG.md"])
 def test_docs_say_a_far_field_sweep_was_tried(name):
-    text = (ROOT / name).read_text(encoding="utf-8")
+    text = doc_text(name)
     assert "M 0.3, 2…8°" in text

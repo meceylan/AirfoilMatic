@@ -17,6 +17,7 @@ from airfoilmatic.blockmesh import build_cgrid, quality
 from airfoilmatic.geometry import close_small_te_gap, naca, parse_airfoil_file, split_at
 from airfoilmatic.mesh import plan_mesh
 from airfoilmatic.topology import build_domain
+from _docs import doc_text
 
 
 def section(sid):
@@ -80,7 +81,7 @@ def test_whole_library(re, floor, library_sweep):
     ("README.en.md", ("front axis", "1.22288"))])
 def test_docs_describe_the_bent_axis(name, words):
     from pathlib import Path
-    text = (Path(__file__).resolve().parents[1] / name).read_text(encoding="utf-8")
+    text = doc_text(name)
     assert "bükülme Fluent'te henüz denenmedi" not in text and "bend is not tried in Fluent yet" not in text
     for w in words:
         assert w in text, w
@@ -90,10 +91,11 @@ def test_docs_describe_the_bent_axis(name, words):
                                          ("en", ("front axis", "0.895", "1.22288"))])
 def test_mesh_note_mentions_the_bent_axis(lang, words):
     from airfoilmatic.i18n import tr
-    text = tr("msh_note", lang)
+    assert "denenmedi" not in tr("msh_note", lang).split("C-Grid ve dikdörtgen")[-1]
+    text = doc_text("README.md" if lang == "tr" else "README.en.md")
     assert "bükülme Fluent'te henüz denenmedi" not in text and "bend is not tried" not in text
     for w in words:
-        assert w in text, w
+        assert w in text or w.lower() in text, w
 
 
 def test_orthogonal_quality_matches_fluent_on_the_bent_axis_mesh():

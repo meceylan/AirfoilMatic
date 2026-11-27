@@ -78,6 +78,8 @@ _CSS = """
 [data-testid="stColumn"]:has([class*="st-key-card_"]) > [data-testid="stVerticalBlock"],
 [data-testid="stLayoutWrapper"]:has(> [class*="st-key-card_"]),
 [class*="st-key-card_"]{flex:1 1 auto !important;}
+/* narrow input cards: a label may wrap between words, never inside one ("Reynold/s") */
+[class*="st-key-card_"] label, [class*="st-key-card_"] p{word-break:keep-all;overflow-wrap:normal;hyphens:none;}
 
 /* tables and metrics: emerald accent on the left */
 [data-testid="stDataFrame"]{border-left:4px solid var(--am-acc);border-radius:.8rem;overflow:hidden;

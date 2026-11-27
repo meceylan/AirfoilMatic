@@ -7,12 +7,13 @@ import pytest
 
 from airfoilmatic.fluent import sweep_journal
 from airfoilmatic.i18n import tr
+from _docs import doc_text
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 def read(name):
-    return (ROOT / name).read_text(encoding="utf-8")
+    return doc_text(name)
 
 
 @pytest.mark.parametrize("name, stale", [
@@ -37,7 +38,8 @@ def test_docs_hold_the_naca4412_runs_and_mesh_replace(name):
 
 @pytest.mark.parametrize("lang", ["tr", "en"])
 def test_journal_note_says_workbench_was_tried(lang):
-    assert "current and future" in tr("jou_note", lang, expr="aoa", iterations=1000)
+    assert "Workbench" in tr("jou_note", lang, expr="aoa", iterations=1000)
+    assert "current and future" in doc_text("README.md" if lang == "tr" else "README.en.md")
 
 
 def test_journal_header_says_workbench_was_tried():

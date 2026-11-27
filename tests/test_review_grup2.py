@@ -12,6 +12,7 @@ from airfoilmatic.gci import gci
 from airfoilmatic.geometry import AirfoilError, naca
 from airfoilmatic.i18n import ERRORS_TR, tr
 from airfoilmatic.polar import guess_columns, merge_reports, polar, read_report
+from _docs import doc_text
 
 ROOT = Path(__file__).resolve().parents[1]
 APP = str(ROOT / "app.py")
@@ -175,7 +176,7 @@ def test_ci_runs_the_python_of_streamlit_cloud():
 # ---------------------------------------------------------------- docs
 @pytest.mark.parametrize("name, words", [("README.md", ("burunda", "0.73")), ("README.en.md", ("at the nose", "0.73"))])
 def test_s9104_numbers_say_where_they_apply(name, words):
-    text = (ROOT / name).read_text(encoding="utf-8")
+    text = doc_text(name)
     for x in words:
         assert x in text, x
 

@@ -16,6 +16,7 @@ from airfoilmatic.blockmesh import INLET, OUTLET, WALL, build_cgrid, mesh_family
 from airfoilmatic.geometry import close_small_te_gap, naca, parse_airfoil_file, split_at
 from airfoilmatic.mesh import plan_mesh
 from airfoilmatic.topology import RECT, build_domain
+from _docs import doc_text
 
 APP = str(Path(__file__).resolve().parents[1] / "app.py")
 
@@ -93,13 +94,13 @@ def test_app_offers_the_rectangle_mesh():
     ("CHANGELOG.md", ("Fluent mesh file for the rectangular domain", "Dikdörtgen domain için Fluent mesh dosyası")),
     ("README.md", ("C-Grid ya da dikdörtgen",)), ("README.en.md", ("C-grid or rectangular",))])
 def test_docs_describe_the_rectangle_mesh(name, words):
-    text = (Path(__file__).resolve().parents[1] / name).read_text(encoding="utf-8")
+    text = doc_text(name)
     assert "The rectangular domain is not covered yet" not in text
     for w in words:
         assert w in text, w
 
 
-@pytest.mark.parametrize("lang, word", [("tr", "dikdörtgen"), ("en", "rectangular")])
+@pytest.mark.parametrize("lang, word", [("tr", "dikdörtgen"), ("en", "rectangle")])
 def test_mesh_note_covers_the_rectangle(lang, word):
     from airfoilmatic.i18n import tr
     assert word in tr("msh_note", lang)
@@ -118,7 +119,7 @@ def test_orthogonal_quality_matches_fluent_on_the_rectangle():
 @pytest.mark.parametrize("name, words", [("CHANGELOG.md", ("0.667662", "1.22537")), ("README.md", ("1.22537",)),
                                           ("README.en.md", ("1.22537",))])
 def test_docs_say_the_rectangle_was_tried(name, words):
-    text = (Path(__file__).resolve().parents[1] / name).read_text(encoding="utf-8")
+    text = doc_text(name)
     assert "dikdörtgen Fluent'te henüz denenmedi" not in text and "the rectangle is not tried in Fluent yet" not in text
     for w in words:
         assert w in text, w
@@ -126,6 +127,5 @@ def test_docs_say_the_rectangle_was_tried(name, words):
 
 @pytest.mark.parametrize("lang", ["tr", "en"])
 def test_mesh_note_says_the_rectangle_was_tried(lang):
-    from airfoilmatic.i18n import tr
-    text = tr("msh_note", lang)
+    text = doc_text("README.md" if lang == "tr" else "README.en.md")
     assert "1.22537" in text
