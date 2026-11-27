@@ -108,17 +108,27 @@ def tfi(bottom, top, left, right):
 # (exponential weight, rate DECAY; a slower blend left skewness ~0.85 where the lines bend in front
 # of the nose); within LE_FADE / SPLIT_FADE of wall length from the side edges (kept as given) the
 # start direction turns into the edge's direction.
+# The front axis of the .msh leaves the leading edge along the wall normal (the bisector of the
+# upper and lower normals) and bends to horizontal within AXIS_BEND chords. A straight horizontal
+# axis is tilted from the normal by the camber-line slope (NACA 4412: 11 degrees); the lines turning
+# into it changed the wall-normal first-cell height from column to column, which on cells 10^4 times
+# longer than high dropped the orthogonal quality (NACA 4412, Re 3e7: 0.24; E63: 0.004).
+AXIS_BEND = 1.0
 BLEND = 0.5
 DECAY = 5.0
-LE_FADE = 0.005
+LE_FADE = 0.002
+LE_FADE_V1 = 0.005     # the first version (straight front axis), tried in Fluent on 2026-11-27
 SPLIT_FADE = 0.05
 
 
-def wall_orthogonal(P, chord, blend=BLEND, fades=None):
+def wall_orthogonal(P, chord, blend=BLEND, fades=None, edge_heights=True):
     """Block nodes ``P`` (from ``tfi``, wall at j = 0) with each line i starting along the wall
     normal: the node at arc length s from the wall moves towards wall + s * normal with the weight
     (exp(-DECAY x) - exp(-DECAY)) / (1 - exp(-DECAY)), x = s / blend. Near both ends the normal
-    turns into the side edge's direction. Wall, top and side edges are kept exactly (shared nodes)."""
+    turns into the side edge's direction. Wall, top and side edges are kept exactly (shared nodes).
+    ``edge_heights``: the distance s of node j from the wall is blended between the two side edges
+    (the planned distribution) by the wall fraction, not taken from each interpolated line's own
+    length, which varies slightly between columns (0.7 % gave orthogonal quality 0.12 at Re 3e7)."""
     P = np.asarray(P, float)
     B = P[:, 0]
     t = np.gradient(B, axis=0)
@@ -143,7 +153,12 @@ def wall_orthogonal(P, chord, blend=BLEND, fades=None):
         g = (g * g * (3.0 - 2.0 * g))[:, None]
         n = (1.0 - g) * n + g * e / np.linalg.norm(e)
         n /= np.linalg.norm(n, axis=1)[:, None]
-    s = np.concatenate([np.zeros((len(B), 1)), np.cumsum(np.linalg.norm(np.diff(P, axis=1), axis=2), 1)], 1)
+    if edge_heights:
+        sL, sR = (np.concatenate([[0.0], np.cumsum(np.linalg.norm(np.diff(P[k], axis=0), axis=1))]) for k in (0, -1))
+        f = (sw / sw[-1])[:, None]
+        s = (1.0 - f) * sL[None, :] + f * sR[None, :]
+    else:
+        s = np.concatenate([np.zeros((len(B), 1)), np.cumsum(np.linalg.norm(np.diff(P, axis=1), axis=2), 1)], 1)
     x = np.clip(s / (blend * chord), 0.0, 1.0)
     w = (np.exp(-DECAY * x) - np.exp(-DECAY)) / (1.0 - np.exp(-DECAY))
     out = P + w[..., None] * (B[:, None, :] + n[:, None, :] * s[..., None] - P)
@@ -164,6 +179,33 @@ def _from(e, small_first):
     (``small_first``) or at its end."""
     t = _fractions(e.n, e.ratio)
     return t if small_first else (1.0 - t[::-1])
+
+
+def _bent_line(p0, p1, d0, t, bend):
+    """Edge p0 -> p1 with nodes at arc-length fractions ``t`` that leaves p0 along ``d0`` and turns
+    into the direction of p1 within ``bend`` (the turn angle falls as (1 - s/bend)^2), then runs
+    straight to p1."""
+    p0, p1 = np.asarray(p0, float), np.asarray(p1, float)
+    u = (p1 - p0) / np.linalg.norm(p1 - p0)
+    d0 = np.asarray(d0, float) / np.linalg.norm(d0)
+    phi0 = np.arctan2(u[0] * d0[1] - u[1] * d0[0], u @ d0)
+    s = np.linspace(0.0, bend, 600)
+    phi = phi0 * (1.0 - s[:-1] / bend) ** 2
+    dirs = np.column_stack([u[0] * np.cos(phi) - u[1] * np.sin(phi), u[1] * np.cos(phi) + u[0] * np.sin(phi)])
+    pts = np.vstack([p0, p0 + np.cumsum(dirs * np.diff(s)[:, None], 0), p1])
+    return _along(pts[:, 0], pts[:, 1], t)
+
+
+def _le_normal(af):
+    """Outward wall normal at the leading edge: bisector of the normals of the first upper and
+    lower surface segments (pointing upstream)."""
+    out = np.zeros(2)
+    for poly in (af.upper_front, af.lower_front):
+        x, y = np.asarray(poly[0], float), np.asarray(poly[1], float)
+        tg = np.array([x[1] - x[0], y[1] - y[0]])
+        n = np.array([-tg[1], tg[0]]) / np.linalg.norm(tg)
+        out += n if n[0] < 0 else -n
+    return out / np.linalg.norm(out)
 
 
 def _top_from_wall(wall, p0, p1, t):
@@ -190,10 +232,12 @@ def _check_size(cells):
         raise ValueError("The mesh file is limited to 1 000 000 cells")
 
 
-def build_cgrid(domain, af, plan, orthogonal=True):
+def build_cgrid(domain, af, plan, orthogonal=True, axis_bend=True):
     """Mapped C-grid of ``domain`` (``topology.build_domain``, all six split lines) with the
     edge distributions of ``plan`` (``mesh.plan_mesh``). ``orthogonal=False`` gives the plain TFI
-    mesh of the files tried in Fluent before 2026-11-27 (no ``wall_orthogonal`` start)."""
+    mesh of the files tried in Fluent before 2026-11-27 (no ``wall_orthogonal`` start);
+    ``axis_bend=False`` the first wall-orthogonal version (straight front axis, first-cell heights
+    from each line's length), tried in Fluent on 2026-11-27."""
     if domain.kind != C_GRID:
         raise ValueError("The mesh file is only available for the C-grid domain")
     _check_size(plan.cells)
@@ -232,6 +276,9 @@ def build_cgrid(domain, af, plan, orthogonal=True):
         return _line(p0, p1, _from(e, True))
 
     e_axis = normal("front_axis", le, p_in)
+    if orthogonal and axis_bend:
+        e_axis = _bent_line(le, p_in, _le_normal(af), _from(_edge(plan, "g_normal", "front_axis"), True),
+                            AXIS_BEND * float(np.hypot(*(tm - le))))
     chord = float(np.hypot(*(tm - le)))
     centre = np.array([d.x_split, 0.0])
     blocks, wall_edges, outlet_edges = [], [], []
@@ -264,7 +311,8 @@ def build_cgrid(domain, af, plan, orthogonal=True):
             e_out = np.column_stack([np.full(len(e_wake_left), x_exit), e_wake_left[:, 1]])
             e_out[0], e_out[-1] = exm, ex
         front_block = tfi(e_af_f, e_arc, e_axis, e_split)
-        blocks += [wall_orthogonal(front_block, chord) if orthogonal else front_block,
+        fades = None if axis_bend else (LE_FADE_V1, SPLIT_FADE)
+        blocks += [wall_orthogonal(front_block, chord, fades=fades, edge_heights=axis_bend) if orthogonal else front_block,
                    tfi(e_af_r, e_top_mid, e_split, e_te),
                    tfi(e_wake, e_top_wake, e_wake_left, e_out)]
         wall_edges += [e_af_f, e_af_r]
