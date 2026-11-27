@@ -166,6 +166,20 @@ def _from(e, small_first):
     return t if small_first else (1.0 - t[::-1])
 
 
+def _top_from_wall(wall, p0, p1, t):
+    """Far edge p0 -> p1 of a rear block with its nodes at the x positions of the surface nodes
+    ``wall`` (split -> TE), so the columns run straight up. The table's fractions ``t`` would make
+    the cells between surface and far edge slightly trapezoidal on a cambered section (its surface
+    falls steeply to the TE: shorter cells in x); 1.36c high and 0.0009c wide at the far boundary,
+    a 6 % taper gave orthogonal quality 0.06 (NACA 9940). Falls back to ``t`` when the surface x
+    is not increasing (e.g. a hooked trailing edge)."""
+    x = np.asarray(wall, float)[:, 0]
+    f = (x - x[0]) / (x[-1] - x[0]) if x[-1] != x[0] else None
+    if f is None or np.any(np.diff(f) <= 0):
+        f = t
+    return _line(p0, p1, np.asarray(f, float))
+
+
 def build_cgrid(domain, af, plan, orthogonal=True):
     """Mapped C-grid of ``domain`` (``topology.build_domain``, all six split lines) with the
     edge distributions of ``plan`` (``mesh.plan_mesh``). ``orthogonal=False`` gives the plain TFI
@@ -217,7 +231,7 @@ def build_cgrid(domain, af, plan, orthogonal=True):
         e_split = normal("split_up" if side == "upper" else "split_low", sp, at)
         e_te = normal("te_up" if side == "upper" else "te_low", te, tt)
         e_arc = _arc(centre, d.y_top, p_in, at, front.n)
-        e_top_mid = _line(at, tt, t_rear)
+        e_top_mid = _top_from_wall(e_af_r, at, tt, t_rear)
         e_top_wake = _line(tt, ex, t_wake)
         e_wake = _line(tm, exm, t_wake)
         if not d.blunt_te:
