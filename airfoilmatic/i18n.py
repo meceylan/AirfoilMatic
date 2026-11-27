@@ -1138,8 +1138,8 @@ STRINGS = {
         "en": 'Download the 3 meshes (ZIP)',
     },
     'msh_family_cells': {
-        "tr": "İlk hücre yüksekliği de aileyle birlikte değişir: hedef y⁺ kaba mesh'te yaklaşık 1.4, ince mesh'te 0.7 katı olur (ailenin doğru tanımı: tüm boyutlar birlikte küçülür). Fluent'te üç mesh'le çözüm henüz denenmedi.",
-        "en": 'The first-cell height changes with the family as well: the target y⁺ becomes about 1.4 times on the coarse and 0.7 times on the fine mesh (a proper family refines every size together). Solving the three meshes in Fluent is not tried yet.',
+        "tr": "İlk hücre yüksekliği de aileyle birlikte değişir: hedef y⁺ kaba mesh'te yaklaşık 1.4, ince mesh'te 0.7 katı olur (ailenin doğru tanımı: tüm boyutlar birlikte küçülür). Fluent 2024 R2'de denendi (NACA 4412, 4°, SST k-ω, Re 2×10⁶; 42 944 / 84 870 / 169 824 hücre): Cl 0.8355 / 0.8359 / 0.8353, Cd 0.012580 / 0.012567 / 0.012573; üç mesh arasındaki fark %0.1'in altında (salınımlı, yani çok küçük farklar).",
+        "en": 'The first-cell height changes with the family as well: the target y⁺ becomes about 1.4 times on the coarse and 0.7 times on the fine mesh (a proper family refines every size together). Tried in Fluent 2024 R2 (NACA 4412, 4°, SST k-ω, Re 2×10⁶; 42 944 / 84 870 / 169 824 cells): Cl 0.8355 / 0.8359 / 0.8353, Cd 0.012580 / 0.012567 / 0.012573; the three meshes differ by less than 0.1 % (oscillatory, i.e. very small differences).',
     },
     'gci_title': {
         "tr": 'Mesh bağımsızlığı (GCI)',

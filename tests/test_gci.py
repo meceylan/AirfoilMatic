@@ -130,3 +130,15 @@ def test_texts(lang):
 def test_docs_describe_mesh_independence(name):
     text = (Path(APP).parent / name).read_text(encoding="utf-8")
     assert "GCI" in text and "Celik" in text and "√2" in text
+
+
+@pytest.mark.parametrize("lang", ["tr", "en"])
+def test_family_note_says_it_was_tried(lang):
+    text = tr("msh_family_cells", lang)
+    assert "denenmedi" not in text and "not tried" not in text and "0.835" in text
+
+
+@pytest.mark.parametrize("name", ["README.md", "README.en.md", "CHANGELOG.md"])
+def test_docs_hold_the_family_run(name):
+    text = (Path(APP).parent / name).read_text(encoding="utf-8")
+    assert "0.8355" in text and "0.8353" in text
