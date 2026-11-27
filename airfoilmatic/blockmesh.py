@@ -3,7 +3,8 @@
 The six blocks and every edge distribution come from ``mesh.plan_mesh`` (the Edge Sizing
 table): the same Number of Divisions and bias that Ansys Meshing would use. The inside of
 each block is filled by transfinite interpolation (Coons patch) whose blending follows the
-spacing of the block edges, so the first cell at the wall keeps the planned height.
+spacing of the block edges, so the first cell at the wall keeps the planned height. On the two
+front blocks the grid lines then start along the wall normal (``wall_orthogonal``).
 
 Fluent face convention (checked on a .msh file written by Ansys Meshing 2024 R2): a face is
 ``n0 n1 c0 c1``; c0 lies to the left of n0 -> n1 and c1 to the right; on a boundary c1 = 0.
@@ -100,6 +101,56 @@ def tfi(bottom, top, left, right):
     return P
 
 
+# Wall-orthogonal start of the grid lines on the front blocks (leading edge -> split line). Plain
+# TFI let the lines leave the concave lower surface behind the nose of strongly cambered sections
+# almost along the wall (S9104: skewness 0.90, orthogonal quality 0.05; E377: 0.97). Lengths in
+# chords: the lines start along the wall normal and join the interpolated line within BLEND
+# (exponential weight, rate DECAY; a slower blend left skewness ~0.85 where the lines bend in front
+# of the nose); within LE_FADE / SPLIT_FADE of wall length from the side edges (kept as given) the
+# start direction turns into the edge's direction.
+BLEND = 0.5
+DECAY = 5.0
+LE_FADE = 0.005
+SPLIT_FADE = 0.05
+
+
+def wall_orthogonal(P, chord, blend=BLEND, fades=None):
+    """Block nodes ``P`` (from ``tfi``, wall at j = 0) with each line i starting along the wall
+    normal: the node at arc length s from the wall moves towards wall + s * normal with the weight
+    (exp(-DECAY x) - exp(-DECAY)) / (1 - exp(-DECAY)), x = s / blend. Near both ends the normal
+    turns into the side edge's direction. Wall, top and side edges are kept exactly (shared nodes)."""
+    P = np.asarray(P, float)
+    B = P[:, 0]
+    t = np.gradient(B, axis=0)
+    t /= np.linalg.norm(t, axis=1)[:, None]
+    n = np.column_stack([-t[:, 1], t[:, 0]])
+    if np.mean(np.sum(n * (P[:, 1] - B), 1)) < 0:      # point into the block
+        n = -n
+    # near each end the direction turns into that of the side edge (which stays as given)
+    sw = np.concatenate([[0.0], np.cumsum(np.linalg.norm(np.diff(B, axis=0), axis=1))])
+    fades = (LE_FADE, SPLIT_FADE) if fades is None else fades
+    for end, dist, fade in ((0, sw, fades[0]), (-1, sw[-1] - sw, fades[1])):
+        e = P[end, 1] - P[end, 0]
+        # A normal leaning past the side edge (away from the block) would run towards it: at a
+        # cambered LE (NACA 9940) the lines crossed the front axis. Such a node starts along the
+        # edge instead (S9104, rising lower surface before the split line: 0.79 -> 0.64 skewness
+        # with this rule on the whole wall rather than near the edge only).
+        e_u = e / np.linalg.norm(e)
+        inward = B[1] - B[0] if end == 0 else B[-2] - B[-1]
+        side = np.sign(e_u[0] * inward[1] - e_u[1] * inward[0])
+        n[np.sign(e_u[0] * n[:, 1] - e_u[1] * n[:, 0]) == -side] = e_u
+        g = np.clip(1.0 - dist / (fade * chord), 0.0, 1.0)
+        g = (g * g * (3.0 - 2.0 * g))[:, None]
+        n = (1.0 - g) * n + g * e / np.linalg.norm(e)
+        n /= np.linalg.norm(n, axis=1)[:, None]
+    s = np.concatenate([np.zeros((len(B), 1)), np.cumsum(np.linalg.norm(np.diff(P, axis=1), axis=2), 1)], 1)
+    x = np.clip(s / (blend * chord), 0.0, 1.0)
+    w = (np.exp(-DECAY * x) - np.exp(-DECAY)) / (1.0 - np.exp(-DECAY))
+    out = P + w[..., None] * (B[:, None, :] + n[:, None, :] * s[..., None] - P)
+    out[0], out[-1], out[:, 0], out[:, -1] = P[0], P[-1], P[:, 0], P[:, -1]
+    return out
+
+
 # ---------------------------------------------------------------- C-grid blocks
 def _edge(plan, group, key=None):
     for e in plan.edges:
@@ -115,9 +166,10 @@ def _from(e, small_first):
     return t if small_first else (1.0 - t[::-1])
 
 
-def build_cgrid(domain, af, plan):
+def build_cgrid(domain, af, plan, orthogonal=True):
     """Mapped C-grid of ``domain`` (``topology.build_domain``, all six split lines) with the
-    edge distributions of ``plan`` (``mesh.plan_mesh``)."""
+    edge distributions of ``plan`` (``mesh.plan_mesh``). ``orthogonal=False`` gives the plain TFI
+    mesh of the files tried in Fluent before 2026-11-27 (no ``wall_orthogonal`` start)."""
     if domain.kind != C_GRID:
         raise ValueError("The mesh file is only available for the C-grid domain")
     d = domain
@@ -152,6 +204,7 @@ def build_cgrid(domain, af, plan):
         return _line(p0, p1, _from(e, True))
 
     e_axis = normal("front_axis", le, p_in)
+    chord = float(np.hypot(*(tm - le)))
     centre = np.array([d.x_split, 0.0])
     blocks, wall_edges, outlet_edges = [], [], []
     for side, sgn in (("upper", 1), ("lower", -1)):
@@ -182,7 +235,8 @@ def build_cgrid(domain, af, plan):
             # the cells at the outlet were badly distorted (orthogonal quality ~0).
             e_out = np.column_stack([np.full(len(e_wake_left), x_exit), e_wake_left[:, 1]])
             e_out[0], e_out[-1] = exm, ex
-        blocks += [tfi(e_af_f, e_arc, e_axis, e_split),
+        front_block = tfi(e_af_f, e_arc, e_axis, e_split)
+        blocks += [wall_orthogonal(front_block, chord) if orthogonal else front_block,
                    tfi(e_af_r, e_top_mid, e_split, e_te),
                    tfi(e_wake, e_top_wake, e_wake_left, e_out)]
         wall_edges += [e_af_f, e_af_r]
