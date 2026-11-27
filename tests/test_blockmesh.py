@@ -117,14 +117,6 @@ def test_fluent_file_reads_back_with_zones_and_codes():
             assert rows[:, 3].min() >= 1
 
 
-def test_rectangle_domain_is_refused_with_turkish_text():
-    af = split_at(naca("0012"))
-    d = build_domain(af, RECT, r_inlet=15.0, l_wake=20.0, l_top=15.0, l_bottom=15.0)
-    with pytest.raises(ValueError, match="only available for the C-grid"):
-        build_cgrid(d, af, plan_mesh(d, af, RE))
-    assert "The mesh file is only available for the C-grid domain" in ERRORS_TR
-
-
 # ---------------------------------------------------------------- app
 def widget(at, kind, key):
     return [w for w in getattr(at, kind) if w.key == key][0]
@@ -132,7 +124,7 @@ def widget(at, kind, key):
 
 def mapped_page():
     at = AppTest.from_file(APP, default_timeout=120).run()
-    widget(at, "text_input", "af_query").set_value("4412")
+    at.session_state["af_text"] = "4412"
     at = at.run()
     mode = widget(at, "radio", "mesh_mode")
     mode.set_value(mode.options[1])

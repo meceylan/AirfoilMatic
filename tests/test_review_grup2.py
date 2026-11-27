@@ -57,7 +57,7 @@ def test_dice_warning_goes_away_after_a_new_section():
     at = at.run()
     assert any(tr("dice_empty", "tr")[:20] in x.value for x in at.sidebar.warning)
     w(at, "slider", "f_thick").set_value((0, 40))
-    w(at, "text_input", "af_query").set_value("0012")
+    at.session_state["af_text"] = "0012"
     at = at.run()
     assert not any(tr("dice_empty", "tr")[:20] in x.value for x in at.sidebar.warning)
 

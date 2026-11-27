@@ -95,7 +95,7 @@ def widget(at, kind, key):
 
 def mapped(code="4412"):
     at = AppTest.from_file(APP, default_timeout=240).run()
-    widget(at, "text_input", "af_query").set_value(code)
+    at.session_state["af_text"] = code
     at = at.run()
     mode = widget(at, "radio", "mesh_mode")
     mode.set_value(mode.options[1])

@@ -1,5 +1,7 @@
 """Page-level regressions found in a review of app.py (run with Streamlit's AppTest)."""
 import pytest
+
+from airfoilmatic import library as lib
 from streamlit.runtime.memory_media_file_storage import MemoryMediaFileStorage
 
 from test_app import notes, search_for, selig, start, tr, upload, widget
@@ -55,7 +57,7 @@ def test_back_after_an_unknown_search_returns_to_the_last_section():
     at.button(key="hist_back").click()
     at = at.run()
     assert not at.exception and not at.error
-    assert at.selectbox[0].value.id == "e387"
+    assert at.session_state["af_current"] == "e387"
 
 
 def test_back_is_available_after_an_unknown_first_search():
@@ -64,7 +66,7 @@ def test_back_is_available_after_an_unknown_first_search():
     at.button(key="hist_back").click()
     at = at.run()
     assert not at.exception and not at.error
-    assert at.selectbox[0].value.id == "naca4412"
+    assert at.session_state["af_current"] == "naca4412"
 
 
 def test_download_name_keeps_the_whole_section_title(download_names):

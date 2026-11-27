@@ -60,7 +60,7 @@ st.markdown(ui.header_html(APP_VERSION, APP_STAGE, t("subtitle")), unsafe_allow_
 # switch (Re <-> speed, inflation <-> mapped, search <-> file, C-grid <-> rectangle) came back at its
 # default. Writing the value back at the top of every run keeps it until the widget is shown again.
 KEPT_WHEN_HIDDEN = ("re", "mach_in", "mach_temp", "velocity", "density", "viscosity", "fl_temp",
-                    "g_infl", "coverage", "g_map", "wake_growth", "af_query", "f_thick", "f_camber",
+                    "g_infl", "coverage", "g_map", "wake_growth", "f_thick", "f_camber",
                     "f_family", "as_is", "r_inlet_c", "l_inlet_c", "l_top_c", "l_bottom_c",
                     "sweep_from", "sweep_to", "sweep_step", "sweep_list",
                     # journal, family and polar / GCI settings, hidden while the sweep or the files are empty
@@ -88,7 +88,7 @@ def _filters():
 
 def _go(section_id):
     """Put a section in the search box; the page then adds it to the back/forward history."""
-    st.session_state.af_query = section_id
+    st.session_state.af_text = section_id
 
 
 def _dice():
@@ -98,9 +98,33 @@ def _dice():
         _go(pick.id)
 
 
+# Common NACA codes, offered with the library sections while typing (any other code can be typed).
+COMMON_NACA = ("0006", "0009", "0012", "0015", "0018", "0021", "0024", "1408", "1410", "1412", "2408", "2410",
+               "2412", "2415", "2418", "2421", "2424", "4412", "4415", "4418", "4421", "4424", "6409", "6412",
+               "23012", "23015", "23018", "23021", "23024")
+
+
+@st.cache_data(show_spinner=False)
+def search_options():
+    """Values and labels of the search box: common NACA codes, then every library section."""
+    labels = {c: f"NACA {c}" for c in COMMON_NACA}
+    for s in sorted(lib.library(), key=lambda s: s.title.lower()):
+        labels[s.id] = f"{s.title} · {s.family_name}"
+    # the box's options are the labels themselves (no format_func), so its value is what it shows
+    return list(labels), labels, {v: k for k, v in labels.items()}
+
+
+def _box_changed(key):
+    """A suggestion picked or a new text entered (Enter) in the search box becomes the query
+    (a suggestion's label is turned back into its section id or NACA code)."""
+    v = st.session_state.get(key)
+    if v is not None and str(v).strip():
+        st.session_state.af_text = search_options()[2].get(v, str(v).strip())
+
+
 def _step(d):
     st.session_state.af_hist_i += d
-    st.session_state.af_query = st.session_state.af_history[st.session_state.af_hist_i]
+    st.session_state.af_text = st.session_state.af_history[st.session_state.af_hist_i]
 
 
 class KeptUpload:
@@ -119,23 +143,39 @@ section = None
 custom_file = None
 as_is = False   # uploaded outline used as drawn (VG, flap, kinked section): inflation workflow only
 if source == "search":
-    st.session_state.setdefault("af_query", "4412")
+    st.session_state.setdefault("af_text", "4412")
     st.session_state.setdefault("af_history", [])
     st.session_state.setdefault("af_hist_i", -1)
-    query = st.sidebar.text_input(t("search_label"), key="af_query", help=t("search_help"),
-                                  placeholder=t("search_placeholder"))
+    query = st.session_state.af_text
+    # One box: typing filters the suggestions (library sections whose label contains the text, and
+    # common NACA codes); a value not in the list is taken with Enter. The key follows the query,
+    # so the dice and the history (which set af_text) show their section in the box.
+    values, labels, _ = search_options()
+    shown = labels.get(query, query)
+    opts = [labels[v] for v in values]
+    opts = opts if query in labels else [query] + opts
+    box_key = f"af_box_{query}"
+    st.sidebar.selectbox(t("search_label"), opts, index=opts.index(shown), key=box_key,
+                         accept_new_options=True, filter_mode="contains",
+                         help=t("search_help"), placeholder=t("search_placeholder"),
+                         on_change=_box_changed, args=(box_key,))
     button_row = st.sidebar.container(key="af_buttons")   # filled below, once this run's section is in the history
-    found = lib.search(query)
+    found = [lib.by_id(query) or lib.search(query)[0]] if query in labels else lib.search(query)
     if found:
-        # The key follows the query, so a new search starts at its best match.
-        section = st.sidebar.selectbox(t("results", n=len(found)), found, key=f"pick_{query}",
-                                       format_func=lambda s: s.title if s.source == lib.NACA_FORMULA
-                                       else f"{s.title} · {s.family_name}")
+        if len(found) == 1:      # a suggestion, a NACA code or a single match: no second list
+            section = found[0]
+        else:
+            # The key follows the query, so a new search starts at its best match.
+            section = st.sidebar.selectbox(t("results", n=len(found)), found, key=f"pick_{query}",
+                                           format_func=lambda s: s.title if s.source == lib.NACA_FORMULA
+                                           else f"{s.title} · {s.family_name}")
         st.session_state.af_current = section.id
+        # history entries are box values: the library id, or the bare code of a NACA section
+        entry = section.id[4:] if section.source == lib.NACA_FORMULA else section.id
         hist, i = st.session_state.af_history, st.session_state.af_hist_i
-        if not hist or hist[i] != section.id:   # a new section (typed, picked or rolled): remember it
+        if not hist or hist[i] != entry:   # a new section (typed, picked or rolled): remember it
             st.session_state.pop("dice_empty", None)
-            st.session_state.af_history = hist[: i + 1] + [section.id]
+            st.session_state.af_history = hist[: i + 1] + [entry]
             st.session_state.af_hist_i = len(st.session_state.af_history) - 1
         # ".txt" so that safe_file_stem cuts only that: titles are not file names ("HQ 1.0/12", "E169 (14.4%)")
         file_prefix = "AirfoilMatic_" + safe_file_stem(section.title.replace(" ", "") + ".txt")
@@ -692,43 +732,40 @@ with tab_mesh:
 
         # ---- the app's own mapped mesh, written for Fluent
         st.subheader(t("msh_title"))
-        if domain_kind != C_GRID:
-            st.info(t("msh_rect"))
+        try:
+            with st.spinner(t("msh_building")):
+                msh = fluent_mesh_file(domain, split_af, plan, mesh_key(split_af, domain, plan))
+        except ValueError as e:
+            st.error(te(e))
         else:
-            try:
-                with st.spinner(t("msh_building")):
-                    msh = fluent_mesh_file(domain, split_af, plan, mesh_key(split_af, domain, plan))
-            except ValueError as e:
-                st.error(te(e))
-            else:
-                st.markdown(ui.cards_html([
-                    (t("msh_cells"), f"{msh['cells']:,}", "", True),
-                    (t("msh_skew"), f"{msh['skew']:.3f}", "", False),
-                    (t("msh_oq"), f"{msh['oq']:.3f}", "", False),
-                ]), unsafe_allow_html=True)
-                st.download_button(t("msh_download"),
-                                   data=lambda m=msh["mesh"]: to_fluent_msh(m, title=f"AirfoilMatic {APP_VERSION}"),
-                                   file_name=f"{file_prefix}_mapped.msh", mime="text/plain", key="msh_download",
-                                   on_click="ignore")
-                st.caption(t("msh_note"))
-                # Mesh independence: the same inputs refined by sqrt(2) up and down (about 2x cells per step)
-                if st.checkbox(t("msh_family"), key="msh_family", help=t("msh_family_help")):
-                    try:
-                        with st.spinner(t("msh_building")):
-                            fam = fluent_family_file(domain, split_af, re, sizing,
-                                                     mesh_key(split_af, domain, (re, sizing)))
-                    except (ValueError, OverflowError) as e:
-                        st.error(te(e))
-                    else:
-                        wide_table([{"": t(f"gci_{r['label']}"), t("msh_cells"): f"{r['cells']:,}",
-                                     t("msh_skew"): f"{r['skew']:.3f}", t("msh_oq"): f"{r['oq']:.3f}"}
-                                    for r in fam["rows"]], "msh_family")
-                        st.download_button(t("msh_family_download"),
-                                           data=lambda f=fam["family"], p=file_prefix:
-                                           family_zip(f, p, title=f"AirfoilMatic {APP_VERSION}"),
-                                           file_name=f"{file_prefix}_mesh_family.zip", mime="application/zip",
-                                           key="msh_family_download", on_click="ignore")
-                        st.caption(t("msh_family_cells"))
+            st.markdown(ui.cards_html([
+                (t("msh_cells"), f"{msh['cells']:,}", "", True),
+                (t("msh_skew"), f"{msh['skew']:.3f}", "", False),
+                (t("msh_oq"), f"{msh['oq']:.3f}", "", False),
+            ]), unsafe_allow_html=True)
+            st.download_button(t("msh_download"),
+                               data=lambda m=msh["mesh"]: to_fluent_msh(m, title=f"AirfoilMatic {APP_VERSION}"),
+                               file_name=f"{file_prefix}_mapped.msh", mime="text/plain", key="msh_download",
+                               on_click="ignore")
+            st.caption(t("msh_note"))
+            # Mesh independence: the same inputs refined by sqrt(2) up and down (about 2x cells per step)
+            if st.checkbox(t("msh_family"), key="msh_family", help=t("msh_family_help")):
+                try:
+                    with st.spinner(t("msh_building")):
+                        fam = fluent_family_file(domain, split_af, re, sizing,
+                                                 mesh_key(split_af, domain, (re, sizing)))
+                except (ValueError, OverflowError) as e:
+                    st.error(te(e))
+                else:
+                    wide_table([{"": t(f"gci_{r['label']}"), t("msh_cells"): f"{r['cells']:,}",
+                                 t("msh_skew"): f"{r['skew']:.3f}", t("msh_oq"): f"{r['oq']:.3f}"}
+                                for r in fam["rows"]], "msh_family")
+                    st.download_button(t("msh_family_download"),
+                                       data=lambda f=fam["family"], p=file_prefix:
+                                       family_zip(f, p, title=f"AirfoilMatic {APP_VERSION}"),
+                                       file_name=f"{file_prefix}_mesh_family.zip", mime="application/zip",
+                                       key="msh_family_download", on_click="ignore")
+                    st.caption(t("msh_family_cells"))
 
     # First cell height of the plan above; None when the plan failed (e.g. Re below the valid range).
     dy_ref = infl.first_layer if infl is not None else (plan.dy1 if plan is not None else None)
@@ -1065,7 +1102,7 @@ with tab_auto:
         if all(labels) and set(labels) == set(GCI_LABELS):
             gci_meshes = [(t(f"gci_{lab}"), [f for f, l in zip(gci_files, labels) if l == lab])
                           for lab in ("fine", "medium", "coarse")]
-            if plan is not None and domain_kind == C_GRID:
+            if plan is not None:
                 try:
                     fam = family_cells(domain, split_af, re, sizing, mesh_key(split_af, domain, (re, sizing)))
                     fam_n = [fam[lab] for lab in ("fine", "medium", "coarse")]

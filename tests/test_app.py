@@ -6,6 +6,8 @@ exception, so a crash in the page cannot slip past the core-module tests.
 from pathlib import Path
 
 import pytest
+
+from airfoilmatic import library as lib
 from streamlit.testing.v1 import AppTest
 
 from airfoilmatic.i18n import tr
@@ -185,7 +187,7 @@ def captions(at):
 
 
 def search_for(at, text):
-    at.text_input(key="af_query").set_value(text)
+    at.session_state["af_text"] = text      # what typing in the box and pressing Enter sets
     return at.run()
 
 
@@ -193,7 +195,8 @@ def search_for(at, text):
 def test_default_section_is_naca_4412_from_the_equations(lang):
     at = start(lang)
     assert not at.exception and not at.error
-    assert widget(at, "selectbox", tr("results", lang, n=1)).value.id == "naca4412"
+    assert at.session_state["af_current"] == "naca4412"
+    assert not any(sb.key and sb.key.startswith("pick_") for sb in at.selectbox)   # one match: no second list
     assert "NACA 4412" in captions(at) and "UIUC" not in captions(at)
 
 
@@ -219,16 +222,16 @@ def test_dice_follows_the_filters_and_history_goes_back_and_forth():
         at.button(key="dice").click()
         at = at.run()
         assert not at.exception and not at.error
-        s = at.selectbox[0].value
+        s = lib.by_id(at.session_state["af_current"])
         assert s.family == "wortmann"
         picks.append(s.id)
     assert picks[0] != picks[1] != picks[2]   # never the same section twice in a row
     at.button(key="hist_back").click()
     at = at.run()
-    assert at.selectbox[0].value.id == picks[1]
+    assert at.session_state["af_current"] == picks[1]
     at.button(key="hist_fwd").click()
     at = at.run()
-    assert at.selectbox[0].value.id == picks[2]
+    assert at.session_state["af_current"] == picks[2]
 
 
 def test_dice_with_no_matching_section_warns_and_keeps_the_section():
@@ -239,4 +242,4 @@ def test_dice_with_no_matching_section_warns_and_keeps_the_section():
     at = at.run()
     assert not at.exception and not at.error
     assert any(tr("dice_empty", "tr") == w.value for w in at.warning)
-    assert at.selectbox[0].value.id == "naca4412"
+    assert at.session_state["af_current"] == "naca4412"

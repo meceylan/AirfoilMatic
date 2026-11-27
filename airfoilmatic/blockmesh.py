@@ -1,4 +1,5 @@
-"""Structured C-grid mesh built by the app itself, written as a Fluent mesh file (.msh).
+"""Structured mesh of the C-grid or rectangular domain built by the app itself, written as a
+Fluent mesh file (.msh).
 
 The six blocks and every edge distribution come from ``mesh.plan_mesh`` (the Edge Sizing
 table): the same Number of Divisions and bias that Ansys Meshing would use. The inside of
@@ -233,13 +234,11 @@ def _check_size(cells):
 
 
 def build_cgrid(domain, af, plan, orthogonal=True, axis_bend=True):
-    """Mapped C-grid of ``domain`` (``topology.build_domain``, all six split lines) with the
+    """Mapped mesh of the C-grid or rectangular ``domain`` (``topology.build_domain``, all six split lines) with the
     edge distributions of ``plan`` (``mesh.plan_mesh``). ``orthogonal=False`` gives the plain TFI
     mesh of the files tried in Fluent before 2026-11-27 (no ``wall_orthogonal`` start);
     ``axis_bend=False`` the first wall-orthogonal version (straight front axis, first-cell heights
     from each line's length), tried in Fluent on 2026-11-27."""
-    if domain.kind != C_GRID:
-        raise ValueError("The mesh file is only available for the C-grid domain")
     _check_size(plan.cells)
     d = domain
     N = plan.n_normal
@@ -291,7 +290,16 @@ def build_cgrid(domain, af, plan, orthogonal=True, axis_bend=True):
         e_af_r[-1] = te
         e_split = normal("split_up" if side == "upper" else "split_low", sp, at)
         e_te = normal("te_up" if side == "upper" else "te_low", te, tt)
-        e_arc = _arc(centre, d.y_top, p_in, at, front.n)
+        if d.kind == C_GRID:
+            e_arc = _arc(centre, d.y_top, p_in, at, front.n)
+        else:
+            # Rectangle: half of the inlet edge and the front segment of the top / bottom boundary,
+            # meeting at the inlet corner (the "Side" vertex of the Ansys Face Meshing note), both
+            # uniform with the plan's divisions (g_inlet + g_top_front = the airfoil front's count).
+            corner = np.array([p_in[0], at[1]])
+            n_in = _edge(plan, "g_inlet").n
+            e_arc = np.vstack([_line(p_in, corner, np.linspace(0.0, 1.0, n_in + 1)),
+                               _line(corner, at, np.linspace(0.0, 1.0, front.n - n_in + 1))[1:]])
         e_top_mid = _top_from_wall(e_af_r, at, tt, t_rear)
         e_top_wake = _line(tt, ex, t_wake)
         e_wake = _line(tm, exm, t_wake)
@@ -429,7 +437,7 @@ def to_fluent_msh(mesh, title="AirfoilMatic"):
     order = np.argsort(mesh.face_zone, kind="stable")
     faces, zones = mesh.faces[order], mesh.face_zone[order]
     nf = len(faces)
-    out = [f'(0 "{title}: structured C-grid, quadrilateral cells")', "(2 2)",
+    out = [f'(0 "{title}: structured mapped mesh, quadrilateral cells")', "(2 2)",
            f"(10 (0 1 {nn:x} 0 2))", f"(10 (1 1 {nn:x} 1 2)("]
     out += [f"{x:.15e} {y:.15e}" for x, y in mesh.nodes]
     out += ["))", f"(12 (0 1 {nc:x} 0))", f"(12 ({CELL_ZONE:x} 1 {nc:x} 1 3))", f"(13 (0 1 {nf:x} 0))"]

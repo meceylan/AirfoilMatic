@@ -139,14 +139,14 @@ def test_growth_survives_mapped_round_trip():
 
 def test_search_query_survives_file_mode_round_trip():
     at = start()
-    by_key(at, "text_input", "af_query").set_value("e387")
+    at.session_state["af_text"] = "e387"
     at = at.run()
     by_key(at, "radio", "source").set_value("file")
     at = at.run()
     by_key(at, "radio", "source").set_value("search")
     at = at.run()
     assert not at.exception
-    assert by_key(at, "text_input", "af_query").value == "e387"
+    assert at.session_state["af_text"] == "e387"
 
 
 def test_mode_round_trips_show_no_session_state_warning():
