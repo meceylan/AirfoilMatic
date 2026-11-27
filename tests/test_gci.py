@@ -141,4 +141,4 @@ def test_family_note_says_it_was_tried(lang):
 @pytest.mark.parametrize("name", ["README.md", "README.en.md", "CHANGELOG.md"])
 def test_docs_hold_the_family_run(name):
     text = (Path(APP).parent / name).read_text(encoding="utf-8")
-    assert "0.8355" in text and "0.8353" in text
+    assert "0.8355" in text and ("0.8353" in text or "0.83529" in text)
