@@ -67,15 +67,10 @@ def test_symmetric_section_unchanged():
 
 
 @pytest.mark.parametrize("re, floor", [(2e6, 0.15), (3e7, 0.01)])
-def test_whole_library(re, floor):
+def test_whole_library(re, floor, library_sweep):
     """Re 2e6: lowest orthogonal quality 0.051 before (E63); Re 3e7: 0.004 before, below Fluent's
     0.01. No turned-over cell anywhere."""
-    bad = []
-    for s in lib.library():
-        _, m = mesh(split_at(close_small_te_gap(parse_airfoil_file(s.data))), re, refine=0.5)
-        oq = quality(m)[1].min()
-        if oq < floor:
-            bad.append((s.id, round(float(oq), 3)))
+    bad = [(r["id"], round(r["oq_min"], 3)) for r in library_sweep("c_grid", re, 0.5) if r["oq_min"] < floor]
     assert not bad, bad
 
 

@@ -330,23 +330,39 @@ def build_cgrid(domain, af, plan, orthogonal=True, axis_bend=True):
 
 
 # ---------------------------------------------------------------- assembly into cells and faces
+def _exact(points):
+    """One opaque value per point (its two coordinates' bytes) for exact matching; -0.0 becomes 0.0,
+    as with the float tuples the merge used before."""
+    a = np.ascontiguousarray(np.asarray(points, dtype=np.float64).reshape(-1, 2) + 0.0)
+    return a.view(np.dtype((np.void, 16))).ravel()
+
+
 def _assemble(blocks, wall_edges, outlet_edges):
-    index, nodes = {}, []
+    # Blocks share their edges bit for bit, so equal coordinates are one node. Nodes are numbered in
+    # the order they first appear (blocks in turn, row by row), as the dict merge did before; the
+    # vectorised version builds the same mesh and file about twice as fast.
+    pts = np.vstack([np.asarray(P, float).reshape(-1, 2) for P in blocks])
+    uniq, first, inverse = np.unique(_exact(pts), return_index=True, return_inverse=True)
+    order = np.argsort(first, kind="stable")
+    rank = np.empty(len(order), dtype=np.int64)
+    rank[order] = np.arange(len(order))
+    node_of = rank[inverse.ravel()]
+    nodes = pts[first[order]] + 0.0
 
-    def node_id(p):
-        k = (float(p[0]), float(p[1]))
-        i = index.get(k)
-        if i is None:
-            i = index[k] = len(nodes)
-            nodes.append(k)
-        return i
+    def ids_of(points):
+        v = _exact(points)
+        pos = np.searchsorted(uniq, v)
+        if np.any(pos >= len(uniq)) or np.any(uniq[np.minimum(pos, len(uniq) - 1)] != v):
+            raise KeyError("Edge point is not a mesh node")
+        return rank[pos]
 
-    cells = []
+    cells, start = [], 0
     for P in blocks:
-        ids = np.array([[node_id(P[i, j]) for j in range(P.shape[1])] for i in range(P.shape[0])])
+        ni, nj = P.shape[0], P.shape[1]
+        ids = node_of[start:start + ni * nj].reshape(ni, nj)
+        start += ni * nj
         q = np.stack([ids[:-1, :-1], ids[1:, :-1], ids[1:, 1:], ids[:-1, 1:]], axis=-1).reshape(-1, 4)
         cells.append(q)
-    nodes = np.array(nodes)
     cells = np.vstack(cells)
     xy = nodes[cells]
     area = 0.5 * np.sum(xy[:, :, 0] * np.roll(xy[:, :, 1], -1, 1) - np.roll(xy[:, :, 0], -1, 1) * xy[:, :, 1], 1)
@@ -372,8 +388,9 @@ def _assemble(blocks, wall_edges, outlet_edges):
     def keys(edges):
         out = set()
         for e in edges:
-            ids = [index[(float(p[0]), float(p[1]))] for p in e]
-            out.update(min(i, j) * len(nodes) + max(i, j) for i, j in zip(ids[:-1], ids[1:]))
+            ids = ids_of(e)
+            a, b = ids[:-1], ids[1:]
+            out.update((np.minimum(a, b) * len(nodes) + np.maximum(a, b)).tolist())
         return out
 
     zone = np.full(len(faces), INTERIOR)

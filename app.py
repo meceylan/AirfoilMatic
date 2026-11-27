@@ -22,7 +22,7 @@ from airfoilmatic.export import (UNIT_SCALE, profile_dm_txt, profile_solidworks_
 from airfoilmatic import library as lib
 from airfoilmatic.blockmesh import FAMILY, build_cgrid, family_zip, mesh_family, quality as mesh_quality, to_fluent_msh
 from airfoilmatic.gci import LABELS as GCI_LABELS, gci, gci_by_angle, mesh_label
-from airfoilmatic.mesh import DEFAULTS, MAX_GOOD_GROWTH, plan_inflation, plan_mesh, plan_wake_axis, reynolds
+from airfoilmatic.mesh import DEFAULTS, MAX_GOOD_GROWTH, inflation_sizes, plan_inflation, plan_mesh, plan_wake_axis, reynolds
 from airfoilmatic.fluent import (AIR_DENSITY, AIR_VISCOSITY, air_density, alpha_sweep, angle_rows, decayed_tu, freestream,
                                  inlet_tu_for, mach_state, max_reachable_tu, speed_for_reynolds, speed_of_sound,
                                  sutherland_viscosity, sweep_journal, expression_setup,
@@ -33,6 +33,7 @@ from airfoilmatic.quality import (FLUENT_MAX_SKEWNESS, FLUENT_MIN_ORTHO, RATING_
                                   expected_wall_aspect_ratio, rate_orthogonal, rate_skewness)
 from airfoilmatic.i18n import LANGS, tr, tr_error
 from airfoilmatic import ui
+from airfoilmatic.settings import from_json, to_json
 
 st.set_page_config(page_title=f"AirfoilMatic v{APP_VERSION} {APP_STAGE}", layout="wide",
                    menu_items={"Report a bug": f"{ui.DEVELOPER['repo']}/issues",
@@ -251,6 +252,31 @@ with st.sidebar.expander(t("split_mode")):
 all_lines = len(kept_lines) == len(SPLIT_LINES)
 
 sidebar_download = st.sidebar.empty()
+
+
+def _load_settings():
+    """Apply a settings file as soon as it is chosen (before the widgets of the next run are drawn)."""
+    f = st.session_state.get("settings_file")
+    if f is None:
+        return
+    try:
+        inputs = from_json(f.getvalue().decode("utf-8", errors="replace"))
+    except ValueError as e:
+        st.session_state.settings_msg = ("error", te(e))
+        return
+    for k, v in inputs.items():
+        st.session_state[k] = v
+    st.session_state.settings_msg = ("success", t("settings_loaded", n=len(inputs)))
+
+
+with st.sidebar.expander(t("settings_title")):
+    st.caption(t("settings_help"))
+    st.download_button(t("settings_save"), data=to_json(st.session_state), file_name="airfoilmatic_settings.json",
+                       mime="application/json", key="settings_download", on_click="ignore")
+    st.file_uploader(t("settings_load"), type=["json"], key="settings_file", on_change=_load_settings)
+    msg = st.session_state.pop("settings_msg", None)
+    if msg:
+        (st.success if msg[0] == "success" else st.error)(msg[1])
 st.sidebar.markdown(ui.note_html(t("beta_warning", stage=APP_STAGE, version=APP_VERSION)), unsafe_allow_html=True)
 st.sidebar.markdown(ui.footer_html(L, t("dev_label")), unsafe_allow_html=True)
 
@@ -528,11 +554,6 @@ with tab_geo:
 
 # ================================================================ mesh tab
 INFLATION, MAPPED = "inflation", "mapped"
-FAR_FIELD_SIZE = 0.5  # global element size for quad-dominant meshes, in chords
-# With inflation on both the airfoil and the wake axis, Ansys failed or produced
-# degenerate cells at the TE with ~1 mm elements there; ~3 mm (0.003c) worked.
-INFL_MIN_TE = 0.003
-INFL_TE_FACTOR = 1.5   # TE surface element / last inflation layer, at least
 
 
 def m_mm(v):
@@ -642,16 +663,8 @@ with tab_mesh:
             (t("m_delta"), f"{infl.delta_turb * 1000:.3g} mm", f"Re = {short(re)}", False),
         ]), unsafe_allow_html=True)
         st.subheader(t("infl_table_title"))
-        # Smallest surface element: LE/TE spacing, or a blunt-TE face element.
-        # At the sharp TE the upper and lower inflation stacks meet; Ansys 2024 R2 failed whenever the TE
-        # surface element was smaller than the last inflation layer (NACA 0012, Re 2e6: 3 mm TE vs 4.3 mm
-        # last layer failed, ~5.8 mm worked). Keep the TE element >= 1.5x the last layer and >= 0.003c.
-        ds_te_infl = max(ds_te, INFL_MIN_TE, INFL_TE_FACTOR * infl.last_layer / chord)
-        smallest = min(ds_le, ds_te_infl) * chord
-        if domain.blunt_te:
-            smallest = min(smallest, split_af.te_gap / 4)
-        defeature = float(f"{smallest / 50:.0e}")   # well below every specified size
-        curv_min = float(f"{smallest / 5:.0e}")     # so curvature sizing never coarsens the edges
+        sizes = inflation_sizes(infl, ds_le, ds_te, chord, te_gap=split_af.te_gap if domain.blunt_te else None)
+        ds_te_infl = sizes.ds_te
         infl_rows = [
             {t("col_setting"): "Inflation Option", t("col_value"): "First Layer Thickness"},
             {t("col_setting"): "First Layer Height", t("col_value"): m_mm(infl.first_layer)},
@@ -659,10 +672,10 @@ with tab_mesh:
             {t("col_setting"): "Growth Rate", t("col_value"): f"{infl.growth:.6g}"},
             {t("col_setting"): t("infl_total"), t("col_value"): f"{m_mm(infl.total)}  (≈ {infl.total / infl.delta_turb:.2g} δ)"},
             {t("col_setting"): t("infl_last"), t("col_value"): m_mm(infl.last_layer)},
-            {t("col_setting"): t("glob_size"), t("col_value"): m_mm(FAR_FIELD_SIZE * chord)},
+            {t("col_setting"): t("glob_size"), t("col_value"): m_mm(sizes.far_field)},
             {t("col_setting"): t("glob_growth"), t("col_value"): "1.15"},
-            {t("col_setting"): "Defeature Size (Mesh → Sizing)", t("col_value"): m_mm(defeature)},
-            {t("col_setting"): "Curvature Min Size (Mesh → Sizing)", t("col_value"): m_mm(curv_min)},
+            {t("col_setting"): "Defeature Size (Mesh → Sizing)", t("col_value"): m_mm(sizes.defeature)},
+            {t("col_setting"): "Curvature Min Size (Mesh → Sizing)", t("col_value"): m_mm(sizes.curvature_min)},
         ]
         st.markdown(ui.table_html(infl_rows), unsafe_allow_html=True)
         if domain.blunt_te:
@@ -675,7 +688,7 @@ with tab_mesh:
             st.info(t("asis_edges_note", ds_le=m_mm(ds_le * chord), ds_te=m_mm(ds_te_infl * chord)))
             try:
                 wake = plan_wake_axis(domain, ds_te=ds_te_infl, wake_growth=wake_growth,
-                                      max_wake_cell=FAR_FIELD_SIZE * chord)
+                                      max_wake_cell=sizes.far_field)
                 wide_table([{t("col_group"): t(wake.group), t("col_n"): str(wake.n), t("col_bias"): f"{wake.bias:.6g}",
                              t("col_small"): t(wake.small_end), t("col_dsmin"): m_mm(wake.ds_min),
                              t("col_dsmax"): m_mm(wake.ds_max), t("col_edges"): t("wake_axis")}], "infl_edges")
@@ -683,7 +696,7 @@ with tab_mesh:
                 st.error(te(e))
         else:
             try:
-                edge_plan = plan_mesh(domain, split_af, re, max_wake_cell=FAR_FIELD_SIZE * chord,
+                edge_plan = plan_mesh(domain, split_af, re, max_wake_cell=sizes.far_field,
                                       **dict(sizing, ds_te=ds_te_infl))
                 keep = ("g_af_front", "g_af_rear") + (("g_wake",) if "wake_axis" in kept_lines else ())
                 e_rows = [r for e, r in zip(edge_plan.edges, plan_rows(edge_plan)) if e.group in keep]

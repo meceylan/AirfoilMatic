@@ -393,3 +393,33 @@ def plan_inflation(re, chord, y_plus=1.0, growth=1.2, coverage=1.0, refine=1.0):
                          last_layer=last, delta_turb=delta_t,
                          delta_lam=bl_thickness_laminar(re, chord),
                          surface_size=last)
+
+
+# ---------------------------------------------------------------- inflation-mode sizes
+FAR_FIELD_SIZE = 0.5   # global element size for quad-dominant meshes, in chords
+# With inflation on both the airfoil and the wake axis, Ansys failed or produced degenerate cells
+# at the TE with ~1 mm elements there; ~3 mm (0.003c) worked. At a sharp TE the upper and lower
+# inflation stacks meet; Ansys 2024 R2 failed whenever the TE surface element was smaller than the
+# last inflation layer (NACA 0012, Re 2e6: 3 mm TE vs 4.3 mm last layer failed, ~5.8 mm worked).
+INFL_MIN_TE = 0.003
+INFL_TE_FACTOR = 1.5   # TE surface element / last inflation layer, at least
+
+
+@dataclass
+class InflationSizes:
+    ds_te: float           # TE surface element, in chords
+    smallest: float        # smallest surface element [m]
+    defeature: float       # Defeature Size [m]: well below every specified size
+    curvature_min: float   # Curvature Min Size [m]: curvature sizing never coarsens the edges
+    far_field: float       # global element size [m]
+
+
+def inflation_sizes(infl, ds_le, ds_te, chord, te_gap=None):
+    """Sizes of the inflation-mode table from the plan ``infl`` (``plan_inflation``), the LE and TE
+    element sizes (in chords) and, for a blunt trailing edge, its height ``te_gap`` [m]."""
+    ds_te_infl = max(ds_te, INFL_MIN_TE, INFL_TE_FACTOR * infl.last_layer / chord)
+    smallest = min(ds_le, ds_te_infl) * chord
+    if te_gap:
+        smallest = min(smallest, te_gap / 4)
+    return InflationSizes(ds_te_infl, smallest, float(f"{smallest / 50:.0e}"), float(f"{smallest / 5:.0e}"),
+                          FAR_FIELD_SIZE * chord)

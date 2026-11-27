@@ -1153,6 +1153,26 @@ STRINGS = {
         "tr": "Neden? (Fluent denemesi)",
         "en": 'Why? (Fluent run)',
     },
+    'settings_title': {
+        "tr": 'Ayarları kaydet / yükle',
+        "en": 'Save / load settings',
+    },
+    'settings_help': {
+        "tr": 'Profil, domain, akış, mesh ve tarama girişleri bir JSON dosyasına yazılır; aynı dosya yüklenince geri gelir. Yüklenen kanat dosyası kaydedilmez.',
+        "en": 'Section, domain, flow, mesh and sweep inputs are written to a JSON file; loading the same file brings them back. An uploaded airfoil file is not saved.',
+    },
+    'settings_save': {
+        "tr": 'Ayarları indir (.json)',
+        "en": 'Download settings (.json)',
+    },
+    'settings_load': {
+        "tr": 'Ayar dosyası yükle',
+        "en": 'Load a settings file',
+    },
+    'settings_loaded': {
+        "tr": 'Ayarlar yüklendi ({n} giriş).',
+        "en": 'Settings loaded ({n} inputs).',
+    },
     'msh_building': {
         "tr": "Mesh kuruluyor…",
         "en": 'Building the mesh…',
@@ -1460,6 +1480,8 @@ ERRORS_TR = {
     'The order of convergence could not be determined': 'Yakınsama mertebesi (p) belirlenemedi; mesh oranlarını ya da değerleri kontrol edin',
     'The report files have no iteration in common': "Report file'ların ortak iterasyonu yok",
     'The first digit of a 5-digit code (design lift) must not be 0': '5 haneli kodun ilk hanesi (tasarım taşıma katsayısı) 0 olamaz',
+    'Edge point is not a mesh node': 'Kenar noktası mesh düğümü değil (iç hata)',
+    'Not an AirfoilMatic settings file': 'AirfoilMatic ayar dosyası değil',
     'Coarse and medium values are equal: the order of convergence is undefined': 'Kaba ve orta mesh değerleri aynı: yakınsama mertebesi tanımsız',
     'The mesh file is limited to 1 000 000 cells': 'Mesh dosyası en çok 1 000 000 hücre olabilir; hücre boylarını büyütün ya da hedef y⁺ / büyüme oranını artırın',
     'Mesh topology error: an edge is shared by more than two cells': 'Mesh topoloji hatası: bir kenar ikiden fazla hücreye ait',

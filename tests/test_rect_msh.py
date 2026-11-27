@@ -69,18 +69,12 @@ def test_rectangle_family():
     assert all(quality(f.mesh)[1].min() > 0.5 for f in fam)
 
 
-def test_rectangle_with_other_sizes_and_the_whole_library():
+def test_rectangle_with_other_sizes_and_the_whole_library(library_sweep):
     af = split_at(naca("4412"))
     d = build_domain(af, RECT, r_inlet=5.0, l_wake=10.0, l_top=8.0, l_bottom=12.0)
     m = build_cgrid(d, af, plan_mesh(d, af, 2.0e6))
     assert quality(m)[1].min() > 0.3
-    bad = []
-    for s in lib.library():
-        a = split_at(close_small_te_gap(parse_airfoil_file(s.data)))
-        dd = build_domain(a, RECT, r_inlet=15.0, l_wake=20.0, l_top=15.0, l_bottom=15.0)
-        oq = quality(build_cgrid(dd, a, plan_mesh(dd, a, 2.0e6, refine=0.5)))[1].min()
-        if oq < 0.15:
-            bad.append((s.id, round(float(oq), 3)))
+    bad = [(r["id"], round(r["oq_min"], 3)) for r in library_sweep(RECT, 2.0e6, 0.5) if r["oq_min"] < 0.15]
     assert not bad, bad
 
 

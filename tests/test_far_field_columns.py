@@ -70,14 +70,8 @@ def test_non_monotonic_surface_falls_back_to_the_fractions():
     assert np.allclose(ok[:, 0], [0.3, 0.5, 0.7, 0.9, 1.0])
 
 
-def test_whole_library_has_no_poor_far_field_cell():
-    bad = []
-    for s in lib.library():
-        af = split_at(close_small_te_gap(parse_airfoil_file(s.data)))
-        _, _, m = make(af, refine=2 ** -1)
-        _, oq = quality(m)
-        if oq[far(m)].min() < 0.3:
-            bad.append((s.id, round(float(oq[far(m)].min()), 3)))
+def test_whole_library_has_no_poor_far_field_cell(library_sweep):
+    bad = [(r["id"], round(r["far_oq"], 3)) for r in library_sweep("c_grid", 2.0e6, 0.5) if r["far_oq"] < 0.3]
     assert not bad, bad
 
 

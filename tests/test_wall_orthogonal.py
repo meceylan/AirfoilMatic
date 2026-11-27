@@ -86,19 +86,11 @@ def test_family_meshes_valid_for_s9104():
         assert oq.min() > 0 and oq[nose(f.mesh)].min() > 0.2
 
 
-def test_no_cell_turns_over_on_any_library_section():
+def test_no_cell_turns_over_on_any_library_section(library_sweep):
     """Every section of the library meshes without a turned-over cell, and no nose reaches the
     skewness of the worst noses before the change (E377 0.97, E63 0.91, S9104 0.90)."""
-    bad = []
-    for s in lib.library():
-        try:
-            af = split_at(close_small_te_gap(parse_airfoil_file(s.data)))
-            _, _, m = make(af, refine=2 ** -1)
-        except ValueError:
-            continue
-        skew, oq = quality(m)      # a turned-over cell has orthogonal quality <= 0
-        if oq.min() <= 0 or skew[nose(m)].max() > 0.82:
-            bad.append((s.id, float(skew[nose(m)].max()), float(oq.min())))
+    bad = [(r["id"], r["nose_skew"], r["oq_min"]) for r in library_sweep("c_grid", 2.0e6, 0.5)
+           if r["oq_min"] <= 0 or r["nose_skew"] > 0.82]      # a turned-over cell has orthogonal quality <= 0
     assert not bad, bad
 
 
