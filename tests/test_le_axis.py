@@ -81,18 +81,32 @@ def test_whole_library(re, floor):
 
 @pytest.mark.parametrize("name, words", [
     ("CHANGELOG.md", ("Front axis along the wall normal", "Ön eksen duvar normaliyle", "0.24 → 0.59", "0.004")),
-    ("README.md", ("ön eksen", "bükülme Fluent'te henüz denenmedi")),
-    ("README.en.md", ("front axis", "bend is not tried in Fluent yet"))])
+    ("README.md", ("ön eksen", "1.22288")),
+    ("README.en.md", ("front axis", "1.22288"))])
 def test_docs_describe_the_bent_axis(name, words):
     from pathlib import Path
     text = (Path(__file__).resolve().parents[1] / name).read_text(encoding="utf-8")
+    assert "bükülme Fluent'te henüz denenmedi" not in text and "bend is not tried in Fluent yet" not in text
     for w in words:
         assert w in text, w
 
 
-@pytest.mark.parametrize("lang, words", [("tr", ("Ön eksen", "denenmedi")), ("en", ("front axis", "not tried"))])
+@pytest.mark.parametrize("lang, words", [("tr", ("Ön eksen", "0.895", "1.22288")),
+                                         ("en", ("front axis", "0.895", "1.22288"))])
 def test_mesh_note_mentions_the_bent_axis(lang, words):
     from airfoilmatic.i18n import tr
     text = tr("msh_note", lang)
+    assert "bükülme Fluent'te henüz denenmedi" not in text and "bend is not tried" not in text
     for w in words:
         assert w in text, w
+
+
+def test_orthogonal_quality_matches_fluent_on_the_bent_axis_mesh():
+    """Fluent 2024 R2, Domain > Mesh > Quality on the bent-axis NACA 4412 file (2026-11-27):
+    minimum orthogonal quality 0.894628 at (-0.0247458, -0.102386)."""
+    from airfoilmatic.geometry import DEFAULT_SPLIT
+    af = split_at(close_small_te_gap(naca("4412")), DEFAULT_SPLIT)
+    _, m = mesh(af, 2.0e6)
+    oq = quality(m)[1]
+    assert oq.min() == pytest.approx(0.894628, abs=2e-4)
+    assert np.allclose(m.nodes[m.cells[np.argmin(oq)]].mean(0), (-0.02475, -0.10239), atol=2e-3)
