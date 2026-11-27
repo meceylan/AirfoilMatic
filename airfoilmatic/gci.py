@@ -5,6 +5,7 @@ discretization in CFD applications", J. Fluids Eng. 130, 078001 (Richardson extr
 the safety factor 1.25). In 2D the representative cell size is h = (1/N)^(1/2).
 """
 import math
+import re
 from dataclasses import dataclass
 
 SAFETY = 1.25
@@ -49,3 +50,50 @@ def gci(cells, values):
     e_a = abs((f1 - f2) / f1) if f1 else math.inf
     e_ext = abs((phi_ext - f1) / phi_ext) if phi_ext else math.inf
     return GCI(r21, r32, p, phi_ext, e_a, e_ext, SAFETY * e_a / (r21 ** p - 1.0), s > 0)
+
+
+# ---------------------------------------------------------------- from report files
+LABELS = ("coarse", "medium", "fine")
+_LABEL_WORDS = {"coarse": ("coarse", "kaba"), "medium": ("medium", "orta"), "fine": ("fine", "ince")}
+
+
+def mesh_label(filename):
+    """"coarse", "medium" or "fine" when the file name has exactly one of these words (also Turkish
+    kaba / orta / ince) as a separate word, e.g. ``NACA4412_kaba.out``; otherwise None."""
+    stem = str(filename).rsplit(".", 1)[0]
+    # Python lowercases "İ" to "i" + combining dot; drop the dot so "İnce" reads as "ince"
+    words = set(re.split(r"[^0-9a-zçğıöşü]+", stem.lower().replace("\u0307", "")))
+    found = [lab for lab, names in _LABEL_WORDS.items() if words & set(names)]
+    return found[0] if len(found) == 1 else None
+
+
+@dataclass
+class AngleGCI:
+    aoa: float          # degrees
+    name: str           # "Cl" or "Cd"
+    cells: list         # fine, medium, coarse
+    values: list        # same order
+    result: object      # GCI, or None when ``error``
+    error: object       # message of the ValueError of gci(), or None
+    unsteady: list      # labels ("coarse" / "medium" / "fine") whose polar row is not steady
+
+
+def gci_by_angle(polars, cells, digits=4):
+    """GCI of Cl and Cd at every angle found in all three polars (lists of ``polar.PolarRow``, one per
+    mesh, in the order of ``cells``). Angles match when equal to ``digits`` decimals (degrees)."""
+    from .polar import STEADY
+    by_mesh = [{round(r.aoa, digits): r for r in p} for p in polars]
+    common = sorted(set(by_mesh[0]).intersection(*by_mesh[1:]))
+    order = sorted(range(3), key=lambda i: -cells[i])          # fine -> coarse
+    out = []
+    for a in common:
+        rows = [by_mesh[i][a] for i in order]
+        unsteady = [LABELS[2 - k] for k, r in enumerate(rows) if r.status != STEADY]
+        for name in ("Cl", "Cd"):
+            values = [getattr(r, name.lower()) for r in rows]
+            try:
+                res, err = gci([cells[i] for i in order], values), None
+            except ValueError as e:
+                res, err = None, str(e)
+            out.append(AngleGCI(rows[0].aoa, name, [cells[i] for i in order], values, res, err, unsteady))
+    return out

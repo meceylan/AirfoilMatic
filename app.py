@@ -20,8 +20,8 @@ from airfoilmatic.topology import AS_IS_LINES, build_domain_as_is
 from airfoilmatic.export import (UNIT_SCALE, profile_dm_txt, profile_solidworks_zip, profile_spaceclaim_txt,
                                  safe_file_stem, to_ansys_txt, to_spaceclaim_txt)
 from airfoilmatic import library as lib
-from airfoilmatic.blockmesh import build_cgrid, family_zip, mesh_family, quality as mesh_quality, to_fluent_msh
-from airfoilmatic.gci import gci
+from airfoilmatic.blockmesh import FAMILY, build_cgrid, family_zip, mesh_family, quality as mesh_quality, to_fluent_msh
+from airfoilmatic.gci import LABELS as GCI_LABELS, gci, gci_by_angle, mesh_label
 from airfoilmatic.mesh import DEFAULTS, MAX_GOOD_GROWTH, plan_inflation, plan_mesh, plan_wake_axis, reynolds
 from airfoilmatic.fluent import (AIR_DENSITY, AIR_VISCOSITY, air_density, alpha_sweep, angle_rows, decayed_tu, freestream,
                                  inlet_tu_for, mach_state, max_reachable_tu, speed_for_reynolds, speed_of_sound,
@@ -323,6 +323,12 @@ def fluent_family_file(_domain, _af, _re, _sizing, prefix, key):
         skew, oq = mesh_quality(f.mesh)
         rows.append(dict(label=f.label, cells=f.mesh.n_cells, skew=float(skew.max()), oq=float(oq.min())))
     return dict(zip=family_zip(fam, prefix, title=f"AirfoilMatic {APP_VERSION}"), rows=rows)
+
+
+@st.cache_data(show_spinner=False, max_entries=4)
+def family_cells(_domain, _af, _re, _sizing, key):
+    """Cell counts of the coarse / medium / fine family (edge plans only, no mesh built)."""
+    return {label: plan_mesh(_domain, _af, _re, refine=k, **_sizing).cells for label, k in FAMILY}
 
 
 def plan_rows(plan):
@@ -995,16 +1001,97 @@ with tab_auto:
     # ---- mesh independence: grid convergence index of three meshes (Celik et al. 2008)
     st.markdown(f"**{t('gci_title')}**")
     st.caption(t("gci_note"))
+    gci_files = st.file_uploader(t("gci_upload"), type=["out", "txt", "csv"], key="gci_files",
+                                 accept_multiple_files=True, help=t("gci_upload_help"))
+    # Meshes as (column heading, report files), fine -> coarse when the file names say which mesh;
+    # in upload order otherwise (the cell counts then decide the order).
+    gci_meshes, fam_n = None, None
+    if gci_files:
+        labels = [mesh_label(f.name) for f in gci_files]
+        if all(labels) and set(labels) == set(GCI_LABELS):
+            gci_meshes = [(t(f"gci_{lab}"), [f for f, l in zip(gci_files, labels) if l == lab])
+                          for lab in ("fine", "medium", "coarse")]
+            if plan is not None and domain_kind == C_GRID:
+                try:
+                    fam = family_cells(domain, split_af, re, sizing, mesh_key(split_af, domain, (re, sizing)))
+                    fam_n = [fam[lab] for lab in ("fine", "medium", "coarse")]
+                except (ValueError, OverflowError):
+                    fam_n = None
+        elif not any(labels) and len(gci_files) == 3:
+            gci_meshes = [(f.name, [f]) for f in gci_files]
+        else:
+            st.error(t("gci_files_bad"))
+        if gci_meshes is not None:
+            # new files (or a changed family) fill the cell counts once; edits stay until then
+            sig = (tuple(f.file_id for f in gci_files), tuple(fam_n or ()))
+            if st.session_state.get("gci_sig") != sig:
+                st.session_state["gci_sig"] = sig
+                for i in (1, 2, 3):
+                    st.session_state[f"gci_n{i}"] = fam_n[i - 1] if fam_n else None
     gcols = st.columns(3)
     gin = {}
-    for col, i, lab in zip(gcols, (1, 2, 3), ("gci_fine", "gci_medium", "gci_coarse")):
-        col.markdown(f"*{t(lab)}*")
+    heads = [h for h, _ in gci_meshes] if gci_meshes else [t(k) for k in ("gci_fine", "gci_medium", "gci_coarse")]
+    for col, i, head in zip(gcols, (1, 2, 3), heads):
+        col.markdown(f"*{head}*")
+        if gci_meshes and gci_meshes[i - 1][0] != gci_meshes[i - 1][1][0].name:
+            col.caption(", ".join(f.name for f in gci_meshes[i - 1][1]))
         gin[f"n{i}"] = col.number_input(t("gci_cells"), value=None, min_value=1, step=1000, key=f"gci_n{i}")
-        gin[f"cl{i}"] = col.number_input("Cl", value=None, format="%.6f", key=f"gci_cl{i}")
-        gin[f"cd{i}"] = col.number_input("Cd", value=None, format="%.6f", key=f"gci_cd{i}")
+        if not gci_meshes:
+            gin[f"cl{i}"] = col.number_input("Cl", value=None, format="%.6f", key=f"gci_cl{i}")
+            gin[f"cd{i}"] = col.number_input("Cd", value=None, format="%.6f", key=f"gci_cd{i}")
     cells_in = [gin[f"n{i}"] for i in (1, 2, 3)]
     g_rows = []
-    if all(n is not None for n in cells_in):
+    if gci_meshes:
+        if fam_n:
+            st.caption(t("gci_cells_family"))
+        elif gci_meshes[0][0] != gci_meshes[0][1][0].name:
+            st.caption(t("gci_cells_no_family"))
+        gc2 = st.columns(2)
+        g_unit = gc2[0].radio(t("polar_unit"), ["rad", "deg"], horizontal=True, key="gci_unit",
+                              help=t("polar_unit_help"))
+        g_last = gc2[1].number_input(t("polar_last_n"), value=LAST_N, min_value=1, step=10, key="gci_last_n",
+                                     help=t("polar_last_n_help"))
+        g_pols = []
+        for head, files in gci_meshes:
+            try:
+                rep = merge_reports([read_report(f.getvalue()) for f in files])
+                g = guess_columns(rep.columns)
+                if None in g.values():
+                    raise ValueError("No angle, Cl or Cd column in the report file")
+                g_pols.append(polar(rep, g["angle"], g["cl"], g["cd"], angle_unit=g_unit, last_n=int(g_last)))
+            except ValueError as e:
+                st.error(t("gci_file", name=", ".join(f.name for f in files), msg=te(e)))
+                g_pols = None
+                break
+        if g_pols is not None:
+            if any(n is None for n in cells_in):
+                st.info(t("gci_need_cells"))
+            else:
+                res = gci_by_angle(g_pols, [int(n) for n in cells_in])
+                if not res:
+                    st.warning(t("gci_no_common"))
+                errors, unsteady = [], []
+                for r in res:
+                    row = {"α [°]": f"{r.aoa:.4g}", "": r.name}
+                    for lab, v in zip(("gci_fine", "gci_medium", "gci_coarse"), r.values):
+                        row[t(lab)] = f"{v:.6g}"
+                    if r.result is None:
+                        if r.error not in errors:
+                            errors.append(r.error)
+                        row.update({"p": "—", t("gci_ext"): "—", "GCI (%)": "—", t("gci_conv"): "—"})
+                    else:
+                        g = r.result
+                        row.update({"p": "—" if g.p != g.p else f"{g.p:.3g}", t("gci_ext"): f"{g.phi_ext:.6g}",
+                                    "GCI (%)": f"{100 * g.gci_fine:.3g}",
+                                    t("gci_conv"): t("gci_mono") if g.monotonic else t("gci_osc")})
+                    g_rows.append(row)
+                    if r.unsteady and r.name == "Cl":
+                        unsteady.append(f"{r.aoa:g}° ({', '.join(t(f'gci_{lab}') for lab in r.unsteady)})")
+                for msg in errors:
+                    st.error(te(ValueError(msg)))
+                if unsteady:
+                    st.warning(t("gci_warn_unsteady", angles="; ".join(unsteady)))
+    elif all(n is not None for n in cells_in):
         for name in ("Cl", "Cd"):
             vals = [gin[f"{name.lower()}{i}"] for i in (1, 2, 3)]
             if any(v is None for v in vals):

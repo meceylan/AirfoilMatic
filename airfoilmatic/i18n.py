@@ -1146,8 +1146,8 @@ STRINGS = {
         "en": 'Mesh independence (GCI)',
     },
     'gci_note': {
-        "tr": "Üç mesh'in (Mesh / y⁺ sekmesinden kaba / orta / ince) hücre sayısını ve aynı açıdaki Cl, Cd değerlerini girin. Hesap Celik vd. (2008, J. Fluids Eng. 130, 078001) yöntemidir: p yakınsama mertebesi, mesh'ten bağımsız tahmini değer (Richardson) ve ince mesh'in belirsizliği GCI (güvenlik katsayısı 1.25). Değerler salınıyorsa (orta mesh'in değeri diğer ikisinin arasında değilse) GCI daha az güvenilirdir.",
-        "en": 'Enter the cell counts of three meshes (coarse / medium / fine from the Mesh / y⁺ tab) and Cl, Cd at the same angle. The method is that of Celik et al. (2008, J. Fluids Eng. 130, 078001): p the order of convergence, the mesh-independent estimate (Richardson) and the uncertainty of the fine mesh, GCI (safety factor 1.25). If the values oscillate (the medium value is not between the other two) the GCI is less reliable.',
+        "tr": "Üç mesh'in (Mesh / y⁺ sekmesinden kaba / orta / ince) Fluent report file'larını (.out) yükleyin ya da hücre sayısını ve aynı açıdaki Cl, Cd değerlerini elle girin. Hesap Celik vd. (2008, J. Fluids Eng. 130, 078001) yöntemidir: p yakınsama mertebesi, mesh'ten bağımsız tahmini değer (Richardson) ve ince mesh'in belirsizliği GCI (güvenlik katsayısı 1.25). Değerler salınıyorsa (orta mesh'in değeri diğer ikisinin arasında değilse) GCI daha az güvenilirdir.",
+        "en": 'Upload the Fluent report files (.out) of three meshes (coarse / medium / fine from the Mesh / y⁺ tab), or type in the cell counts and Cl, Cd at the same angle. The method is that of Celik et al. (2008, J. Fluids Eng. 130, 078001): p the order of convergence, the mesh-independent estimate (Richardson) and the uncertainty of the fine mesh, GCI (safety factor 1.25). If the values oscillate (the medium value is not between the other two) the GCI is less reliable.',
     },
     'gci_fine': {
         "tr": 'İnce',
@@ -1180,6 +1180,42 @@ STRINGS = {
     'gci_osc': {
         "tr": 'salınımlı (GCI daha az güvenilir)',
         "en": 'oscillatory (GCI less reliable)',
+    },
+    'gci_upload': {
+        "tr": "Üç mesh'in report file'ları (.out)",
+        "en": 'Report files (.out) of the three meshes',
+    },
+    'gci_upload_help': {
+        "tr": "Dosya adında coarse / medium / fine (ya da kaba / orta / ince) ayrı bir kelime olarak geçerse (ör. naca4412_coarse.out) mesh'ler adlardan tanınır ve hücre sayıları Mesh / y⁺ sekmesindeki mesh ailesinden (aynı girişler) alınır. Adlar böyle değilse tam üç dosya seçin ve hücre sayılarını girin. Kayıttan sürdürülen bir mesh'in ek dosyası (ör. fine_1929.out) aynı adı taşıdığı için birlikte okunur. Cl ve Cd, her açının son N iterasyonunun ortalamasıdır (polar aracıyla aynı); üç dosyada da bulunan her açı için GCI hesaplanır.",
+        "en": 'When the file name has coarse / medium / fine (or kaba / orta / ince) as a separate word (e.g. naca4412_coarse.out) the meshes are recognised by name and the cell counts are taken from the mesh family of the Mesh / y⁺ tab (same inputs). Otherwise select exactly three files and enter the cell counts. The extra file of a mesh continued from a saved case (e.g. fine_1929.out) carries the same name and is read together with it. Cl and Cd are the mean of the last N iterations of each angle (as in the polar tool); the GCI is computed for every angle found in all three files.',
+    },
+    'gci_cells_family': {
+        "tr": "Hücre sayıları Mesh / y⁺ sekmesindeki mevcut girişlerle üretilen mesh ailesinden alındı. Mesh'leri başka girişlerle ürettiyseniz ya da Ansys mesh'i kullandıysanız sayıları düzeltin (Fluent'te Mesh → Info → Size ya da mesh okunurken konsoldaki \"quadrilateral cells\" satırı).",
+        "en": 'The cell counts were taken from the mesh family built with the current inputs of the Mesh / y⁺ tab. If the meshes were made with other inputs, or in Ansys Meshing, correct them (in Fluent: Mesh → Info → Size, or the "quadrilateral cells" line in the console when the mesh is read).',
+    },
+    'gci_cells_no_family': {
+        "tr": "Hücre sayıları mesh ailesinden yalnızca Mesh / y⁺ sekmesinde Mapped ve C-Grid seçiliyken alınır.",
+        "en": 'The cell counts are taken from the mesh family only while Mapped and C-Grid are selected on the Mesh / y⁺ tab.',
+    },
+    'gci_need_cells': {
+        "tr": "Hücre sayılarını girin (her sütun bir dosya; sıra önemli değil, en çok hücreli mesh ince sayılır). Fluent'te: Mesh → Info → Size ya da mesh okunurken konsoldaki \"quadrilateral cells\" satırı.",
+        "en": 'Enter the cell counts (each column is one file; the order does not matter, the mesh with the most cells counts as fine). In Fluent: Mesh → Info → Size, or the "quadrilateral cells" line in the console when the mesh is read.',
+    },
+    'gci_files_bad': {
+        "tr": "Dosyalar eşleştirilemedi: ya her dosyanın adında coarse / medium / fine (kaba / orta / ince) kelimelerinden biri geçmeli ve üçü de bulunmalı, ya da adlarda bu kelimeler olmadan tam üç dosya seçilmeli.",
+        "en": 'The files could not be matched: either every file name has one of coarse / medium / fine (kaba / orta / ince) and all three occur, or exactly three files without these words are selected.',
+    },
+    'gci_file': {
+        "tr": '{name} okunamadı: {msg}',
+        "en": 'Could not read {name}: {msg}',
+    },
+    'gci_no_common': {
+        "tr": "Üç dosyada ortak bir açı yok; GCI aynı açıdaki değerlerle hesaplanır. Açı sütununun birimini (rad / deg) kontrol edin.",
+        "en": 'The three files have no angle in common; the GCI needs values at the same angle. Check the unit of the angle column (rad / deg).',
+    },
+    'gci_warn_unsteady': {
+        "tr": "Şu açılarda bir mesh'in değeri oturmamış (salınıyor ya da son N iterasyondan az): {angles}. Mesh'ler arasındaki fark iterasyon salınımından küçükse GCI anlamlı değildir; o açıyı daha uzun koşun ya da Polar bölümünde Δ değerlerine bakın.",
+        "en": 'At these angles the value of a mesh has not settled (oscillating or fewer than N iterations): {angles}. If the difference between the meshes is smaller than the iteration oscillation the GCI means little; run that angle longer or look at the Δ values in the Polar section.',
     },
     'auto_steps': {
         "tr": "**Akış:** 1) Mesh / y⁺ → Mapped → Fluent mesh (.msh) indir (mesh bağımsızlığı için 3 mesh) → 2) aşağıda açı taraması ve journal → 3) Fluent'in report file'ından polar → 4) üç mesh'in sonuçlarıyla GCI.",
@@ -1388,6 +1424,7 @@ ERRORS_TR = {
     'Enter at least one angle': 'En az bir açı yazın',
     'Cell counts must be positive': 'Hücre sayıları pozitif olmalı',
     'The three meshes need different cell counts': 'Üç mesh farklı hücre sayılarına sahip olmalı',
+    'No angle, Cl or Cd column in the report file': "Report file'da açı, Cl ya da Cd sütunu bulunamadı",
     'Coarse and medium values are equal: the order of convergence is undefined': 'Kaba ve orta mesh değerleri aynı: yakınsama mertebesi tanımsız',
     'The mesh file is only available for the C-grid domain': 'Mesh dosyası yalnızca C-Grid domain için üretilir',
     'Mesh topology error: an edge is shared by more than two cells': 'Mesh topoloji hatası: bir kenar ikiden fazla hücreye ait',
