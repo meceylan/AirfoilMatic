@@ -62,7 +62,10 @@ st.markdown(ui.header_html(APP_VERSION, APP_STAGE, t("subtitle")), unsafe_allow_
 KEPT_WHEN_HIDDEN = ("re", "mach_in", "mach_temp", "velocity", "density", "viscosity", "fl_temp",
                     "g_infl", "coverage", "g_map", "wake_growth", "af_query", "f_thick", "f_camber",
                     "f_family", "as_is", "r_inlet_c", "l_inlet_c", "l_top_c", "l_bottom_c",
-                    "sweep_from", "sweep_to", "sweep_step", "sweep_list")
+                    "sweep_from", "sweep_to", "sweep_step", "sweep_list",
+                    # journal, family and polar / GCI settings, hidden while the sweep or the files are empty
+                    "jou_iter", "jou_expr", "jou_save_every", "jou_folder", "msh_family",
+                    "polar_unit", "polar_n", "polar_cl_tol", "gci_unit", "gci_last_n")
 for _k in KEPT_WHEN_HIDDEN:
     if _k in st.session_state:
         st.session_state[_k] = st.session_state[_k]
@@ -329,6 +332,14 @@ def fluent_family_file(_domain, _af, _re, _sizing, prefix, key):
 def family_cells(_domain, _af, _re, _sizing, key):
     """Cell counts of the coarse / medium / fine family (edge plans only, no mesh built)."""
     return {label: plan_mesh(_domain, _af, _re, refine=k, **_sizing).cells for label, k in FAMILY}
+
+
+def gci_cells(g):
+    """Table cells of one GCI result; a diverging mesh series has no order or GCI to show."""
+    if g.diverging:
+        return {"p": "—", t("gci_ext"): "—", "GCI (%)": "—", t("gci_conv"): t("gci_div")}
+    return {"p": "—" if g.p != g.p else f"{g.p:.3g}", t("gci_ext"): f"{g.phi_ext:.6g}",
+            "GCI (%)": f"{100 * g.gci_fine:.3g}", t("gci_conv"): t("gci_mono") if g.monotonic else t("gci_osc")}
 
 
 def plan_rows(plan):
@@ -1080,10 +1091,7 @@ with tab_auto:
                             errors.append(r.error)
                         row.update({"p": "—", t("gci_ext"): "—", "GCI (%)": "—", t("gci_conv"): "—"})
                     else:
-                        g = r.result
-                        row.update({"p": "—" if g.p != g.p else f"{g.p:.3g}", t("gci_ext"): f"{g.phi_ext:.6g}",
-                                    "GCI (%)": f"{100 * g.gci_fine:.3g}",
-                                    t("gci_conv"): t("gci_mono") if g.monotonic else t("gci_osc")})
+                        row.update(gci_cells(r.result))
                     g_rows.append(row)
                     if r.unsteady and r.name == "Cl":
                         unsteady.append(f"{r.aoa:g}° ({', '.join(t(f'gci_{lab}') for lab in r.unsteady)})")
@@ -1101,8 +1109,6 @@ with tab_auto:
             except ValueError as e:
                 st.error(te(e))
                 continue
-            g_rows.append({"": name, "p": "—" if g.p != g.p else f"{g.p:.3g}", t("gci_ext"): f"{g.phi_ext:.6g}",
-                           "GCI (%)": f"{100 * g.gci_fine:.3g}",
-                           t("gci_conv"): t("gci_mono") if g.monotonic else t("gci_osc")})
+            g_rows.append({"": name, **gci_cells(g)})
     if g_rows:
         wide_table(g_rows, "gci")

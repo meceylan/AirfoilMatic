@@ -49,8 +49,8 @@ STRINGS = {
         "en": 'Report file (.out); for a sweep continued from a saved case, all of them',
     },
     'polar_upload_help': {
-        "tr": "Kayıttan sürdürülen bir taramada Fluent kalan kısmı <ad>_<iterasyon>.out adlı yeni bir dosyaya yazar (ör. surdurme.out + surdurme_1929.out). İkisini birlikte seçin; aynı iterasyon iki dosyada varsa daha geç başlayan dosyanınki kullanılır. Yalnızca aynı report definition'ın dosyalarını seçin.",
-        "en": 'For a sweep continued from a saved case Fluent writes the rest to a new file <name>_<iteration>.out (e.g. surdurme.out + surdurme_1929.out). Select both; where both hold the same iteration, the file that starts later is used. Select files of the same report definition only.',
+        "tr": "Kayıttan sürdürülen bir taramada Fluent kalan kısmı <ad>_<iterasyon>.out adlı yeni bir dosyaya yazar (ör. surdurme.out + surdurme_1929.out). İkisini birlikte seçin; daha geç başlayan dosyanın ilk iterasyonundan itibaren eski dosyanın satırları (yarıda bırakılan koşu) atılır. Yalnızca aynı report definition'ın dosyalarını seçin.",
+        "en": 'For a sweep continued from a saved case Fluent writes the rest to a new file <name>_<iteration>.out (e.g. surdurme.out + surdurme_1929.out). Select both; from the first iteration of the file that starts later on, the rows of the earlier file (the abandoned run) are dropped. Select files of the same report definition only.',
     },
     'polar_error': {
         "tr": 'Polar çıkarılamadı: {msg}',
@@ -1177,6 +1177,10 @@ STRINGS = {
         "tr": 'tek yönlü',
         "en": 'monotonic',
     },
+    'gci_div': {
+        "tr": "ıraksıyor: fark mesh inceldikçe büyüyor (GCI anlamsız)",
+        "en": 'diverging: the difference grows as the mesh is refined (no GCI)',
+    },
     'gci_osc': {
         "tr": 'salınımlı (GCI daha az güvenilir)',
         "en": 'oscillatory (GCI less reliable)',
@@ -1425,7 +1429,9 @@ ERRORS_TR = {
     'Cell counts must be positive': 'Hücre sayıları pozitif olmalı',
     'The three meshes need different cell counts': 'Üç mesh farklı hücre sayılarına sahip olmalı',
     'No angle, Cl or Cd column in the report file': "Report file'da açı, Cl ya da Cd sütunu bulunamadı",
+    'The order of convergence could not be determined': 'Yakınsama mertebesi (p) belirlenemedi; mesh oranlarını ya da değerleri kontrol edin',
     'Coarse and medium values are equal: the order of convergence is undefined': 'Kaba ve orta mesh değerleri aynı: yakınsama mertebesi tanımsız',
+    'The mesh file is limited to 1 000 000 cells': 'Mesh dosyası en çok 1 000 000 hücre olabilir; hücre boylarını büyütün ya da hedef y⁺ / büyüme oranını artırın',
     'The mesh file is only available for the C-grid domain': 'Mesh dosyası yalnızca C-Grid domain için üretilir',
     'Mesh topology error: an edge is shared by more than two cells': 'Mesh topoloji hatası: bir kenar ikiden fazla hücreye ait',
     'Angles must be between -180 and 180 degrees': 'Açılar −180 ile 180 derece arasında olmalı',

@@ -21,6 +21,42 @@ class GCI:
     e_ext: float        # relative difference to the extrapolated value
     gci_fine: float     # GCI of the fine mesh (fraction)
     monotonic: bool     # False: oscillatory convergence (the GCI is then less reliable)
+    diverging: bool = False   # monotonic, but the difference grows as the mesh is refined
+
+
+P_MIN, P_MAX = 1e-4, 20.0
+
+
+def _order(r21, r32, e21, e32, s):
+    """Apparent order p: root of p = |ln|e32/e21| + q(p)| / ln r21, q = ln((r21^p - s)/(r32^p - s))
+    (Celik 2008, eq. 3). The plain fixed-point iteration overflowed, divided by zero or stopped
+    on a wrong p when r21 != r32; the root is bracketed on [P_MIN, P_MAX] and bisected. With two
+    roots the smaller p is taken: it gives the larger (safer) uncertainty."""
+    ln_e = math.log(abs(e32 / e21))
+    ln_r = math.log(r21)
+
+    def g(p):
+        return p - abs(ln_e + math.log((r21 ** p - s) / (r32 ** p - s))) / ln_r
+
+    grid = [P_MIN * (P_MAX / P_MIN) ** (k / 400) for k in range(401)]
+    vals = []
+    for p in grid:
+        try:
+            vals.append(g(p))
+        except (ValueError, ZeroDivisionError, OverflowError):
+            vals.append(None)
+    for (a, ga), (b, gb) in zip(zip(grid, vals), zip(grid[1:], vals[1:])):
+        if ga is None or gb is None or ga * gb > 0:
+            continue
+        for _ in range(100):
+            m = 0.5 * (a + b)
+            gm = g(m)
+            if ga * gm <= 0:
+                b = m
+            else:
+                a, ga = m, gm
+        return 0.5 * (a + b)
+    raise ValueError("The order of convergence could not be determined")
 
 
 def gci(cells, values):
@@ -38,18 +74,13 @@ def gci(cells, values):
     if e32 == 0.0:
         raise ValueError("Coarse and medium values are equal: the order of convergence is undefined")
     s = math.copysign(1.0, e32 / e21)
-    p = 1.0
-    for _ in range(200):          # fixed point of p = |ln|e32/e21| + q(p)| / ln r21
-        q = math.log((r21 ** p - s) / (r32 ** p - s))
-        p_new = abs(math.log(abs(e32 / e21)) + q) / math.log(r21)
-        if abs(p_new - p) < 1e-10:
-            p = p_new
-            break
-        p = p_new
+    p = _order(r21, r32, e21, e32, s)
     phi_ext = (r21 ** p * f1 - f2) / (r21 ** p - 1.0)
     e_a = abs((f1 - f2) / f1) if f1 else math.inf
     e_ext = abs((phi_ext - f1) / phi_ext) if phi_ext else math.inf
-    return GCI(r21, r32, p, phi_ext, e_a, e_ext, SAFETY * e_a / (r21 ** p - 1.0), s > 0)
+    # Stern et al. (2001): the difference grows as the mesh is refined -> divergence, no GCI
+    return GCI(r21, r32, p, phi_ext, e_a, e_ext, SAFETY * e_a / (r21 ** p - 1.0), s > 0,
+               s > 0 and abs(e21) > abs(e32))
 
 
 # ---------------------------------------------------------------- from report files

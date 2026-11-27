@@ -180,12 +180,23 @@ def _top_from_wall(wall, p0, p1, t):
     return _line(p0, p1, np.asarray(f, float))
 
 
+# Largest mesh the app writes: a 1 000 000-cell .msh is about 90 MB of text, and the hosted app
+# has 1 GB of memory for every user together.
+MAX_CELLS = 1_000_000
+
+
+def _check_size(cells):
+    if cells > MAX_CELLS:
+        raise ValueError("The mesh file is limited to 1 000 000 cells")
+
+
 def build_cgrid(domain, af, plan, orthogonal=True):
     """Mapped C-grid of ``domain`` (``topology.build_domain``, all six split lines) with the
     edge distributions of ``plan`` (``mesh.plan_mesh``). ``orthogonal=False`` gives the plain TFI
     mesh of the files tried in Fluent before 2026-11-27 (no ``wall_orthogonal`` start)."""
     if domain.kind != C_GRID:
         raise ValueError("The mesh file is only available for the C-grid domain")
+    _check_size(plan.cells)
     d = domain
     N = plan.n_normal
     le = np.array(af.le)
@@ -204,8 +215,11 @@ def build_cgrid(domain, af, plan, orthogonal=True):
     exu, exl, exm = np.array([x_exit, y_top]), np.array([x_exit, y_bot]), np.array([x_exit, tm[1]])
 
     front, rear, wk = _edge(plan, "g_af_front"), _edge(plan, "g_af_rear"), _edge(plan, "g_wake")
-    t_front = _from(front, front.small_end == "end_le")
-    t_rear = _from(rear, rear.small_end == "end_split")          # split -> TE
+    # The edge ratios run from the LE (front) and from the TE (rear) whatever ``small_end`` says:
+    # that is only the table's label and flips when the ratio is below 1 (LE or TE element larger
+    # than the one at the split line). Using it as a direction turned such edges round.
+    t_front = _fractions(front.n, front.ratio)                   # LE -> split
+    t_rear = 1.0 - _fractions(rear.n, rear.ratio)[::-1]          # split -> TE
     t_wake = _from(wk, True)                                     # TE -> outlet
     t_arc = np.linspace(0.0, 1.0, front.n + 1)
 
@@ -326,11 +340,14 @@ def quality(mesh):
     skew = np.maximum((ang.max(1) - 90.0) / 90.0, (90.0 - ang.min(1)) / 90.0)
 
     # area centroid (as Fluent; the node average gave 0.69 instead of Fluent's 0.49 near the LE)
-    x, y = xy[..., 0], xy[..., 1]
+    # relative to each cell's first node: with absolute coordinates the terms cancel for cells
+    # ~1e-8 c thin (the result changed when the mesh was moved)
+    rel = xy - xy[:, :1, :]
+    x, y = rel[..., 0], rel[..., 1]
     x1, y1 = np.roll(x, -1, 1), np.roll(y, -1, 1)
     cross = x * y1 - x1 * y
     a6 = 3.0 * cross.sum(1)
-    centre = np.column_stack([((x + x1) * cross).sum(1) / a6, ((y + y1) * cross).sum(1) / a6])
+    centre = xy[:, 0, :] + np.column_stack([((x + x1) * cross).sum(1) / a6, ((y + y1) * cross).sum(1) / a6])
     f = mesh.faces
     p0, p1 = mesh.nodes[f[:, 0]], mesh.nodes[f[:, 1]]
     fc = 0.5 * (p0 + p1)
@@ -414,11 +431,10 @@ FAMILY = (("coarse", 2 ** -0.5), ("medium", 1.0), ("fine", 2 ** 0.5))
 def mesh_family(domain, af, re, **sizing):
     """Coarse, medium and fine mapped C-grids from the same inputs (``mesh.plan_mesh`` refine)."""
     from .mesh import plan_mesh
-    out = []
-    for label, k in FAMILY:
-        plan = plan_mesh(domain, af, re, refine=k, **sizing)
-        out.append(FamilyMember(label, k, plan, build_cgrid(domain, af, plan)))
-    return out
+    plans = [(label, k, plan_mesh(domain, af, re, refine=k, **sizing)) for label, k in FAMILY]
+    for _, _, plan in plans:                     # refuse before building anything
+        _check_size(plan.cells)
+    return [FamilyMember(label, k, plan, build_cgrid(domain, af, plan)) for label, k, plan in plans]
 
 
 def family_zip(family, prefix, title="AirfoilMatic"):

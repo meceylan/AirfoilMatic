@@ -1,6 +1,7 @@
 [server]
-# Airfoil coordinate files are a few KB; keep uploads small.
-maxUploadSize = 2
+# Coordinate files are a few KB, but Fluent report files grow ~60 bytes per iteration (an 11-angle
+# sweep wrote 0.93 MB; long sweeps and transient runs pass 2 MB).
+maxUploadSize = 50
 # Serves static/ (the self-hosted font below) at app/static/.
 enableStaticServing = true
 

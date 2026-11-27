@@ -93,21 +93,35 @@ def merge_reports(reports):
     When a sweep is continued from a saved case, Fluent 2024 R2 refuses to append to a report file
     that already holds later iterations ("Report data in file must be lower than current
     iteration ... Do you want to create new file?") and with Yes writes the rest to
-    ``<name>_<iteration>.out`` (tried 2026-11-25). Where the files share iteration numbers, the file
-    that starts later (the continued run) wins, whatever the upload order. Columns are matched by name."""
+    ``<name>_<iteration>.out`` (tried 2026-11-25). From the first iteration of the file that starts
+    later (the continued run) on, the earlier file's rows are dropped, whatever the upload order.
+    Columns are matched by name."""
     reports = list(reports)
     if len(reports) == 1:
         return reports[0]
     columns = reports[0].columns
     if any(sorted(r.columns) != sorted(columns) for r in reports):
         raise ValueError("The report files do not have the same columns")
+    parts = [rep.rows[:, [rep.columns.index(c) for c in columns]]
+             for rep in sorted(reports, key=lambda r: r.rows[0, 0])]
+    return Report(name=reports[0].name, columns=list(columns), rows=_latest_rows(np.vstack(parts)))
+
+
+def _latest_rows(rows):
+    """Rows in the order written, keeping the valid run only: where the iteration number goes back
+    (a run continued from a saved case), every earlier row from that iteration on belongs to the
+    abandoned run and is dropped, also those beyond the end of the continued run (an angle that
+    diverged for 2000 iterations and then converged in 300 kept its bad block before)."""
     by_iter = {}
-    for rep in sorted(reports, key=lambda r: r.rows[0, 0]):
-        order = [rep.columns.index(c) for c in columns]
-        for row in rep.rows[:, order]:
-            by_iter[int(round(row[0]))] = row
-    rows = np.array([by_iter[k] for k in sorted(by_iter)])
-    return Report(name=reports[0].name, columns=list(columns), rows=rows)
+    last = None
+    for row in rows:
+        k = int(round(row[0]))
+        if last is not None and k <= last:
+            for old in [i for i in by_iter if i >= k]:
+                del by_iter[old]
+        by_iter[k] = row
+        last = k
+    return np.array([by_iter[k] for k in sorted(by_iter)])
 
 
 def guess_columns(columns):
@@ -133,11 +147,8 @@ def _column(report, name):
 def polar(report, angle_col, cl_col, cd_col, angle_unit="rad", last_n=LAST_N, cl_tol=CL_TOL, cd_tol=CD_TOL):
     """One PolarRow per angle, smallest angle first."""
     ia, il, idd = (_column(report, c) for c in (angle_col, cl_col, cd_col))
-    # Later lines win for a repeated iteration number (a sweep continued from a saved case).
-    by_iter = {}
-    for row in report.rows:
-        by_iter[int(round(row[0]))] = row
-    rows = np.array([by_iter[k] for k in sorted(by_iter)])
+    # A sweep continued from a saved case writes iteration numbers again: the later run wins.
+    rows = _latest_rows(report.rows)
     angles = rows[:, ia]
     breaks = np.flatnonzero(np.abs(np.diff(angles)) > _ANGLE_SAME) + 1
     latest, seen = {}, {}
