@@ -321,8 +321,8 @@ STRINGS = {
         "en": 'Airfoil profile only',
     },
     'profile_help': {
-        "tr": 'Domain olmadan yalnızca profilin üst ve alt yüzeyi, kenar çubuğundaki çıktı biriminde. SpaceClaim TXT ve SolidWorks ZIP denendi; DesignModeler TXT henüz denenmedi. Açma adımları butonların ipucunda (?).',
-        "en": 'Only the upper and lower surface, without a domain, in the output unit of the sidebar. SpaceClaim TXT and SolidWorks ZIP tried; DesignModeler TXT not tried yet. How to open them: the button tooltips (?).',
+        "tr": 'Domain olmadan yalnızca profilin üst ve alt yüzeyi, kenar çubuğundaki çıktı biriminde. Açma adımları butonların ipucunda (?).',
+        "en": 'Only the upper and lower surface, without a domain, in the output unit of the sidebar. How to open them: the button tooltips (?).',
     },
     'out_unit': {
         "tr": 'İndirilen dosyaların birimi',
@@ -1174,8 +1174,8 @@ STRINGS = {
         "en": 'Settings loaded ({n} inputs).',
     },
     'profile_dm_help': {
-        "tr": 'DesignModeler: Concept → 3D Curve → Coordinates File; Units = kenar çubuğundaki çıktı birimi; sonra Concept → Surfaces From Edges. Henüz denenmedi.',
-        "en": 'DesignModeler: Concept → 3D Curve → Coordinates File; Units = the output unit of the sidebar; then Concept → Surfaces From Edges. Not tried yet.',
+        "tr": 'DesignModeler: Concept → 3D Curve → Coordinates File; Units = kenar çubuğundaki çıktı birimi; sonra Concept → Surfaces From Edges.',
+        "en": 'DesignModeler: Concept → 3D Curve → Coordinates File; Units = the output unit of the sidebar; then Concept → Surfaces From Edges.',
     },
     'profile_sw_help': {
         "tr": 'SolidWorks: Insert → Curve → Curve Through XYZ Points ile önce üst, sonra alt dosyayı seçin (belge birimi = çıktı birimi); kalın arka kenarda iki ucu bir çizgiyle birleştirin. Denendi.',
@@ -1366,8 +1366,8 @@ STRINGS = {
         "en": 'Fluent journal',
     },
     'jou_note': {
-        "tr": "Başlamadan önce Fluent'te: 1) yukarıdaki satırlar case'te kurulu; 2) report file'larda yalnızca expression report'lar (ve moment) var; 3) residual convergence checks kapalı; 4) {expr} = ilk açı, initialize, 1 iterasyonu elle koşun. Journal her açıda yalnızca {expr}'ı değiştirir; açı başına en çok {iterations} iterasyon (Convergence Conditions dolunca sonraki açıya geçer). Yalnızca standalone Fluent (Launcher); Workbench içinde çalışmaz. Fluent 2024 R2'de denendi; aynı adlı case'in üzerine yazma henüz denenmedi.",
-        "en": 'Before you start, in Fluent: 1) the lines above are set in the case; 2) report files hold only expression reports (and the moment); 3) residual convergence checks are off; 4) {expr} = first angle, initialise, run 1 iteration by hand. At each angle the journal only changes {expr}; at most {iterations} iterations per angle (it moves on when the Convergence Conditions are met). Standalone Fluent (Launcher) only; it does not work inside Workbench. Tried in Fluent 2024 R2; overwriting a case of the same name not tried yet.',
+        "tr": "Başlamadan önce Fluent'te: 1) yukarıdaki satırlar case'te kurulu; 2) report file'larda yalnızca expression report'lar (ve moment) var; 3) residual convergence checks kapalı; 4) {expr} = ilk açı, initialize, 1 iterasyonu elle koşun. Journal her açıda yalnızca {expr}'ı değiştirir; açı başına en çok {iterations} iterasyon (Convergence Conditions dolunca sonraki açıya geçer). Yalnızca standalone Fluent (Launcher); Workbench içinde çalışmaz. Fluent 2024 R2'de denendi.",
+        "en": 'Before you start, in Fluent: 1) the lines above are set in the case; 2) report files hold only expression reports (and the moment); 3) residual convergence checks are off; 4) {expr} = first angle, initialise, run 1 iteration by hand. At each angle the journal only changes {expr}; at most {iterations} iterations per angle (it moves on when the Convergence Conditions are met). Standalone Fluent (Launcher) only; it does not work inside Workbench. Tried in Fluent 2024 R2.',
     },
     'jou_setup_title': {
         "tr": 'Case\'te olması gerekenler (named expression ve report definition)',

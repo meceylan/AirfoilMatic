@@ -39,9 +39,14 @@ st.set_page_config(page_title=f"AirfoilMatic v{APP_VERSION} {APP_STAGE}", layout
                    menu_items={"Report a bug": f"{ui.DEVELOPER['repo']}/issues",
                                "About": ui.about_markdown("tr") + "\n\n---\n\n" + ui.about_markdown("en")})
 
+# The developer card heads the sidebar (it was easy to miss at the bottom); it needs the language,
+# so its slot is made first and filled right after the language choice.
+dev_slot = st.sidebar.empty()
+
 # ---------------------------------------------------------------- language
 lang_label = st.sidebar.radio("Dil / Language", list(LANGS.values()), horizontal=True)
 L = {v: k for k, v in LANGS.items()}[lang_label]
+dev_slot.markdown(ui.footer_html(L, tr("dev_label", L), top=True), unsafe_allow_html=True)
 
 
 def t(key, **kw):
@@ -66,7 +71,10 @@ KEPT_WHEN_HIDDEN = ("re", "mach_in", "mach_temp", "velocity", "density", "viscos
                     "sweep_from", "sweep_to", "sweep_step", "sweep_list",
                     # journal, family and polar / GCI settings, hidden while the sweep or the files are empty
                     "jou_iter", "jou_expr", "jou_save_every", "jou_folder", "msh_family",
-                    "polar_unit", "polar_n", "polar_cl_tol", "gci_unit", "gci_last_n")
+                    "polar_unit", "polar_n", "polar_cl_tol", "gci_unit", "gci_last_n",
+                    # choices whose option labels are translated: after a language switch the browser lost
+                    # the shown selection (the value itself was kept) until it is written back like this
+                    "source", "sweep_mode", "flow_mode", "mesh_mode", "domain_kind")
 for _k in KEPT_WHEN_HIDDEN:
     if _k in st.session_state:
         st.session_state[_k] = st.session_state[_k]
@@ -278,7 +286,6 @@ with st.sidebar.expander(t("settings_title")):
     if msg:
         (st.success if msg[0] == "success" else st.error)(msg[1])
 st.sidebar.markdown(ui.note_html(t("beta_warning", stage=APP_STAGE, version=APP_VERSION)), unsafe_allow_html=True)
-st.sidebar.markdown(ui.footer_html(L, t("dev_label")), unsafe_allow_html=True)
 
 # ---------------------------------------------------------------- geometry
 MIN_NOTE_OVERLAP = 1e-5   # smaller overlaps are repaired without a remark

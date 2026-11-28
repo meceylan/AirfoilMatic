@@ -154,6 +154,7 @@ _CSS = """
   color:var(--am-note-text);margin:.4rem 0;}
 .am-note b{display:block;margin-bottom:.2rem;}
 .am-foot{margin-top:.6rem;padding-top:.8rem;border-top:1px solid rgba(128,128,128,.2);font-size:.85rem;}
+.am-foot-top{margin-top:0;padding-top:0;border-top:none;padding-bottom:.8rem;border-bottom:1px solid rgba(128,128,128,.2);margin-bottom:.4rem;}
 .am-foot .who{font-weight:600;}
 .am-foot .uni{font-size:.78rem;opacity:.6;margin-bottom:.45rem;}
 .am-foot a{display:inline-flex;align-items:center;gap:.35rem;margin-right:.9rem;color:inherit !important;
@@ -232,9 +233,10 @@ def note_html(text):
     return f"<div class='am-note'><b>{escape(head)}</b>{escape(body)}</div>"
 
 
-def footer_html(lang, label):
+def footer_html(lang, label, top=False):
+    """Developer card; ``top`` places it at the head of the sidebar (line below instead of above)."""
     d = DEVELOPER
-    return (f"<div class='am-foot'><div style='font-size:.72rem;opacity:.55'>{escape(label)}</div>"
+    return (f"<div class='am-foot{' am-foot-top' if top else ''}'><div style='font-size:.72rem;opacity:.55'>{escape(label)}</div>"
             f"<div class='who'>{escape(d['name'])}</div>"
             f"<div class='uni'>{escape(d['university'][lang])}</div>"
             f"<a href='{d['linkedin']}' target='_blank' rel='noopener'>{_LINKEDIN_SVG} LinkedIn</a>"

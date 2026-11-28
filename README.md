@@ -10,9 +10,9 @@ Bir kanat profili seçin; AirfoilMatic, Ansys Fluent'te 2B analiz için etrafın
 
 **[Tarayıcıda çalıştır → airfoilmatic.streamlit.app](https://airfoilmatic.streamlit.app/)** (kurulum gerekmez)
 
-<!-- Ekran görüntüsü: docs/img/app.png eklenince aşağıdaki satırın başındaki ve sonundaki yorum işaretlerini kaldırın.
-![AirfoilMatic arayüzü](docs/img/app.png)
--->
+![AirfoilMatic: profil ve bölme çizgileri](docs/img/app-geometry.png)
+
+![AirfoilMatic: Mesh / y⁺ sekmesi, Mapped](docs/img/app-mesh.png)
 
 ## Özellikler
 * **Profil:** NACA 4 / 5 haneli (denklemden), UIUC veritabanından seçilmiş 300 profil (yazarken öneri, 🎲 rastgele profil) ya da kendi `.dat` / `.txt` / `.csv` dosyanız (Selig, Lednicer; birim, orijin ve nokta sırası fark etmez). Uygulama profil uydurmaz: listede olmayan ad için "veritabanında yok" der.

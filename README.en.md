@@ -10,9 +10,9 @@ Pick an airfoil; AirfoilMatic builds the flow domain around it for a 2D analysis
 
 **[Run it in your browser → airfoilmatic.streamlit.app](https://airfoilmatic.streamlit.app/)** (no installation)
 
-<!-- Screenshot: once docs/img/app.png is added, remove the comment markers around the next line.
-![AirfoilMatic interface](docs/img/app.png)
--->
+![AirfoilMatic: airfoil and split lines](docs/img/app-geometry-en.png)
+
+![AirfoilMatic: Mesh / y⁺ tab, Mapped](docs/img/app-mesh-en.png)
 
 ## Features
 * **Airfoil:** NACA 4 / 5-digit (from the equations), 300 sections selected from the UIUC database (suggestions while typing, 🎲 random section) or your own `.dat` / `.txt` / `.csv` file (Selig, Lednicer; units, origin and point order do not matter). The app does not invent sections: a name that is not listed is reported as not in the database.
